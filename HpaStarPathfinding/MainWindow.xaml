@@ -1,13 +1,60 @@
 ﻿<Window
-    Height="350"
+    Background="Black"
+    Name="PathfindingWindow"
     Title="MainWindow"
-    Width="525"
     mc:Ignorable="d"
     x:Class="HpaStarPathfinding.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:HpaStarPathfinding"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:HpaStarPathfinding.ViewModel"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Canvas Background="White" Name="PathCanvas" />
+    <Window.DataContext>
+        <vm:MainWindowViewModel />
+    </Window.DataContext>
+    <Window.Style>
+        <Style TargetType="Window">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Window">
+                        <Grid>
+                            <!--  Title bar  -->
+                            <Border
+                                Background="LightGray"
+                                Height="30"
+                                VerticalAlignment="Top">
+                                <!--  Title bar content  -->
+                                <Grid>
+                                    <ToggleButton
+                                        Content="SetPathStart"
+                                        HorizontalAlignment="Left"
+                                        IsChecked="{Binding ChangeStart, Mode=TwoWay}"
+                                        Margin="0,0,0,0"
+                                        VerticalAlignment="Top"
+                                        Width="80" />
+                                    <ToggleButton
+                                        Content="SetPathEnd"
+                                        HorizontalAlignment="Left"
+                                        IsChecked="{Binding ChangeEnd, Mode=TwoWay}"
+                                        Margin="80,0,0,0"
+                                        VerticalAlignment="Top"
+                                        Width="80" />
+                                </Grid>
+                            </Border>
+                            <!--  Content area  -->
+                            <Grid Margin="0,30,0,0">
+                                <ContentPresenter />
+                            </Grid>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Style>
+    <Viewbox Stretch="Uniform">
+        <Canvas Background="White" Name="PathCanvas">
+            <!--  Content will be added dynamically  -->
+        </Canvas>
+    </Viewbox>
 </Window>
