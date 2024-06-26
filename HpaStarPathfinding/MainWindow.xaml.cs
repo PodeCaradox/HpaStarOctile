@@ -16,7 +16,10 @@ namespace HpaStarPathfinding
     /// </summary>
     public partial class MainWindow
     {
-        private Rectangle[,] grid;
+        private Rectangle[,] chunks;
+        
+        private List<Line> lines = new List<Line>();
+        
         public static int CellSize = 40;
         
         private CircleUI[] pathStart = {new CircleUI(Brushes.Green), new CircleUI(Brushes.Red)};
@@ -32,8 +35,9 @@ namespace HpaStarPathfinding
             PathCanvas.Height = CellSize * MainWindowViewModel.GridSize;
             PathCanvas.Width = CellSize * MainWindowViewModel.GridSize;
             PathCanvas.MouseLeftButtonDown += PathCanvasOnMouseLeftButtonDown;
-            
+            PathCanvas.IsEnabled = false;
             InitializeGrid();
+            PathCanvas.IsEnabled = true;
         }
 
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -44,19 +48,21 @@ namespace HpaStarPathfinding
         private void PathCanvasOnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             Point p = Mouse.GetPosition(PathCanvas);
-            Vector2D vector2D = Vector2D.ConvertPointToIndex(p);
-            if (_vm.PathPointIsWall(vector2D))
+            Vector2D mapPoint = Vector2D.ConvertPointToIndex(p);
+            if (_vm.PathPointIsWall(mapPoint))
                 return;
 
-            vector2D = Vector2D.ConvertVector2DToMapPosCentered(vector2D);
+            var screenPoint = Vector2D.ConvertVector2DToScreenPosCentered(mapPoint);
             if (_vm.ChangeStart)
             {
-                pathStart[0].ChangePosition(PathCanvas, vector2D);
+                _vm.PathStart = mapPoint;
+                pathStart[0].ChangePosition(PathCanvas, screenPoint);
             }
 
             if(_vm.ChangeEnd)
             {
-                pathStart[1].ChangePosition(PathCanvas, vector2D);
+                _vm.PathEnd = mapPoint;
+                pathStart[1].ChangePosition(PathCanvas, screenPoint);
             }
         }
 
@@ -64,8 +70,7 @@ namespace HpaStarPathfinding
 
         private void InitializeGrid()
         {
-            grid = new Rectangle[MainWindowViewModel.GridSize, MainWindowViewModel.GridSize];
-            _vm.Cells = new Cell[MainWindowViewModel.GridSize, MainWindowViewModel.GridSize];
+            _vm.Init();
             for (int i = 0; i < MainWindowViewModel.GridSize; i++)
             {
                 for (int j = 0; j < MainWindowViewModel.GridSize; j++)
@@ -78,16 +83,39 @@ namespace HpaStarPathfinding
                         Width = CellSize,
                         Height = CellSize,
                         Stroke = Brushes.Black,
-                        Fill = _vm.Cells[i, j].Wall ? Brushes.Black : Brushes.White
+                        Fill = _vm.Cells[i, j].wall ? Brushes.Black : Brushes.White
                     };
                     rect.MouseLeftButtonDown += Rectangle_MouseLeftButtonDown;
                     rect.Tag = _vm.Cells[i, j];
                     Canvas.SetLeft(rect, i * CellSize);
                     Canvas.SetTop(rect, j * CellSize);
                     PathCanvas.Children.Add(rect);
-                    grid[i, j] = rect;
                 }
             }
+
+            chunks = new Rectangle[MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize, MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize];
+            for (int i = 0; i < MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize; i++)
+            {
+                for (int j = 0; j < MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize; j++)
+                {
+                    
+                    _vm.Chunks[i, j] = new Chunk();
+                    Rectangle rect = new Rectangle
+                    {
+                        Width = CellSize * MainWindowViewModel.ChunkSize - 4,
+                        Height = CellSize * MainWindowViewModel.ChunkSize - 4,
+                        Stroke = Brushes.Yellow,
+                        Fill = Brushes.Transparent,
+                        IsHitTestVisible = false
+                    };
+                    rect.Tag = _vm.Chunks[i, j];
+                    Canvas.SetLeft(rect, i * CellSize * MainWindowViewModel.ChunkSize + 2);
+                    Canvas.SetTop(rect, j * CellSize * MainWindowViewModel.ChunkSize + 2);
+                    chunks[i, j] = rect;
+                }
+            }
+            
+            
         }
 
         private void Rectangle_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -100,21 +128,63 @@ namespace HpaStarPathfinding
             if (cell == null) 
                 return;
             
-            cell.Wall = !cell.Wall;
-            if (cell.Wall)
+            cell.wall = !cell.wall;
+            if (cell.wall)
             {
                 rect.Fill = Brushes.Black;
                 return;
             }
             
             rect.Fill = Brushes.White;
-                
-            
         }
-        
 
 
+        private void ToggleChunksButton_OnChecked(object sender, RoutedEventArgs e)
+        {
+            foreach (var chunk in chunks)
+            { 
+                PathCanvas.Children.Add(chunk);
+            }
+           
+        }
 
-        
+        private void ToggleChunksButton_OnUnchecked(object sender, RoutedEventArgs e)
+        {
+            foreach (var chunk in chunks)
+            { 
+                PathCanvas.Children.Remove(chunk);
+            }
+        }
+
+        private void CalcPath(object sender, RoutedEventArgs e)
+        {
+            foreach (var line in lines)
+            {
+                PathCanvas.Children.Remove(line);
+            }
+            lines.Clear();
+
+            if (_vm.Path.Count < 2) 
+                return;
+            
+            for (int i = 1; i < _vm.Path.Count; i++)
+            {
+                var point1 = Vector2D.ConvertVector2DToScreenPosCentered(_vm.Path[i - 1]);
+                var point2 = Vector2D.ConvertVector2DToScreenPosCentered(_vm.Path[i]);
+                Line line = new Line
+                {
+                    StrokeThickness  = 2,
+                    X1 = point1.X,
+                    X2 = point2.X,
+                    Y1 = point1.Y,
+                    Y2 = point2.Y,
+                    Stroke = Brushes.Red,
+                    IsHitTestVisible = false
+                };
+                
+                lines.Add(line);
+                PathCanvas.Children.Add(line);
+            }
+        }
     }
 }

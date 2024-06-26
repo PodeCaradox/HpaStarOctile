@@ -52,6 +52,7 @@
             <SubType>Designer</SubType>
         </ApplicationDefinition>
         <Compile Include="ViewModel\Cell.cs" />
+        <Compile Include="ViewModel\Chunk.cs" />
         <Compile Include="ViewModel\MainWindowViewModel.cs" />
         <Compile Include="ViewModel\Vector2D.cs" />
         <Compile Include="ViewModel\ViewModelBase.cs" />

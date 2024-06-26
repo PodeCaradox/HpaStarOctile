@@ -15,7 +15,7 @@ namespace HpaStarPathfinding.ViewModel
         public int Y { get; set; }
         
         
-        public static Vector2D ConvertVector2DToMapPosCentered(Vector2D point)
+        public static Vector2D ConvertVector2DToScreenPosCentered(Vector2D point)
         {
             int x = point.X * MainWindow.CellSize + MainWindow.CellSize / 2;
             int y = point.Y * MainWindow.CellSize + MainWindow.CellSize / 2;
