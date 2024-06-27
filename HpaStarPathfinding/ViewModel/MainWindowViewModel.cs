@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using HpaStarPathfinding.pathfinding;
 
 namespace HpaStarPathfinding.ViewModel
 {
@@ -82,9 +83,9 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
-        private Cell[,] cells;
+        private Node[,] cells;
 
-        public Cell[,] Cells
+        public Node[,] Cells
         {
             get => cells;
             set
@@ -112,20 +113,20 @@ namespace HpaStarPathfinding.ViewModel
 
         public bool PathPointIsWall(Vector2D vector2D)
         {
-            return cells[vector2D.X, vector2D.Y].wall;
+            return !cells[vector2D.X, vector2D.Y].Walkable;
         }
 
         public void Init()
         {
-            Cells = new Cell[GridSize, GridSize];
+            Cells = new Node[GridSize, GridSize];
             Chunks = new Chunk[GridSize / ChunkSize, GridSize / ChunkSize];
             Path = new List<Vector2D>();
-            
-            Path.Add(new Vector2D(2,2));
-            Path.Add(new Vector2D(2,4));
-            Path.Add(new Vector2D(4,4));
-            Path.Add(new Vector2D(6,4));
-            Path.Add(new Vector2D(6,10));
+
+        }
+
+        public void FindPath()
+        {
+            Path = Astar.FindPath(cells, pathStart, pathEnd);
 
         }
     }

@@ -51,7 +51,8 @@
             <Generator>MSBuild:Compile</Generator>
             <SubType>Designer</SubType>
         </ApplicationDefinition>
-        <Compile Include="ViewModel\Cell.cs" />
+        <Compile Include="pathfinding\AStar.cs" />
+        <Compile Include="ViewModel\Node.cs" />
         <Compile Include="ViewModel\Chunk.cs" />
         <Compile Include="ViewModel\MainWindowViewModel.cs" />
         <Compile Include="ViewModel\Vector2D.cs" />

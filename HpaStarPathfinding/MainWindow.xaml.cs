@@ -76,14 +76,14 @@ namespace HpaStarPathfinding
                 for (int j = 0; j < MainWindowViewModel.GridSize; j++)
                 {
                     
-                    _vm.Cells[i, j] = new Cell();
+                    _vm.Cells[i, j] = new Node(new Vector2D(i, j), true);
                     
                     Rectangle rect = new Rectangle
                     {
                         Width = CellSize,
                         Height = CellSize,
                         Stroke = Brushes.Black,
-                        Fill = _vm.Cells[i, j].wall ? Brushes.Black : Brushes.White
+                        Fill = _vm.Cells[i, j].Walkable ? Brushes.White : Brushes.Black
                     };
                     rect.MouseLeftButtonDown += Rectangle_MouseLeftButtonDown;
                     rect.Tag = _vm.Cells[i, j];
@@ -124,12 +124,12 @@ namespace HpaStarPathfinding
                 return;
 
             var rect = sender as Rectangle;
-            var cell = (rect.Tag as Cell);
+            var cell = (rect.Tag as Node);
             if (cell == null) 
                 return;
             
-            cell.wall = !cell.wall;
-            if (cell.wall)
+            cell.Walkable = !cell.Walkable;
+            if (!cell.Walkable)
             {
                 rect.Fill = Brushes.Black;
                 return;
@@ -164,13 +164,18 @@ namespace HpaStarPathfinding
             }
             lines.Clear();
 
-            if (_vm.Path.Count < 2) 
+
+            _vm.FindPath();
+
+            if (_vm.Path == null || _vm.Path.Count < 2) 
                 return;
+
+            var path = _vm.Path.ToArray();
             
             for (int i = 1; i < _vm.Path.Count; i++)
             {
-                var point1 = Vector2D.ConvertVector2DToScreenPosCentered(_vm.Path[i - 1]);
-                var point2 = Vector2D.ConvertVector2DToScreenPosCentered(_vm.Path[i]);
+                var point1 = Vector2D.ConvertVector2DToScreenPosCentered(path[i - 1]);
+                var point2 = Vector2D.ConvertVector2DToScreenPosCentered(path[i]);
                 Line line = new Line
                 {
                     StrokeThickness  = 2,
@@ -178,7 +183,7 @@ namespace HpaStarPathfinding
                     X2 = point2.X,
                     Y1 = point1.Y,
                     Y2 = point2.Y,
-                    Stroke = Brushes.Red,
+                    Stroke = Brushes.Green,
                     IsHitTestVisible = false
                 };
                 

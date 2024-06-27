@@ -28,5 +28,24 @@ namespace HpaStarPathfinding.ViewModel
             int y = (int)point.Y / MainWindow.CellSize;
             return new Vector2D(x, y);
         }
+        
+        public static Vector2D operator +(Vector2D a, Vector2D b)
+        {
+            return new Vector2D(a.X + b.X, a.Y + b.Y);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Vector2D other)
+            {
+                return X == other.X && Y == other.Y;
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return X.GetHashCode() ^ Y.GetHashCode();
+        }
     }
 }
