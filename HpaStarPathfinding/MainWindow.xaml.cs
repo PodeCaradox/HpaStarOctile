@@ -39,16 +39,21 @@ namespace HpaStarPathfinding
             PathCanvas.Height = MainWindowViewModel.CellSize * MainWindowViewModel.GridSize;
             PathCanvas.Width = MainWindowViewModel.CellSize * MainWindowViewModel.GridSize;
             PathCanvas.MouseLeftButtonDown += MapOnMouseLeftButtonDown;
+            Init();
+        }
+
+        #endregion
+       
+        #region Init
+        
+        private void Init()
+        {
             PathCanvas.IsEnabled = false;
             _vm.Init();
             InitializeGridMap();
             InitializeGridChunks();
             PathCanvas.IsEnabled = true;
         }
-
-        #endregion
-       
-        #region Init
 
         private void InitializeGridMap()
         {
@@ -102,6 +107,12 @@ namespace HpaStarPathfinding
         #endregion
 
         #region Events
+        
+        private void ClearClicked(object sender, RoutedEventArgs e)
+        {
+            PathCanvas.Children.Clear();
+            Init();
+        }
         
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
@@ -250,6 +261,7 @@ namespace HpaStarPathfinding
         }
 
         #endregion
-       
+
+
     }
 }

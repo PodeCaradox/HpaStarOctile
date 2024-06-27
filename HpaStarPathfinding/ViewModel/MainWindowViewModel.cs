@@ -117,6 +117,8 @@ namespace HpaStarPathfinding.ViewModel
         public void Init()
         {
             InitMap();
+            pathStart = null;
+            pathEnd = null;
             chunks = new Chunk[GridSize / ChunkSize, GridSize / ChunkSize];
             path = new List<Vector2D>();
         }
