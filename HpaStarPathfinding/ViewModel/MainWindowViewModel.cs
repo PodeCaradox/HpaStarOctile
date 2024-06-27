@@ -126,6 +126,8 @@ namespace HpaStarPathfinding.ViewModel
 
         public void FindPath()
         {
+            if (PathStart == null || PathEnd == null)
+                return;
             Path = Astar.FindPath(cells, pathStart, pathEnd);
 
         }

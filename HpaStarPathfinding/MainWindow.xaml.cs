@@ -16,11 +16,11 @@ namespace HpaStarPathfinding
     /// </summary>
     public partial class MainWindow
     {
+        public static int CellSize = 40;
+        
         private Rectangle[,] chunks;
         
         private List<Line> lines = new List<Line>();
-        
-        public static int CellSize = 40;
         
         private CircleUI[] pathStart = {new CircleUI(Brushes.Green), new CircleUI(Brushes.Red)};
 
@@ -64,10 +64,10 @@ namespace HpaStarPathfinding
                 _vm.PathEnd = mapPoint;
                 pathStart[1].ChangePosition(PathCanvas, screenPoint);
             }
+
+            CalcPath();
         }
-
-
-
+        
         private void InitializeGrid()
         {
             _vm.Init();
@@ -127,8 +127,13 @@ namespace HpaStarPathfinding
             var cell = (rect.Tag as Node);
             if (cell == null) 
                 return;
+
+            if (cell.Position.Equals( _vm.PathStart) || cell.Position.Equals(_vm.PathEnd)) 
+                return;
+            
             
             cell.Walkable = !cell.Walkable;
+            CalcPath();
             if (!cell.Walkable)
             {
                 rect.Fill = Brushes.Black;
@@ -156,14 +161,13 @@ namespace HpaStarPathfinding
             }
         }
 
-        private void CalcPath(object sender, RoutedEventArgs e)
+        private void CalcPath()
         {
             foreach (var line in lines)
             {
                 PathCanvas.Children.Remove(line);
             }
             lines.Clear();
-
 
             _vm.FindPath();
 

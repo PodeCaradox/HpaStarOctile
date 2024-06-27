@@ -27,38 +27,31 @@
                                 <!--  Title bar content  -->
                                 <Grid>
                                     <ToggleButton
-                                        Content="SetPathStart"
+                                        Content="SetStart"
                                         HorizontalAlignment="Left"
                                         IsChecked="{Binding ChangeStart, Mode=TwoWay}"
                                         Margin="0,0,0,0"
                                         VerticalAlignment="Top"
-                                        Width="80" />
+                                        Width="50" />
                                     <ToggleButton
-                                        Content="SetPathEnd"
+                                        Content="SetEnd"
                                         HorizontalAlignment="Left"
                                         IsChecked="{Binding ChangeEnd, Mode=TwoWay}"
-                                        Margin="80,0,0,0"
+                                        Margin="50,0,0,0"
                                         VerticalAlignment="Top"
-                                        Width="80" />
+                                        Width="50" />
                                     <ToggleButton
                                         Checked="ToggleChunksButton_OnChecked"
                                         Content="Draw Chunks"
                                         HorizontalAlignment="Left"
-                                        Margin="160,0,0,0"
+                                        Margin="180,0,0,0"
                                         Unchecked="ToggleChunksButton_OnUnchecked"
                                         VerticalAlignment="Top"
                                         Width="80" />
                                     <ToggleButton
                                         Content="Draw Portals"
                                         HorizontalAlignment="Left"
-                                        Margin="240,0,0,0"
-                                        VerticalAlignment="Top"
-                                        Width="80" />
-                                    <Button
-                                        Click="CalcPath"
-                                        Content="Calc Path"
-                                        HorizontalAlignment="Left"
-                                        Margin="320,0,0,0"
+                                        Margin="260,0,0,0"
                                         VerticalAlignment="Top"
                                         Width="80" />
                                 </Grid>
