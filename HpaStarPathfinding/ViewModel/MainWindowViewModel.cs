@@ -5,131 +5,153 @@ namespace HpaStarPathfinding.ViewModel
 {
     public class MainWindowViewModel: ViewModelBase
     {
-        public static int GridSize = 20;
-        public static int ChunkSize = 10;
-        
+        public const int GridSize = 50;
+        public const int ChunkSize = 10;
+        public const int CellSize = 20;
+
         #region Propertys UI
 
-        private bool changeStart = false;
+        private bool _changePathfindingStartNodeEnabled = false;
 
-        public bool ChangeStart
+        public bool changePathfindingStartNodeEnabled
         {
-            get { return changeStart; }
+            get { return _changePathfindingStartNodeEnabled; }
             set
             {
-                if (value != changeStart)
+                if (value != _changePathfindingStartNodeEnabled)
                 {
-                    if (value) ChangeEnd = false;
-                    changeStart = value;
+                    if (value) changePathfindingEndNodeEnabled = false;
+                    _changePathfindingStartNodeEnabled = value;
                     OnPropertyChanged();
                 }
             }
         }
         
-        private bool changeEnd = false;
+        private bool _changePathfindingEndNodeEnabled = false;
 
-        public bool ChangeEnd
+        public bool changePathfindingEndNodeEnabled
         {
-            get => changeEnd;
+            get => _changePathfindingEndNodeEnabled;
             set
             {
-                if (value == changeEnd) return;
-                if (value) ChangeStart = false;
-                changeEnd = value;
+                if (value == _changePathfindingEndNodeEnabled) return;
+                if (value) changePathfindingStartNodeEnabled = false;
+                _changePathfindingEndNodeEnabled = value;
                 OnPropertyChanged();
             }
         }
         
         #endregion
         
-        #region Propertys
+        #region Properties
         
-        private Vector2D pathEnd;
+        private Vector2D _pathEnd;
 
-        public Vector2D PathEnd
+        public Vector2D pathEnd
         {
-            get => pathEnd;
+            get => _pathEnd;
             set
             {
-                if (value == pathEnd) return;
-                pathEnd = value;
+                if (Equals(value, _pathEnd)) return;
+                _pathEnd = value;
                 OnPropertyChanged();
             }
         }
         
-        private List<Vector2D> path = new List<Vector2D>();
+        private Vector2D _pathStart;
 
-        public List<Vector2D> Path
+        public Vector2D pathStart
         {
-            get => path;
+            get => _pathStart;
             set
             {
-                if (value == path) return;
-                path = value;
+                if (Equals(value, _pathStart)) return;
+                _pathStart = value;
                 OnPropertyChanged();
             }
         }
         
-        private Vector2D pathStart;
+        private List<Vector2D> _path = new List<Vector2D>();
 
-        public Vector2D PathStart
+        public List<Vector2D> path
         {
-            get => pathStart;
+            get => _path;
             set
             {
-                if (value == pathStart) return;
-                pathStart = value;
+                if (value == _path) return;
+                _path = value;
                 OnPropertyChanged();
             }
         }
         
-        private Node[,] cells;
+        private Cell[,] _map;
 
-        public Node[,] Cells
+        public Cell[,] map
         {
-            get => cells;
+            get => _map;
             set
             {
-                if (value == cells) return;
-                cells = value;
+                if (value == _map) return;
+                _map = value;
                 OnPropertyChanged();
             }
         }
         
-        private Chunk[,] chunks;
+        private Chunk[,] _chunks;
 
-        public Chunk[,] Chunks
+        public Chunk[,] chunks
         {
-            get => chunks;
+            get => _chunks;
             set
             {
-                if (value == chunks) return;
-                chunks = value;
+                if (value == _chunks) return;
+                _chunks = value;
                 OnPropertyChanged();
             }
         }
         
         #endregion
 
-        public bool PathPointIsWall(Vector2D vector2D)
-        {
-            return !cells[vector2D.X, vector2D.Y].Walkable;
-        }
+        #region Init
 
         public void Init()
         {
-            Cells = new Node[GridSize, GridSize];
-            Chunks = new Chunk[GridSize / ChunkSize, GridSize / ChunkSize];
-            Path = new List<Vector2D>();
+            InitMap();
+            chunks = new Chunk[GridSize / ChunkSize, GridSize / ChunkSize];
+            path = new List<Vector2D>();
+        }
+        
+        private void InitMap()
+        {
+            map = new Cell[GridSize, GridSize];
+            for (int x = 0; x < map.GetLength(0); x++)
+            {
+                for (int y = 0; y < map.GetLength(1); y++)
+                {
+                    var node = new Cell(new Vector2D(x, y));
+                    map[y, x] = node;
+                }
+            }
+        }
 
+        #endregion
+
+        #region Methods
+
+        public bool PathPointIsWall(Vector2D vector2D)
+        {
+            return !_map[vector2D.x, vector2D.y].Walkable;
         }
 
         public void FindPath()
         {
-            if (PathStart == null || PathEnd == null)
+            if (pathStart == null || pathEnd == null)
                 return;
-            Path = Astar.FindPath(cells, pathStart, pathEnd);
-
+            path = Astar.FindPath(_map, _pathStart, _pathEnd);
         }
+
+        
+
+        #endregion
     }
 }

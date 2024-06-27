@@ -51,11 +51,12 @@
             <Generator>MSBuild:Compile</Generator>
             <SubType>Designer</SubType>
         </ApplicationDefinition>
+        <Compile Include="Model\Pathfinding\Chunk.cs" />
+        <Compile Include="Model\Pathfinding\Cell.cs" />
+        <Compile Include="Model\Pathfinding\Vector2D.cs" />
+        <Compile Include="Model\UI\CircleUI.cs" />
         <Compile Include="pathfinding\AStar.cs" />
-        <Compile Include="ViewModel\Node.cs" />
-        <Compile Include="ViewModel\Chunk.cs" />
         <Compile Include="ViewModel\MainWindowViewModel.cs" />
-        <Compile Include="ViewModel\Vector2D.cs" />
         <Compile Include="ViewModel\ViewModelBase.cs" />
         <Page Include="MainWindow.xaml">
             <Generator>MSBuild:Compile</Generator>
@@ -71,7 +72,6 @@
         </Compile>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="Model\CircleUI.cs" />
         <Compile Include="Properties\AssemblyInfo.cs">
             <SubType>Code</SubType>
         </Compile>

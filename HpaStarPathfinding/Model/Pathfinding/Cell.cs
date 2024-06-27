@@ -1,15 +1,15 @@
 ﻿namespace HpaStarPathfinding.ViewModel
 {
-    public class Node
+    public class Cell
     {
-        public Vector2D Position;
+        public readonly Vector2D Position;
         public bool Walkable;
-        public Node Parent;
+        public Cell Parent;
         public float GCost;
         public float HCost;
-        public float FCost => GCost + HCost;
+        public float fCost => GCost + HCost;
 
-        public Node(Vector2D pos, bool walkable)
+        public Cell(Vector2D pos, bool walkable = true)
         {
             Position = pos;
             Walkable = walkable;

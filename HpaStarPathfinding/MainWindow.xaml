@@ -29,23 +29,23 @@
                                     <ToggleButton
                                         Content="SetStart"
                                         HorizontalAlignment="Left"
-                                        IsChecked="{Binding ChangeStart, Mode=TwoWay}"
+                                        IsChecked="{Binding changePathfindingStartNodeEnabled, Mode=TwoWay}"
                                         Margin="0,0,0,0"
                                         VerticalAlignment="Top"
                                         Width="50" />
                                     <ToggleButton
                                         Content="SetEnd"
                                         HorizontalAlignment="Left"
-                                        IsChecked="{Binding ChangeEnd, Mode=TwoWay}"
+                                        IsChecked="{Binding changePathfindingEndNodeEnabled, Mode=TwoWay}"
                                         Margin="50,0,0,0"
                                         VerticalAlignment="Top"
                                         Width="50" />
                                     <ToggleButton
-                                        Checked="ToggleChunksButton_OnChecked"
+                                        Checked="ChunksButtonChecked"
                                         Content="Draw Chunks"
                                         HorizontalAlignment="Left"
                                         Margin="180,0,0,0"
-                                        Unchecked="ToggleChunksButton_OnUnchecked"
+                                        Unchecked="ChunksButtonUnchecked"
                                         VerticalAlignment="Top"
                                         Width="80" />
                                     <ToggleButton

@@ -16,184 +16,240 @@ namespace HpaStarPathfinding
     /// </summary>
     public partial class MainWindow
     {
-        public static int CellSize = 40;
+        #region Properties
+
+        private Rectangle[,] _chunks;
         
-        private Rectangle[,] chunks;
+        private readonly List<Line> _lines = new List<Line>();
         
-        private List<Line> lines = new List<Line>();
-        
-        private CircleUI[] pathStart = {new CircleUI(Brushes.Green), new CircleUI(Brushes.Red)};
+        private readonly CircleUi[] _pathStartEnd = { new CircleUi(Brushes.Green), new CircleUi(Brushes.Red)};
 
         private MainWindowViewModel _vm;
-        
+
+        #endregion
+
+        #region Constructor
+
         public MainWindow()
         {
             DataContextChanged += OnDataContextChanged;
             InitializeComponent();
-            PathfindingWindow.Width = CellSize * MainWindowViewModel.GridSize + 22;
-            PathfindingWindow.Height = CellSize * MainWindowViewModel.GridSize + 76;
-            PathCanvas.Height = CellSize * MainWindowViewModel.GridSize;
-            PathCanvas.Width = CellSize * MainWindowViewModel.GridSize;
-            PathCanvas.MouseLeftButtonDown += PathCanvasOnMouseLeftButtonDown;
+            PathfindingWindow.Width = MainWindowViewModel.CellSize * MainWindowViewModel.GridSize + 22;
+            PathfindingWindow.Height = MainWindowViewModel.CellSize * MainWindowViewModel.GridSize + 76;
+            PathCanvas.Height = MainWindowViewModel.CellSize * MainWindowViewModel.GridSize;
+            PathCanvas.Width = MainWindowViewModel.CellSize * MainWindowViewModel.GridSize;
+            PathCanvas.MouseLeftButtonDown += MapOnMouseLeftButtonDown;
             PathCanvas.IsEnabled = false;
-            InitializeGrid();
+            _vm.Init();
+            InitializeGridMap();
+            InitializeGridChunks();
             PathCanvas.IsEnabled = true;
         }
 
+        #endregion
+       
+        #region Init
+
+        private void InitializeGridMap()
+        {
+            for (int y = 0; y < _vm.map.GetLength(0); y++)
+            {
+                for (int x = 0; x < _vm.map.GetLength(1); x++)
+                {
+                    var node = _vm.map[y, x];
+                    Rectangle rect = new Rectangle
+                    {
+                        Width = MainWindowViewModel.CellSize,
+                        Height = MainWindowViewModel.CellSize,
+                        Stroke = Brushes.Black,
+                        Fill = GetCellColor(node)
+                    };
+                    rect.MouseDown += MapCellMouseLeftButtonDown;
+                    rect.MouseEnter += MapCellOnMouseEnter;
+                    rect.Tag = node;
+                    Canvas.SetLeft(rect, x * MainWindowViewModel.CellSize);
+                    Canvas.SetTop(rect, y * MainWindowViewModel.CellSize);
+                    PathCanvas.Children.Add(rect);
+                }
+            }
+        }
+
+        private void InitializeGridChunks()
+        {
+            _chunks = new Rectangle[MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize,
+                MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize];
+            for (int y = 0; y < MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize; y++)
+            {
+                for (int x = 0; x < MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize; x++)
+                {
+                    _vm.chunks[y, x] = new Chunk();
+                    Rectangle rect = new Rectangle
+                    {
+                        Width = MainWindowViewModel.CellSize * MainWindowViewModel.ChunkSize - 4,
+                        Height = MainWindowViewModel.CellSize * MainWindowViewModel.ChunkSize - 4,
+                        Stroke = Brushes.Yellow,
+                        Fill = Brushes.Transparent,
+                        IsHitTestVisible = false
+                    };
+                    rect.Tag = _vm.chunks[y, x];
+                    Canvas.SetLeft(rect, x * MainWindowViewModel.CellSize * MainWindowViewModel.ChunkSize + 2);
+                    Canvas.SetTop(rect, y * MainWindowViewModel.CellSize * MainWindowViewModel.ChunkSize + 2);
+                    _chunks[y, x] = rect;
+                }
+            }
+        }
+
+        #endregion
+
+        #region Events
+        
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             _vm = DataContext as MainWindowViewModel;
         }
 
-        private void PathCanvasOnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void MapOnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             Point p = Mouse.GetPosition(PathCanvas);
-            Vector2D mapPoint = Vector2D.ConvertPointToIndex(p);
+            Vector2D mapPoint = Vector2D.ConvertPointToMapPoint(p);
             if (_vm.PathPointIsWall(mapPoint))
                 return;
 
-            var screenPoint = Vector2D.ConvertVector2DToScreenPosCentered(mapPoint);
-            if (_vm.ChangeStart)
-            {
-                _vm.PathStart = mapPoint;
-                pathStart[0].ChangePosition(PathCanvas, screenPoint);
-            }
-
-            if(_vm.ChangeEnd)
-            {
-                _vm.PathEnd = mapPoint;
-                pathStart[1].ChangePosition(PathCanvas, screenPoint);
-            }
-
+            var screenPoint = Vector2D.ConvertMapPointToCanvasPos(mapPoint);
+            ChangePathfindingStartPoint(mapPoint, screenPoint);
+            ChangePathfindingEndPoint(mapPoint, screenPoint);
             CalcPath();
+        }
+
+        private void MapCellMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            ChangeMapCell(sender);
+        }
+
+        private void MapCellOnMouseEnter(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed) 
+                return;
+
+            ChangeMapCell(sender);
         }
         
-        private void InitializeGrid()
+        private void ChunksButtonChecked(object sender, RoutedEventArgs e)
         {
-            _vm.Init();
-            for (int i = 0; i < MainWindowViewModel.GridSize; i++)
-            {
-                for (int j = 0; j < MainWindowViewModel.GridSize; j++)
-                {
-                    
-                    _vm.Cells[i, j] = new Node(new Vector2D(i, j), true);
-                    
-                    Rectangle rect = new Rectangle
-                    {
-                        Width = CellSize,
-                        Height = CellSize,
-                        Stroke = Brushes.Black,
-                        Fill = _vm.Cells[i, j].Walkable ? Brushes.White : Brushes.Black
-                    };
-                    rect.MouseLeftButtonDown += Rectangle_MouseLeftButtonDown;
-                    rect.Tag = _vm.Cells[i, j];
-                    Canvas.SetLeft(rect, i * CellSize);
-                    Canvas.SetTop(rect, j * CellSize);
-                    PathCanvas.Children.Add(rect);
-                }
-            }
-
-            chunks = new Rectangle[MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize, MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize];
-            for (int i = 0; i < MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize; i++)
-            {
-                for (int j = 0; j < MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize; j++)
-                {
-                    
-                    _vm.Chunks[i, j] = new Chunk();
-                    Rectangle rect = new Rectangle
-                    {
-                        Width = CellSize * MainWindowViewModel.ChunkSize - 4,
-                        Height = CellSize * MainWindowViewModel.ChunkSize - 4,
-                        Stroke = Brushes.Yellow,
-                        Fill = Brushes.Transparent,
-                        IsHitTestVisible = false
-                    };
-                    rect.Tag = _vm.Chunks[i, j];
-                    Canvas.SetLeft(rect, i * CellSize * MainWindowViewModel.ChunkSize + 2);
-                    Canvas.SetTop(rect, j * CellSize * MainWindowViewModel.ChunkSize + 2);
-                    chunks[i, j] = rect;
-                }
-            }
-            
-            
-        }
-
-        private void Rectangle_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (!(sender is Rectangle) || _vm.ChangeEnd || _vm.ChangeStart) 
-                return;
-
-            var rect = sender as Rectangle;
-            var cell = (rect.Tag as Node);
-            if (cell == null) 
-                return;
-
-            if (cell.Position.Equals( _vm.PathStart) || cell.Position.Equals(_vm.PathEnd)) 
-                return;
-            
-            
-            cell.Walkable = !cell.Walkable;
-            CalcPath();
-            if (!cell.Walkable)
-            {
-                rect.Fill = Brushes.Black;
-                return;
-            }
-            
-            rect.Fill = Brushes.White;
-        }
-
-
-        private void ToggleChunksButton_OnChecked(object sender, RoutedEventArgs e)
-        {
-            foreach (var chunk in chunks)
+            foreach (var chunk in _chunks)
             { 
                 PathCanvas.Children.Add(chunk);
             }
            
         }
 
-        private void ToggleChunksButton_OnUnchecked(object sender, RoutedEventArgs e)
+        private void ChunksButtonUnchecked(object sender, RoutedEventArgs e)
         {
-            foreach (var chunk in chunks)
+            foreach (var chunk in _chunks)
             { 
                 PathCanvas.Children.Remove(chunk);
             }
         }
 
+        #endregion
+
+        #region Methods
+
+        private void ChangeMapCell(object sender)
+        {
+            if (_vm.changePathfindingEndNodeEnabled || _vm.changePathfindingStartNodeEnabled)
+                return;
+            
+            if (!(sender is Rectangle rect)) 
+                return;
+
+            if (!(rect.Tag is Cell mapCell)) 
+                return;
+
+            if (mapCell.Position.Equals(_vm.pathStart) || mapCell.Position.Equals(_vm.pathEnd)) 
+                return;
+            
+            
+            mapCell.Walkable = !mapCell.Walkable;
+            CalcPath();
+            rect.Fill = GetCellColor(mapCell);
+        }
+
+        private static Brush GetCellColor(Cell mapCell)
+        {
+            if (!mapCell.Walkable)
+            {
+                return Brushes.Black;
+            }
+
+            return Brushes.White;
+        }
+
         private void CalcPath()
         {
-            foreach (var line in lines)
-            {
-                PathCanvas.Children.Remove(line);
-            }
-            lines.Clear();
+            ResetPathUi();
 
             _vm.FindPath();
 
-            if (_vm.Path == null || _vm.Path.Count < 2) 
+            if (_vm.path == null || _vm.path.Count < 2) 
                 return;
 
-            var path = _vm.Path.ToArray();
+            var path = _vm.path.ToArray();
             
-            for (int i = 1; i < _vm.Path.Count; i++)
+            DrawPathUi(path);
+        }
+
+        private void DrawPathUi(Vector2D[] path)
+        {
+            for (int i = 1; i < _vm.path.Count; i++)
             {
-                var point1 = Vector2D.ConvertVector2DToScreenPosCentered(path[i - 1]);
-                var point2 = Vector2D.ConvertVector2DToScreenPosCentered(path[i]);
+                var point1 = Vector2D.ConvertMapPointToCanvasPos(path[i - 1]);
+                var point2 = Vector2D.ConvertMapPointToCanvasPos(path[i]);
                 Line line = new Line
                 {
-                    StrokeThickness  = 2,
-                    X1 = point1.X,
-                    X2 = point2.X,
-                    Y1 = point1.Y,
-                    Y2 = point2.Y,
+                    StrokeThickness = 2,
+                    X1 = point1.x,
+                    X2 = point2.x,
+                    Y1 = point1.y,
+                    Y2 = point2.y,
                     Stroke = Brushes.Green,
                     IsHitTestVisible = false
                 };
-                
-                lines.Add(line);
+
+                _lines.Add(line);
                 PathCanvas.Children.Add(line);
             }
         }
+
+        private void ResetPathUi()
+        {
+            foreach (var line in _lines)
+            {
+                PathCanvas.Children.Remove(line);
+            }
+
+            _lines.Clear();
+        }
+
+        private void ChangePathfindingEndPoint(Vector2D mapPoint, Vector2D screenPoint)
+        {
+            if (!_vm.changePathfindingEndNodeEnabled)//Could be also a key pressed
+                return;
+            
+            _vm.pathEnd = mapPoint;
+            _pathStartEnd[1].ChangePosition(PathCanvas, screenPoint);
+        }
+
+        private void ChangePathfindingStartPoint(Vector2D mapPoint, Vector2D screenPoint)
+        {
+            if (!_vm.changePathfindingStartNodeEnabled)//Could be also a key pressed
+                return;
+            
+            _vm.pathStart = mapPoint;
+            _pathStartEnd[0].ChangePosition(PathCanvas, screenPoint);
+        }
+
+        #endregion
+       
     }
 }

@@ -10,53 +10,53 @@ namespace HpaStarPathfinding.pathfinding
 
         private static readonly Vector2D[] Directions = new Vector2D[]
         {
-            new Vector2D(0, 1), // N
-            new Vector2D(1, 1), // NE
+            new Vector2D(0, -1), // N
+            new Vector2D(1, -1), // NE
             new Vector2D(1, 0), // E
-            new Vector2D(1, -1), // SE
-            new Vector2D(0, -1), // S
-            new Vector2D(-1, -1), // SW
+            new Vector2D(1, 1), // SE
+            new Vector2D(0, 1), // S
+            new Vector2D(-1, 1), // SW
             new Vector2D(-1, 0), // W
-            new Vector2D(-1, 1) // NW
+            new Vector2D(-1, -1) // NW
         };
 
         private const float StraightCost = 1f;
         private const float DiagonalCost = 1.414f;
 
-        private static List<Node> GetNeighbours(Node[,] grid,Node node)
+        private static List<Cell> GetNeighbours(Cell[,] grid,Cell cell)
         {
-            List<Node> neighbours = new List<Node>();
+            List<Cell> neighbours = new List<Cell>();
 
             foreach (var direction in Directions)
             {
-                int newX = node.Position.X + direction.X;
-                int newY = node.Position.Y + direction.Y;
+                int newX = cell.Position.x + direction.x;
+                int newY = cell.Position.y + direction.y;
 
-                if (newX >= 0 && newX < grid.GetLength(0) && newY >= 0 && newY < grid.GetLength(1))
+                if (newX >= 0 && newX < grid.GetLength(1) && newY >= 0 && newY < grid.GetLength(0))
                 {
-                    neighbours.Add(grid[newX, newY]);
+                    neighbours.Add(grid[newY, newX]);
                 }
             }
 
             return neighbours;
         }
 
-        private static float GetDistance(Node a, Node b)
+        private static float GetDistance(Cell a, Cell b)
         {
-            int dstX = Math.Abs(a.Position.X - b.Position.X);
-            int dstY = Math.Abs(a.Position.Y - b.Position.Y);
+            int dstX = Math.Abs(a.Position.x - b.Position.x);
+            int dstY = Math.Abs(a.Position.y - b.Position.y);
             if (dstX > dstY)
                 return DiagonalCost * dstY + StraightCost * (dstX - dstY);
             return DiagonalCost * dstX + StraightCost * (dstY - dstX);
         }
 
-        private static Node GetNodeWithLowestFCost(HashSet<Node> openSet)
+        private static Cell GetNodeWithLowestFCost(HashSet<Cell> openSet)
         {
-            Node lowest = null;
+            Cell lowest = null;
             foreach (var node in openSet)
             {
-                if (lowest == null || node.FCost < lowest.FCost ||
-                    (node.FCost == lowest.FCost && node.HCost < lowest.HCost))
+                if (lowest == null || node.fCost < lowest.fCost ||
+                    (node.fCost == lowest.fCost && node.HCost < lowest.HCost))
                 {
                     lowest = node;
                 }
@@ -65,40 +65,40 @@ namespace HpaStarPathfinding.pathfinding
             return lowest;
         }
 
-        public static List<Vector2D> FindPath(Node[,] grid, Vector2D start, Vector2D end)
+        public static List<Vector2D> FindPath(Cell[,] grid, Vector2D start, Vector2D end)
         {
-            Node startNode = grid[start.X, start.Y];
-            Node endNode = grid[end.X, end.Y];
+            Cell startCell = grid[start.y, start.x];
+            Cell endCell = grid[end.y, end.x];
 
-            if (!startNode.Walkable || !endNode.Walkable)
+            if (!startCell.Walkable || !endCell.Walkable)
                 return null;
 
-            HashSet<Node> openSet = new HashSet<Node>();
-            HashSet<Node> closedSet = new HashSet<Node>();
+            HashSet<Cell> openSet = new HashSet<Cell>();
+            HashSet<Cell> closedSet = new HashSet<Cell>();
 
-            openSet.Add(startNode);
+            openSet.Add(startCell);
 
             while (openSet.Count > 0)
             {
-                Node currentNode = GetNodeWithLowestFCost(openSet);
+                Cell currentCell = GetNodeWithLowestFCost(openSet);
 
-                if (currentNode == endNode)
-                    return RetracePath(startNode, endNode);
+                if (currentCell.Position.Equals(endCell.Position))
+                    return RetracePath(startCell, endCell);
 
-                openSet.Remove(currentNode);
-                closedSet.Add(currentNode);
+                openSet.Remove(currentCell);
+                closedSet.Add(currentCell);
 
-                foreach (var neighbour in GetNeighbours(grid, currentNode))
+                foreach (var neighbour in GetNeighbours(grid, currentCell))
                 {
                     if (!neighbour.Walkable || closedSet.Contains(neighbour))
                         continue;
 
-                    float tentativeGCost = currentNode.GCost + GetDistance(currentNode, neighbour);
+                    float tentativeGCost = currentCell.GCost + GetDistance(currentCell, neighbour);
                     if (tentativeGCost < neighbour.GCost || !openSet.Contains(neighbour))
                     {
                         neighbour.GCost = tentativeGCost;
-                        neighbour.HCost = GetDistance(neighbour, endNode);
-                        neighbour.Parent = currentNode;
+                        neighbour.HCost = GetDistance(neighbour, endCell);
+                        neighbour.Parent = currentCell;
 
                         if (!openSet.Contains(neighbour))
                             openSet.Add(neighbour);
@@ -109,18 +109,18 @@ namespace HpaStarPathfinding.pathfinding
             return null;
         }
 
-        private static List<Vector2D> RetracePath(Node startNode, Node endNode)
+        private static List<Vector2D> RetracePath(Cell startCell, Cell endCell)
         {
             List<Vector2D> path = new List<Vector2D>();
-            Node currentNode = endNode;
+            Cell currentCell = endCell;
 
-            while (currentNode != startNode)
+            while (currentCell != startCell)
             {
-                path.Add(currentNode.Position);
-                currentNode = currentNode.Parent;
+                path.Add(currentCell.Position);
+                currentCell = currentCell.Parent;
             }
 
-            path.Add(startNode.Position);
+            path.Add(startCell.Position);
 
             path.Reverse();
             return path;
