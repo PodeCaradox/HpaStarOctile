@@ -53,6 +53,9 @@
         </ApplicationDefinition>
         <Compile Include="Model\Pathfinding\Chunk.cs" />
         <Compile Include="Model\Pathfinding\Cell.cs" />
+        <Compile Include="Model\Pathfinding\Connection.cs" />
+        <Compile Include="Model\Pathfinding\Directions.cs" />
+        <Compile Include="Model\Pathfinding\Portal.cs" />
         <Compile Include="Model\Pathfinding\Vector2D.cs" />
         <Compile Include="Model\UI\CircleUI.cs" />
         <Compile Include="pathfinding\AStar.cs" />

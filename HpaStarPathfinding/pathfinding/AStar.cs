@@ -7,18 +7,7 @@ namespace HpaStarPathfinding.pathfinding
 
     public class Astar
     {
-
-        private static readonly Vector2D[] Directions = new Vector2D[]
-        {
-            new Vector2D(0, -1), // N
-            new Vector2D(1, -1), // NE
-            new Vector2D(1, 0), // E
-            new Vector2D(1, 1), // SE
-            new Vector2D(0, 1), // S
-            new Vector2D(-1, 1), // SW
-            new Vector2D(-1, 0), // W
-            new Vector2D(-1, -1) // NW
-        };
+        
 
         private const float StraightCost = 1f;
         private const float DiagonalCost = 1.414f;
@@ -27,7 +16,7 @@ namespace HpaStarPathfinding.pathfinding
         {
             List<Cell> neighbours = new List<Cell>();
 
-            foreach (var direction in Directions)
+            foreach (var direction in Directions.AllDirections)
             {
                 int newX = cell.Position.x + direction.x;
                 int newY = cell.Position.y + direction.y;
