@@ -1,2 +1,2 @@
 Simple Pathfinding Viewer:
-![grafik](https://github.com/PodeCaradox/HpaStarOctile/assets/5760157/125b6d36-e247-4e11-8649-bfb5bdafb919)
+![grafik](https://github.com/PodeCaradox/HpaStarOctile/assets/5760157/b3f45720-7c86-440c-9c36-c2c831704752)
