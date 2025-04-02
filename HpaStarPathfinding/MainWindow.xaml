@@ -56,9 +56,11 @@
                                         VerticalAlignment="Top"
                                         Width="80" />
                                     <ToggleButton
+                                        Checked="DrawPortalsButtonChecked"
                                         Content="Draw Portals"
                                         HorizontalAlignment="Left"
                                         Margin="260,0,0,0"
+                                        Unchecked="DrawPortalsButtonUnchecked"
                                         VerticalAlignment="Top"
                                         Width="80" />
                                 </Grid>

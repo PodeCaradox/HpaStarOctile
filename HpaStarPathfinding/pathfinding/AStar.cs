@@ -16,7 +16,7 @@ namespace HpaStarPathfinding.pathfinding
         {
             List<Cell> neighbours = new List<Cell>();
 
-            foreach (var direction in Directions.AllDirections)
+            foreach (var direction in DirectionsVector.AllDirections)
             {
                 int newX = cell.Position.x + direction.x;
                 int newY = cell.Position.y + direction.y;

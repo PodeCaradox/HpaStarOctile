@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Navigation;
 using System.Windows.Shapes;
 using HpaStarPathfinding.Model;
 using HpaStarPathfinding.ViewModel;
@@ -17,14 +19,22 @@ namespace HpaStarPathfinding
     public partial class MainWindow
     {
         #region Properties
+        
+        private const byte NOT_WALKABLE = 0b_1;
+        private const byte WALKABLE = 0b_0;
+        private const byte BLOCKED = 0b_1111_1111;
+        private const byte FREE = 0b_0000_0000;
 
         private Rectangle[,] _chunks;
+        
+        private Dictionary<Portal, Rectangle> _portals;
         
         private readonly List<Line> _lines = new List<Line>();
         
         private readonly CircleUi[] _pathStartEnd = { new CircleUi(Brushes.Green), new CircleUi(Brushes.Red)};
 
         private MainWindowViewModel _vm;
+
 
         #endregion
 
@@ -52,16 +62,59 @@ namespace HpaStarPathfinding
             _vm.Init();
             InitializeGridMap();
             InitializeGridChunks();
+            InitializePortals();
             PathCanvas.IsEnabled = true;
+        }
+
+        private void InitializePortals()
+        {
+            _portals = new Dictionary<Portal, Rectangle>();
+            for (int y = 0; y < _vm.chunks.GetLength(0); y++)
+            {
+                for (int x = 0; x < _vm.chunks.GetLength(1); x++)
+                {
+                    ref Chunk chunk = ref _vm.chunks[y, x];
+                    chunk.RebuildPortals(_vm.Map);
+                    CreatePortalsOnCanvas(chunk);
+                }
+            }
+        }
+
+        private void CreatePortalsOnCanvas(Chunk chunk)
+        {
+            var brushes = new Brush[] { Brushes.Red, Brushes.Green, Brushes.Blue, Brushes.Yellow};
+            int i = 0;
+            foreach (var portal in chunk.portals)
+            {
+                var dir = DirectionsVector.AllDirections[(int)portal.direction];
+                Rectangle rect = new Rectangle
+                {
+                    Width = Math.Max(MainWindowViewModel.CellSize * (dir.x * portal.length) - 8,
+                        MainWindowViewModel.CellSize - 8),
+                    Height = Math.Max(MainWindowViewModel.CellSize * (dir.y * portal.length) - 8,
+                        MainWindowViewModel.CellSize - 8),
+                    Stroke = brushes[i],
+                    Fill = Brushes.Transparent,
+                    IsHitTestVisible = false
+                };
+                i++;
+                if (i >= brushes.Length)
+                {
+                    i = 0;
+                }
+                Canvas.SetLeft(rect, portal.startPos.x * MainWindowViewModel.CellSize + 4);
+                Canvas.SetTop(rect, portal.startPos.y * MainWindowViewModel.CellSize + 4);
+                _portals.Add(portal, rect);
+            }
         }
 
         private void InitializeGridMap()
         {
-            for (int y = 0; y < _vm.map.GetLength(0); y++)
+            for (int y = 0; y < _vm.Map.GetLength(0); y++)
             {
-                for (int x = 0; x < _vm.map.GetLength(1); x++)
+                for (int x = 0; x < _vm.Map.GetLength(1); x++)
                 {
-                    var node = _vm.map[y, x];
+                    var node = _vm.Map[y, x];
                     Rectangle rect = new Rectangle
                     {
                         Width = MainWindowViewModel.CellSize,
@@ -87,7 +140,7 @@ namespace HpaStarPathfinding
             {
                 for (int x = 0; x < MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize; x++)
                 {
-                    _vm.chunks[y, x] = new Chunk();
+                    _vm.chunks[y, x] = new Chunk(x, y);
                     Rectangle rect = new Rectangle
                     {
                         Width = MainWindowViewModel.CellSize * MainWindowViewModel.ChunkSize - 4,
@@ -180,10 +233,56 @@ namespace HpaStarPathfinding
             if (mapCell.Position.Equals(_vm.pathStart) || mapCell.Position.Equals(_vm.pathEnd)) 
                 return;
             
-            
             mapCell.Walkable = !mapCell.Walkable;
+            mapCell.Connections = (mapCell.Walkable)? FREE : BLOCKED;
+            byte i = 0;
+            foreach (Vector2D dirVec in DirectionsVector.AllDirections)
+            {
+                if (mapCell.Position.y + dirVec.y >= _vm.Map.GetLength(0) ||
+                    mapCell.Position.x + dirVec.x >= _vm.Map.GetLength(0) || mapCell.Position.x + dirVec.x < 0 ||
+                    mapCell.Position.y + dirVec.y < 0)
+                {
+                    continue;
+                }
+                var otherCell = _vm.Map[mapCell.Position.y + dirVec.y, mapCell.Position.x + dirVec.x];
+                byte walkable = (byte)(NOT_WALKABLE << i);
+                walkable = (byte)(mapCell.Walkable? otherCell.Connections & ~walkable : otherCell.Connections | walkable);
+          
+                otherCell.Connections = walkable; 
+                i++;
+            }
+            
+            
+            Vector2D chunkPos= new Vector2D( mapCell.Position.y/MainWindowViewModel.ChunkSize, mapCell.Position.x / MainWindowViewModel.ChunkSize);
+            foreach (var dir in DirectionsVector.AllDirections)
+            {
+                RebuildPortal(chunkPos + dir);
+            }
+            RebuildPortal(chunkPos);
+            
             CalcPath();
             rect.Fill = GetCellColor(mapCell);
+        }
+
+        private void RebuildPortal(Vector2D chunkPos)
+        {
+            if (chunkPos.x >= _vm.chunks.GetLength(1) 
+                || chunkPos.y >= _vm.chunks.GetLength(0)
+                || chunkPos.x < 0
+                || chunkPos.y < 0) return;
+            ref Chunk chunk = ref _vm.chunks[chunkPos.x, chunkPos.y];
+            foreach (var portal in chunk.portals)
+            {
+                PathCanvas.Children.Remove(_portals[portal]);
+                _portals.Remove(portal);
+            }
+
+            chunk.RebuildPortals(_vm.Map);
+            CreatePortalsOnCanvas(chunk);
+            foreach (var portal in chunk.portals)
+            {
+                PathCanvas.Children.Add(_portals[portal]);
+            }
         }
 
         private static Brush GetCellColor(Cell mapCell)
@@ -263,5 +362,20 @@ namespace HpaStarPathfinding
         #endregion
 
 
+        private void DrawPortalsButtonChecked(object sender, RoutedEventArgs e)
+        {
+            foreach (var portal in _portals)
+            { 
+                PathCanvas.Children.Add(portal.Value);
+            }
+        }
+
+        private void DrawPortalsButtonUnchecked(object sender, RoutedEventArgs e)
+        {
+            foreach (var portal in _portals)
+            { 
+                PathCanvas.Children.Remove(portal.Value);
+            }
+        }
     }
 }

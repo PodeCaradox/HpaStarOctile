@@ -86,7 +86,7 @@ namespace HpaStarPathfinding.ViewModel
         
         private Cell[,] _map;
 
-        public Cell[,] map
+        public Cell[,] Map
         {
             get => _map;
             set
@@ -125,13 +125,13 @@ namespace HpaStarPathfinding.ViewModel
         
         private void InitMap()
         {
-            map = new Cell[GridSize, GridSize];
-            for (int x = 0; x < map.GetLength(0); x++)
+            Map = new Cell[GridSize, GridSize];
+            for (int x = 0; x < Map.GetLength(0); x++)
             {
-                for (int y = 0; y < map.GetLength(1); y++)
+                for (int y = 0; y < Map.GetLength(1); y++)
                 {
                     var node = new Cell(new Vector2D(x, y));
-                    map[y, x] = node;
+                    Map[y, x] = node;
                 }
             }
         }
