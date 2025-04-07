@@ -100,7 +100,13 @@ namespace HpaStarPathfinding
             int i = 0;
             foreach (var portal in chunk.portals)
             {
-                var dir = DirectionsVector.AllDirections[(int)portal.direction];
+                var dir = new Vector2D(1, 0);
+                if (portal.direction == Directions.E || portal.direction == Directions.W)
+                { 
+                    dir = new Vector2D(0, 1);
+                }
+                
+                
                 Rectangle rect = new Rectangle
                 {
                     Width = Math.Max(MainWindowViewModel.CellSize * (dir.x * portal.length) - 8,

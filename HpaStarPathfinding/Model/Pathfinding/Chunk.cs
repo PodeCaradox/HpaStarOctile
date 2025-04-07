@@ -18,8 +18,14 @@ namespace HpaStarPathfinding.ViewModel
         private const byte SW = 0b_0010_0000;
         private const byte W = 0b_0100_0000;
         private const byte NW = 0b_1000_0000;
-        private const byte SE_S_SW = SE | S | SW;
+        private const byte SW_S_SE = SW | S | SE;
         private const byte E_SE = E | SE;
+        private const byte NW_N_NE = NW | N | NE;
+        private const byte E_NE = E | NE;
+        private const byte NE_E_SE = NE | E | SE;
+        private const byte S_SE = S | SE;
+        private const byte NW_W_SW = NW | W | SW;
+        private const byte S_SW = S | SW;
         
         //maxMapSize is 1270 x 1270
         public int ChunkIdX;
@@ -46,86 +52,115 @@ namespace HpaStarPathfinding.ViewModel
         {
             if (dir == Directions.S)
             {
-                int idX = ChunkIdX * MainWindowViewModel.ChunkSize;
-                int idY = MainWindowViewModel.ChunkSize * ChunkIdY + MainWindowViewModel.ChunkSize - 1;
-                
-                //INIT VALUES
-                bool closePortal = false;
-                int portalSize = 0;
-                Vector2D startPos = null;
-                for (int x = 0; x < MainWindowViewModel.ChunkSize; x++)
-                {
-                    ref Cell cell = ref cells[idY, idX + x];
-                    //Is there no Connection in SOUTH/SOUTH-WEST/SOUTH-EAST Direction, do nothing
-                    if ((cell.Connections & SE_S_SW) == SE_S_SW)
-                    {
-                        closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, Directions.E);
-                        continue;
-                    }
+                int startX = ChunkIdX * MainWindowViewModel.ChunkSize;
+                int startY = MainWindowViewModel.ChunkSize * ChunkIdY + MainWindowViewModel.ChunkSize - 1;
+                byte[] dirToCheck = { SW_S_SE, S, E_SE, SW, W, SE, E};
+                CheckInDirection(cells, startX, startY, Directions.S, new Vector2D(1, 0), dirToCheck);
+            }
+            else if (dir == Directions.N)
+            {
+                int startX = ChunkIdX * MainWindowViewModel.ChunkSize;
+                int startY = MainWindowViewModel.ChunkSize * ChunkIdY;
+                byte[] dirToCheck = { NW_N_NE, N, E_NE, NW, W, NE, E};
+                CheckInDirection(cells, startX, startY, Directions.N, new Vector2D(1, 0), dirToCheck);
+            }
+            else if (dir == Directions.E)
+            {
+                int startX = ChunkIdX * MainWindowViewModel.ChunkSize + MainWindowViewModel.ChunkSize - 1;
+                int startY = MainWindowViewModel.ChunkSize * ChunkIdY;
+                byte[] dirToCheck = { NE_E_SE, E, S_SE, NE, N, SE, S};
+                CheckInDirection(cells, startX, startY, Directions.E, new Vector2D(0, 1), dirToCheck);
+            }
+            else if (dir == Directions.W)
+            {
+                int startX = ChunkIdX * MainWindowViewModel.ChunkSize;
+                int startY = MainWindowViewModel.ChunkSize * ChunkIdY;
+                byte[] dirToCheck = { NW_W_SW, W, S_SW, NW, N, SW, S};
+                CheckInDirection(cells, startX, startY, Directions.W, new Vector2D(0, 1), dirToCheck);
+            }
+        }
 
-                    if (startPos == null)
-                    { 
-                        portalSize = 0;
-                        startPos = cell.Position;
-                    }
+        private void CheckInDirection(Cell[,] cells, int startX, int startY, Directions direction, Vector2D directionVector,
+        byte[] checkDir)
+        {
+            //INIT VALUES
+            bool closePortal = false;
+            int portalSize = 0;
+            Vector2D startPos = null;
+            for (int i = 0; i < MainWindowViewModel.ChunkSize; i++)
+            {
+                ref Cell cell = ref cells[startY + directionVector.y * i, startX + directionVector.x * i];
+                //Is there no Connection in SOUTH/SOUTH-WEST/SOUTH-EAST Direction, do nothing
+                if ((cell.Connections & checkDir[0]) == checkDir[0])
+                {
+                    closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, direction);
+                    continue;
+                }
+
+                if (startPos == null)
+                { 
+                    portalSize = 0;
+                    startPos = cell.Position;
+                }
                     
-                    // Check Connection to South
-                    if ((cell.Connections & S) == WALKABLE) 
-                    {
-                        closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, Directions.E);
-                        portalSize++; 
+                // Check Connection to South
+                if ((cell.Connections & checkDir[1]) == WALKABLE) 
+                {
+                    closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, direction);
+                    portalSize++; 
                         
-                        //Am i at the end of my Portal in Direction EAST
-                        // Check Connection to EAST
-                        // Check Connection to SOUTH-EAST
-                        if ((cell.Connections & E_SE) != WALKABLE)
-                        {
-                            closePortal = true;
-                        }
-                        continue;
-                    }
-                    
-                    if ((cell.Connections & SW) == WALKABLE)
+                    //Am i at the end of my Portal in Direction EAST
+                    // Check Connection to EAST
+                    // Check Connection to SOUTH-EAST
+                    if ((cell.Connections & checkDir[2]) != WALKABLE)
                     {
-                        //There is already a Portal and I'm belong to it
-                        if (closePortal)
-                        {
-                            if ((cell.Connections & W) == WALKABLE)
-                            {
-                                portalSize++;
-                            }
-                        }
-                        else
-                        {//I'm my own Portal in Direction South West
-                            closePortal = true;
-                            startPos = cell.Position;
-                            portalSize = 1;
-                        }
+                        closePortal = true;
                     }
-                    
-                    closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, Directions.E);
-                    
-                    if ((cell.Connections & SE) == WALKABLE)
-                    {
-                        //Check Connection to EAST if im a new Portal in this direction
-                        if ((cell.Connections & E) == WALKABLE)
-                        {
-                            startPos = cell.Position;
-                            portalSize = 1;
-                        }
-                        else
-                        {//I'm my own Portal
-                            startPos = cell.Position;
-                            portalSize = 1;
-                            closePortal = true;
-                        }
-                    }
-                    closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, Directions.E);
+                    continue;
                 }
                 
-                //If the portal is not closed at the end close it.
-                ClosePortal(portalSize > 0, ref startPos, ref portalSize, Directions.E);
+                //Check Connection to SOUTH-WEST
+                if ((cell.Connections & checkDir[3]) == WALKABLE)
+                {
+                    //There is already a Portal and I'm belong to it
+                    if (closePortal)
+                    {
+                        if ((cell.Connections & checkDir[4]) == WALKABLE)
+                        {
+                            portalSize++;
+                        }
+                    }
+                    else
+                    {//I'm my own Portal in Direction South West
+                        closePortal = true;
+                        startPos = cell.Position;
+                        portalSize = 1;
+                    }
+                }
+                closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, direction);
+                
+                //Check Connection to SOUTH-EAST
+                if ((cell.Connections & checkDir[5]) == WALKABLE)
+                {
+                    //Check Connection to EAST if im a new Portal in this direction
+                    if ((cell.Connections & checkDir[6]) == WALKABLE)
+                    {
+                        startPos = cell.Position;
+                        portalSize = 1;
+                    }
+                    else
+                    {//I'm my own Portal
+                        startPos = cell.Position;
+                        portalSize = 1;
+                        closePortal = true;
+                    }
+                }
+                
+                closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, direction);
             }
+                
+            //If the portal is not closed at the end close it.
+            ClosePortal(portalSize > 0, ref startPos, ref portalSize, direction);
         }
 
         private bool ClosePortal(bool createPortal, ref Vector2D startPos, ref int portalSize, Directions dir)
