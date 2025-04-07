@@ -54,7 +54,8 @@
                                         Margin="180,0,0,0"
                                         Unchecked="ChunksButtonUnchecked"
                                         VerticalAlignment="Top"
-                                        Width="80" />
+                                        Width="80"
+                                        x:Name="ChunksButton" />
                                     <ToggleButton
                                         Checked="DrawPortalsButtonChecked"
                                         Content="Draw Portals"
@@ -62,7 +63,8 @@
                                         Margin="260,0,0,0"
                                         Unchecked="DrawPortalsButtonUnchecked"
                                         VerticalAlignment="Top"
-                                        Width="80" />
+                                        Width="80"
+                                        x:Name="DrawPortalsButton" />
                                 </Grid>
                             </Border>
                             <!--  Content area  -->

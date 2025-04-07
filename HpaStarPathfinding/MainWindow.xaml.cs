@@ -4,10 +4,12 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using HpaStarPathfinding.Model;
 using HpaStarPathfinding.ViewModel;
 
@@ -21,9 +23,8 @@ namespace HpaStarPathfinding
         #region Properties
         
         private const byte NOT_WALKABLE = 0b_1;
-        private const byte WALKABLE = 0b_0;
         private const byte BLOCKED = 0b_1111_1111;
-        private const byte FREE = 0b_0000_0000;
+        private const byte WALKABLE = 0b_0000_0000;
 
         private Rectangle[,] _chunks;
         
@@ -34,6 +35,11 @@ namespace HpaStarPathfinding
         private readonly CircleUi[] _pathStartEnd = { new CircleUi(Brushes.Green), new CircleUi(Brushes.Red)};
 
         private MainWindowViewModel _vm;
+        
+        private DispatcherTimer _timerRedrawPortals;
+        private DispatcherTimer _timerRedrawTiles;
+        private HashSet<Vector2D> _dirtyChunks;
+        private HashSet<Vector2D> _dirtyTiles;
 
 
         #endregion
@@ -64,7 +70,15 @@ namespace HpaStarPathfinding
             InitializeGridChunks();
             InitializePortals();
             PathCanvas.IsEnabled = true;
+            _timerRedrawTiles = new DispatcherTimer();
+            _timerRedrawTiles.Interval = TimeSpan.FromMilliseconds(50);
+            _timerRedrawTiles.Tick += RebuildTiles;
+            
+            _dirtyTiles = new HashSet<Vector2D>();
+            _dirtyChunks = new HashSet<Vector2D>();
         }
+
+
 
         private void InitializePortals()
         {
@@ -82,7 +96,7 @@ namespace HpaStarPathfinding
 
         private void CreatePortalsOnCanvas(Chunk chunk)
         {
-            var brushes = new Brush[] { Brushes.Red, Brushes.Green, Brushes.Blue, Brushes.Yellow};
+            var brushes = new Brush[] { Brushes.Red, Brushes.Green, Brushes.Blue, Brushes.Violet};
             int i = 0;
             foreach (var portal in chunk.portals)
             {
@@ -163,6 +177,11 @@ namespace HpaStarPathfinding
         
         private void ClearClicked(object sender, RoutedEventArgs e)
         {
+            var button = (ToggleButton)Template.FindName("ChunksButton", this);
+            button.IsChecked = false;
+            var button1 = (ToggleButton)Template.FindName("DrawPortalsButton", this);
+            button1.IsChecked = false;
+            
             PathCanvas.Children.Clear();
             Init();
         }
@@ -234,34 +253,89 @@ namespace HpaStarPathfinding
                 return;
             
             mapCell.Walkable = !mapCell.Walkable;
-            mapCell.Connections = (mapCell.Walkable)? FREE : BLOCKED;
-            byte i = 0;
-            foreach (Vector2D dirVec in DirectionsVector.AllDirections)
+            mapCell.Connections = (mapCell.Walkable)? WALKABLE : BLOCKED;
+            _vm.Map[mapCell.Position.y, mapCell.Position.x] = mapCell;
+            rect.Fill = GetCellColor(mapCell);
+            
+            _dirtyTiles.Add(mapCell.Position);
+            foreach (var dir in DirectionsVector.AllDirections)
             {
-                if (mapCell.Position.y + dirVec.y >= _vm.Map.GetLength(0) ||
-                    mapCell.Position.x + dirVec.x >= _vm.Map.GetLength(0) || mapCell.Position.x + dirVec.x < 0 ||
-                    mapCell.Position.y + dirVec.y < 0)
+                if (mapCell.Position.y + dir.y >= _vm.Map.GetLength(0) ||
+                    mapCell.Position.x + dir.x >= _vm.Map.GetLength(1) || mapCell.Position.x + dir.x < 0 ||
+                    mapCell.Position.y + dir.y < 0)
                 {
                     continue;
                 }
-                var otherCell = _vm.Map[mapCell.Position.y + dirVec.y, mapCell.Position.x + dirVec.x];
-                byte walkable = (byte)(NOT_WALKABLE << i);
-                walkable = (byte)(mapCell.Walkable? otherCell.Connections & ~walkable : otherCell.Connections | walkable);
-          
-                otherCell.Connections = walkable; 
-                i++;
+                _dirtyTiles.Add(mapCell.Position + dir);
             }
             
-            
-            Vector2D chunkPos= new Vector2D( mapCell.Position.y/MainWindowViewModel.ChunkSize, mapCell.Position.x / MainWindowViewModel.ChunkSize);
+            Vector2D chunkPos= new Vector2D(mapCell.Position.y / MainWindowViewModel.ChunkSize, mapCell.Position.x / MainWindowViewModel.ChunkSize);
+            _dirtyChunks.Add(chunkPos);
             foreach (var dir in DirectionsVector.AllDirections)
             {
-                RebuildPortal(chunkPos + dir);
+                _dirtyChunks.Add(chunkPos + dir);
             }
-            RebuildPortal(chunkPos);
+            
+            _timerRedrawTiles.Stop();
+            _timerRedrawTiles.Start();
+        }
+        
+        private void RebuildTiles(object sender, EventArgs e)
+        {
+            _timerRedrawTiles.Stop();
+            PathCanvas.IsEnabled = false;
+            foreach (var mapCellPos in _dirtyTiles)
+            {
+                ref Cell mapCell = ref _vm.Map[mapCellPos.y, mapCellPos.x];
+                if (!mapCell.Walkable)
+                {
+                    continue;
+                }
+                for (byte i = 0; i < DirectionsVector.AllDirections.Length; i++)
+                {
+                    var dirVec = DirectionsVector.AllDirections[i];
+                    bool blocked;
+                    if (mapCell.Position.y + dirVec.y >= _vm.Map.GetLength(0) ||
+                        mapCell.Position.x + dirVec.x >= _vm.Map.GetLength(1) || mapCell.Position.x + dirVec.x < 0 ||
+                        mapCell.Position.y + dirVec.y < 0)
+                    {
+                        blocked = true;
+                    }
+                    else
+                    {
+                        var otherCell = _vm.Map[mapCell.Position.y + dirVec.y, mapCell.Position.x + dirVec.x];
+                        blocked = !otherCell.Walkable;
+                    }
+
+                    byte walkable = (byte)(0b_0000_0001 << i);
+                    if (blocked)
+                    {
+                        mapCell.Connections |= walkable;
+                    }
+                    else
+                    {
+                        mapCell.Connections &= (byte)~walkable;
+                    }
+                }
+            }
+
+            RebuildPortals();
+
+            PathCanvas.IsEnabled = true;
+        }
+
+        
+        private void RebuildPortals()
+        {
+            //_timerRedrawPortals.Stop(); // Stop timer so it doesn’t repeat
+            foreach (var chunk in _dirtyChunks)
+            {
+                RebuildPortal(chunk);
+            }
+            
+            _dirtyChunks.Clear();
             
             CalcPath();
-            rect.Fill = GetCellColor(mapCell);
         }
 
         private void RebuildPortal(Vector2D chunkPos)
@@ -287,12 +361,12 @@ namespace HpaStarPathfinding
 
         private static Brush GetCellColor(Cell mapCell)
         {
-            if (!mapCell.Walkable)
+            if (mapCell.Walkable)
             {
-                return Brushes.Black;
+                return Brushes.White;
             }
 
-            return Brushes.White;
+            return Brushes.Black;
         }
 
         private void CalcPath()

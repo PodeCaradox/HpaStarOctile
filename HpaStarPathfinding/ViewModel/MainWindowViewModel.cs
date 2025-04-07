@@ -126,9 +126,9 @@ namespace HpaStarPathfinding.ViewModel
         private void InitMap()
         {
             Map = new Cell[GridSize, GridSize];
-            for (int x = 0; x < Map.GetLength(0); x++)
+            for (int y = 0; y < Map.GetLength(0); y++)
             {
-                for (int y = 0; y < Map.GetLength(1); y++)
+                for (int x = 0; x < Map.GetLength(1); x++)
                 {
                     var node = new Cell(new Vector2D(x, y));
                     Map[y, x] = node;
