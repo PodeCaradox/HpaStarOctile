@@ -71,7 +71,7 @@ namespace HpaStarPathfinding
             InitializePortals();
             PathCanvas.IsEnabled = true;
             _timerRedrawTiles = new DispatcherTimer();
-            _timerRedrawTiles.Interval = TimeSpan.FromMilliseconds(50);
+            _timerRedrawTiles.Interval = TimeSpan.FromMilliseconds(20);
             _timerRedrawTiles.Tick += RebuildTiles;
             
             _dirtyTiles = new HashSet<Vector2D>();
@@ -287,36 +287,7 @@ namespace HpaStarPathfinding
             foreach (var mapCellPos in _dirtyTiles)
             {
                 ref Cell mapCell = ref _vm.Map[mapCellPos.y, mapCellPos.x];
-                if (!mapCell.Walkable)
-                {
-                    continue;
-                }
-                for (byte i = 0; i < DirectionsVector.AllDirections.Length; i++)
-                {
-                    var dirVec = DirectionsVector.AllDirections[i];
-                    bool blocked;
-                    if (mapCell.Position.y + dirVec.y >= _vm.Map.GetLength(0) ||
-                        mapCell.Position.x + dirVec.x >= _vm.Map.GetLength(1) || mapCell.Position.x + dirVec.x < 0 ||
-                        mapCell.Position.y + dirVec.y < 0)
-                    {
-                        blocked = true;
-                    }
-                    else
-                    {
-                        var otherCell = _vm.Map[mapCell.Position.y + dirVec.y, mapCell.Position.x + dirVec.x];
-                        blocked = !otherCell.Walkable;
-                    }
-
-                    byte walkable = (byte)(0b_0000_0001 << i);
-                    if (blocked)
-                    {
-                        mapCell.Connections |= walkable;
-                    }
-                    else
-                    {
-                        mapCell.Connections &= (byte)~walkable;
-                    }
-                }
+                mapCell.UpdateConnection(_vm.Map);
             }
 
             RebuildPortals();

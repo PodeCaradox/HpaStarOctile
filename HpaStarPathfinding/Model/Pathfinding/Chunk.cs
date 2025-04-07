@@ -46,13 +46,8 @@ namespace HpaStarPathfinding.ViewModel
         {
             if (dir == Directions.S)
             {
-                //I don't need to check the last Chunk.
                 int idX = ChunkIdX * MainWindowViewModel.ChunkSize;
                 int idY = MainWindowViewModel.ChunkSize * ChunkIdY + MainWindowViewModel.ChunkSize - 1;
-                if (idY + MainWindowViewModel.ChunkSize > cells.GetLength(0) - 1)
-                {
-                    return;
-                }
                 
                 //INIT VALUES
                 bool closePortal = false;

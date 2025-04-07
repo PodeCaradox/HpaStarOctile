@@ -134,6 +134,15 @@ namespace HpaStarPathfinding.ViewModel
                     Map[y, x] = node;
                 }
             }
+            
+            for (int y = 0; y < Map.GetLength(0); y++)
+            {
+                for (int x = 0; x < Map.GetLength(1); x++)
+                {
+                    
+                    Map[y, x].UpdateConnection(Map);
+                }
+            }
         }
 
         #endregion
