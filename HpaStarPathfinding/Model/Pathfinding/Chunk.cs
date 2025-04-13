@@ -91,7 +91,7 @@ namespace HpaStarPathfinding.ViewModel
             for (int i = 0; i < MainWindowViewModel.ChunkSize; i++)
             {
                 ref Cell cell = ref cells[startY + directionVector.y * i, startX + directionVector.x * i];
-                //Is there no Connection in SOUTH/SOUTH-WEST/SOUTH-EAST Direction, do nothing
+                //Is there no Connection in NORTH-WEST_NORTH_NORTH-EAST Direction, do nothing
                 if ((cell.Connections & checkDir[0]) == checkDir[0])
                 {
                     closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, direction);
@@ -104,15 +104,15 @@ namespace HpaStarPathfinding.ViewModel
                     startPos = cell.Position;
                 }
                     
-                // Check Connection to South
+                // Check Connection to NORTH
                 if ((cell.Connections & checkDir[1]) == WALKABLE) 
                 {
                     closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, direction);
                     portalSize++; 
                         
-                    //Am i at the end of my Portal in Direction EAST
+                    //Am I at the end of my Portal in Direction EAST
                     // Check Connection to EAST
-                    // Check Connection to SOUTH-EAST
+                    // Check Connection to NORTH-EAST
                     if ((cell.Connections & checkDir[2]) != WALKABLE)
                     {
                         closePortal = true;
@@ -120,19 +120,20 @@ namespace HpaStarPathfinding.ViewModel
                     continue;
                 }
                 
-                //Check Connection to SOUTH-WEST
+                //Check Connection to NORTH-WEST
                 if ((cell.Connections & checkDir[3]) == WALKABLE)
                 {
-                    //There is already a Portal and I'm belong to it
+                    //Is there already a Portal?
                     if (closePortal)
                     {
+                        //Do I belong to the Portal in the WEST
                         if ((cell.Connections & checkDir[4]) == WALKABLE)
                         {
                             portalSize++;
                         }
                     }
                     else
-                    {//I'm my own Portal in Direction South West
+                    {//I'm my own Portal in Direction NORTH-WEST
                         closePortal = true;
                         startPos = cell.Position;
                         portalSize = 1;
@@ -140,17 +141,17 @@ namespace HpaStarPathfinding.ViewModel
                 }
                 closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, direction);
                 
-                //Check Connection to SOUTH-EAST
+                //Check Connection to NORTH-EAST
                 if ((cell.Connections & checkDir[5]) == WALKABLE)
                 {
-                    //Check Connection to EAST if im a new Portal in this direction
+                    //Check Connection to EAST if we can add this Tile to the new Portal
                     if ((cell.Connections & checkDir[6]) == WALKABLE)
                     {
                         startPos = cell.Position;
                         portalSize = 1;
                     }
                     else
-                    {//I'm my own Portal
+                    {//I'm my own Portal in Direction NORTH-EAST
                         startPos = cell.Position;
                         portalSize = 1;
                         closePortal = true;
