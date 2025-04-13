@@ -19,13 +19,13 @@ namespace HpaStarPathfinding.ViewModel
         private const byte W = 0b_0100_0000;
         private const byte NW = 0b_1000_0000;
         private const byte SW_S_SE = SW | S | SE;
-        private const byte E_SE = E | SE;
+        private const byte W_SW = W | SW;
         private const byte NW_N_NE = NW | N | NE;
         private const byte E_NE = E | NE;
         private const byte NE_E_SE = NE | E | SE;
         private const byte S_SE = S | SE;
         private const byte NW_W_SW = NW | W | SW;
-        private const byte S_SW = S | SW;
+        private const byte N_NW = N | NW;
         
         //maxMapSize is 1270 x 1270
         public int ChunkIdX;
@@ -50,14 +50,8 @@ namespace HpaStarPathfinding.ViewModel
         
         public void RebuildPortalsInDirection(Directions dir, Cell[,] cells)
         {
-            if (dir == Directions.S)
-            {
-                int startX = ChunkIdX * MainWindowViewModel.ChunkSize;
-                int startY = MainWindowViewModel.ChunkSize * ChunkIdY + MainWindowViewModel.ChunkSize - 1;
-                byte[] dirToCheck = { SW_S_SE, S, E_SE, SW, W, SE, E};
-                CheckInDirection(cells, startX, startY, Directions.S, new Vector2D(1, 0), dirToCheck);
-            }
-            else if (dir == Directions.N)
+            
+            if (dir == Directions.N)
             {
                 int startX = ChunkIdX * MainWindowViewModel.ChunkSize;
                 int startY = MainWindowViewModel.ChunkSize * ChunkIdY;
@@ -70,13 +64,20 @@ namespace HpaStarPathfinding.ViewModel
                 int startY = MainWindowViewModel.ChunkSize * ChunkIdY;
                 byte[] dirToCheck = { NE_E_SE, E, S_SE, NE, N, SE, S};
                 CheckInDirection(cells, startX, startY, Directions.E, new Vector2D(0, 1), dirToCheck);
+            }            
+            else if (dir == Directions.S)
+            {
+                int startX = ChunkIdX * MainWindowViewModel.ChunkSize + MainWindowViewModel.ChunkSize - 1;
+                int startY = MainWindowViewModel.ChunkSize * ChunkIdY + MainWindowViewModel.ChunkSize - 1;
+                byte[] dirToCheck = { SW_S_SE, S, W_SW, SE, E, SW, W};
+                CheckInDirection(cells, startX, startY, Directions.S, new Vector2D(-1, 0), dirToCheck);
             }
             else if (dir == Directions.W)
             {
                 int startX = ChunkIdX * MainWindowViewModel.ChunkSize;
-                int startY = MainWindowViewModel.ChunkSize * ChunkIdY;
-                byte[] dirToCheck = { NW_W_SW, W, S_SW, NW, N, SW, S};
-                CheckInDirection(cells, startX, startY, Directions.W, new Vector2D(0, 1), dirToCheck);
+                int startY = MainWindowViewModel.ChunkSize * ChunkIdY + MainWindowViewModel.ChunkSize - 1;
+                byte[] dirToCheck = { NW_W_SW, W, N_NW, SW, S, NW, N};
+                CheckInDirection(cells, startX, startY, Directions.W, new Vector2D(0, -1), dirToCheck);
             }
         }
 

@@ -48,17 +48,8 @@
                                         VerticalAlignment="Top"
                                         Width="50" />
                                     <ToggleButton
-                                        Checked="ChunksButtonChecked"
-                                        Content="Draw Chunks"
-                                        HorizontalAlignment="Left"
-                                        Margin="180,0,0,0"
-                                        Unchecked="ChunksButtonUnchecked"
-                                        VerticalAlignment="Top"
-                                        Width="80"
-                                        x:Name="ChunksButton" />
-                                    <ToggleButton
                                         Checked="DrawPortalsButtonChecked"
-                                        Content="Draw Portals"
+                                        Content="Draw Chunks"
                                         HorizontalAlignment="Left"
                                         Margin="260,0,0,0"
                                         Unchecked="DrawPortalsButtonUnchecked"
