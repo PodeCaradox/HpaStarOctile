@@ -97,6 +97,19 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
+        private Portal[,] _portals;
+
+        public Portal[,] Portals
+        {
+            get => _portals;
+            set
+            {
+                if (value == _portals) return;
+                _portals = value;
+                OnPropertyChanged();
+            }
+        }
+        
         private Chunk[,] _chunks;
 
         public Chunk[,] chunks

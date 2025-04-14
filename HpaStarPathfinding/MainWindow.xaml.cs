@@ -85,7 +85,7 @@ namespace HpaStarPathfinding
                 for (int x = 0; x < _vm.chunks.GetLength(1); x++)
                 {
                     ref Chunk chunk = ref _vm.chunks[y, x];
-                    chunk.RebuildPortals(_vm.Map);
+                    chunk.RebuildPortals(_vm.Map, x, y);
                 }
             });
             
@@ -119,7 +119,7 @@ namespace HpaStarPathfinding
             var directionVectors = new [] { new Vector2D(1, 0), new Vector2D(0, 1), new Vector2D(-1, 0), new Vector2D(0, -1) };
             foreach (var portal in chunk.portals)
             {
-                var dir = directionVectors[(int)portal.direction / 2];
+                var dir = directionVectors[(int)portal.direction];
 
                 int startPosX = portal.startPos.x;
                 int startPosY = portal.startPos.y;
@@ -192,7 +192,7 @@ namespace HpaStarPathfinding
             {
                 for (int x = 0; x < MainWindowViewModel.GridSize / MainWindowViewModel.ChunkSize; x++)
                 {
-                    _vm.chunks[y, x] = new Chunk(x, y);
+                    _vm.chunks[y, x] = new Chunk();
                     Rectangle rect = new Rectangle
                     {
                         Width = MainWindowViewModel.CellSize * MainWindowViewModel.ChunkSize - 4,
@@ -284,20 +284,27 @@ namespace HpaStarPathfinding
             _dirtyTiles.Add(mapCell.Position);
             foreach (var dir in DirectionsVector.AllDirections)
             {
-                if (mapCell.Position.y + dir.y >= _vm.Map.GetLength(0) ||
-                    mapCell.Position.x + dir.x >= _vm.Map.GetLength(1) || mapCell.Position.x + dir.x < 0 ||
-                    mapCell.Position.y + dir.y < 0)
+                var pos = mapCell.Position + dir;
+                if (pos.y >= _vm.Map.GetLength(0) ||
+                    pos.x >= _vm.Map.GetLength(1) || 
+                    pos.x < 0 ||
+                    pos.y < 0)
                 {
                     continue;
                 }
-                _dirtyTiles.Add(mapCell.Position + dir);
+                _dirtyTiles.Add(pos);
             }
             
-            Vector2D chunkPos= new Vector2D(mapCell.Position.y / MainWindowViewModel.ChunkSize, mapCell.Position.x / MainWindowViewModel.ChunkSize);
+            Vector2D chunkPos = new Vector2D(mapCell.Position.x / MainWindowViewModel.ChunkSize, mapCell.Position.y / MainWindowViewModel.ChunkSize);
             _dirtyChunks.Add(chunkPos);
             foreach (var dir in DirectionsVector.AllDirections)
             {
-                _dirtyChunks.Add(chunkPos + dir);
+                var pos = chunkPos + dir;
+                if (pos.x >= _vm.chunks.GetLength(1) 
+                    || pos.y >= _vm.chunks.GetLength(0)
+                    || pos.x < 0
+                    || pos.y < 0) continue;
+                _dirtyChunks.Add(pos);
             }
             
     
@@ -334,18 +341,14 @@ namespace HpaStarPathfinding
 
         private void RebuildPortalsInChunk(Vector2D chunkPos)
         {
-            if (chunkPos.x >= _vm.chunks.GetLength(1) 
-                || chunkPos.y >= _vm.chunks.GetLength(0)
-                || chunkPos.x < 0
-                || chunkPos.y < 0) return;
-            ref Chunk chunk = ref _vm.chunks[chunkPos.x, chunkPos.y];
+
+            ref Chunk chunk = ref _vm.chunks[chunkPos.y, chunkPos.x];
             foreach (var portal in chunk.portals)
             {
                 PathCanvas.Children.Remove(_portals[portal]);
                 _portals.Remove(portal);
             }
-
-            chunk.RebuildPortals(_vm.Map);
+            chunk.RebuildPortals(_vm.Map, chunkPos.x, chunkPos.y);
             CreatePortalsOnCanvas(chunk);
         }
 

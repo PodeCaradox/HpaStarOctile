@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace HpaStarPathfinding.ViewModel
@@ -28,54 +29,54 @@ namespace HpaStarPathfinding.ViewModel
         private const byte N_NW = N | NW;
         
         //maxMapSize is 1270 x 1270
-        public int ChunkIdX;
-        public int ChunkIdY;
         public List<Portal> portals = new List<Portal>();//Hashmap
         //public List<int> portalsHashes = new List<int>();//HashValue With 1 Bit Direction, 4 Bits Length, 4 bits posX and 4 bits posY and 7 bits chunkId = 20 bits
-
-        public Chunk(int x, int y)
+        
+        
+        //5 bits position + direction -> direction = /10 und position % 10
+        //12 bits chunkId           17 Bits = 131071 Einräge
+        //or 13 bits chunkId
+        public Chunk()
         {
-            ChunkIdX = x;
-            ChunkIdY = y;
         }
         
-        public void RebuildPortals(Cell[,] cells)
+        public void RebuildPortals(Cell[,] cells, int chunkIdX, int chunkIdY)
         {
             portals = new List<Portal>();
-            foreach (var direction in Directions.GetValues(typeof(Directions)).Cast<Directions>())
+            foreach (var direction in Enum.GetValues(typeof(Directions)).Cast<Directions>())
             {
-                RebuildPortalsInDirection(direction, cells);
+                RebuildPortalsInDirection(direction, cells, chunkIdX, chunkIdY);
             }
         }
         
-        public void RebuildPortalsInDirection(Directions dir, Cell[,] cells)
+        public void RebuildPortalsInDirection(Directions dir, Cell[,] cells, int chunkIdX, int chunkIdY)
         {
             
             if (dir == Directions.N)
             {
-                int startX = ChunkIdX * MainWindowViewModel.ChunkSize;
-                int startY = MainWindowViewModel.ChunkSize * ChunkIdY;
+                int startX = chunkIdX * MainWindowViewModel.ChunkSize;
+                int startY = MainWindowViewModel.ChunkSize * chunkIdY;
                 byte[] dirToCheck = { NW_N_NE, N, E_NE, NW, W, NE, E};
                 CheckInDirection(cells, startX, startY, Directions.N, new Vector2D(1, 0), dirToCheck);
             }
             else if (dir == Directions.E)
             {
-                int startX = ChunkIdX * MainWindowViewModel.ChunkSize + MainWindowViewModel.ChunkSize - 1;
-                int startY = MainWindowViewModel.ChunkSize * ChunkIdY;
+                int startX = chunkIdX * MainWindowViewModel.ChunkSize + MainWindowViewModel.ChunkSize - 1;
+                int startY = MainWindowViewModel.ChunkSize * chunkIdY;
                 byte[] dirToCheck = { NE_E_SE, E, S_SE, NE, N, SE, S};
                 CheckInDirection(cells, startX, startY, Directions.E, new Vector2D(0, 1), dirToCheck);
             }            
             else if (dir == Directions.S)
             {
-                int startX = ChunkIdX * MainWindowViewModel.ChunkSize + MainWindowViewModel.ChunkSize - 1;
-                int startY = MainWindowViewModel.ChunkSize * ChunkIdY + MainWindowViewModel.ChunkSize - 1;
+                int startX = chunkIdX * MainWindowViewModel.ChunkSize + MainWindowViewModel.ChunkSize - 1;
+                int startY = MainWindowViewModel.ChunkSize * chunkIdY + MainWindowViewModel.ChunkSize - 1;
                 byte[] dirToCheck = { SW_S_SE, S, W_SW, SE, E, SW, W};
                 CheckInDirection(cells, startX, startY, Directions.S, new Vector2D(-1, 0), dirToCheck);
             }
             else if (dir == Directions.W)
             {
-                int startX = ChunkIdX * MainWindowViewModel.ChunkSize;
-                int startY = MainWindowViewModel.ChunkSize * ChunkIdY + MainWindowViewModel.ChunkSize - 1;
+                int startX = chunkIdX * MainWindowViewModel.ChunkSize;
+                int startY = MainWindowViewModel.ChunkSize * chunkIdY + MainWindowViewModel.ChunkSize - 1;
                 byte[] dirToCheck = { NW_W_SW, W, N_NW, SW, S, NW, N};
                 CheckInDirection(cells, startX, startY, Directions.W, new Vector2D(0, -1), dirToCheck);
             }

@@ -12,13 +12,13 @@
         // W = 0b_0100_0000,
         // NW = 0b_1000_0000
         N = 0,
-        NE = 1,
-        E = 2,
-        SE = 3,
-        S = 4,
-        SW = 5,
-        W = 6,
-        NW = 7
+        //NE = 1,
+        E = 1,
+        //SE = 3,
+        S = 2,
+        //SW = 5,
+        W = 3,
+        //NW = 7
     }
     
     public static class DirectionsVector
