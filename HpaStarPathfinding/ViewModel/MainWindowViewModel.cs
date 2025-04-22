@@ -5,7 +5,7 @@ namespace HpaStarPathfinding.ViewModel
 {
     public class MainWindowViewModel: ViewModelBase
     {
-        public const int GridSize = 50;
+        public const int GridSize = 40;
         public const int ChunkSize = 10;
         public const int CellSize = 20;
 

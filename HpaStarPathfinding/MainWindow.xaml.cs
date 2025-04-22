@@ -30,7 +30,7 @@ namespace HpaStarPathfinding
 
         private Rectangle[,] _chunks;
         
-        private Dictionary<Portal, Rectangle> _portals;
+        private Dictionary<Portal, (Rectangle, Rectangle)> _portals;
         
         private readonly List<Line> _lines = new List<Line>();
         
@@ -80,7 +80,7 @@ namespace HpaStarPathfinding
 
         private void InitializePortals()
         {
-            _portals = new Dictionary<Portal, Rectangle>();
+            _portals = new Dictionary<Portal, (Rectangle, Rectangle)>();
             Parallel.For(0, _vm.chunks.GetLength(0), y => {
                 for (int x = 0; x < _vm.chunks.GetLength(1); x++)
                 {
@@ -116,26 +116,17 @@ namespace HpaStarPathfinding
             }
             var brushes = new Brush[] { Brushes.Red, Brushes.Green, Brushes.Blue, Brushes.Violet};
             int i = 0;                              //Directions.N      Directions.E        Directions.S         Directions.W
-            var directionVectors = new [] { new Vector2D(1, 0), new Vector2D(0, 1), new Vector2D(-1, 0), new Vector2D(0, -1) };
+            var directionVectors = new [] { new Vector2D(1, 0), new Vector2D(0, 1), new Vector2D(1, 0), new Vector2D(0, 1) };
             foreach (var portal in chunk.portals)
             {
                 var dir = directionVectors[(int)portal.direction];
 
                 int startPosX = portal.startPos.x;
                 int startPosY = portal.startPos.y;
-                int width = dir.x * portal.length;
-                int height = dir.y * portal.length;
-                if (dir.x < 0)
-                {
-                    startPosX += (width + 1);
-                    width *= -1;
-                }
-                
-                if (dir.y < 0)
-                {
-                    startPosY += (height + 1);
-                    height *= -1;
-                }
+                int centerPosX = portal.centerPos.x;
+                int centerPosY = portal.centerPos.y;
+                int width = dir.x * (int)portal.length;
+                int height = dir.y * (int)portal.length;
                 
                 Rectangle rect = new Rectangle
                 {
@@ -155,8 +146,25 @@ namespace HpaStarPathfinding
                 }
                 Canvas.SetLeft(rect, startPosX * MainWindowViewModel.CellSize + 4);
                 Canvas.SetTop(rect, startPosY * MainWindowViewModel.CellSize + 4);
-                _portals.Add(portal, rect);
+                
+
+                
+                Rectangle center = new Rectangle
+                {
+                    Width = MainWindowViewModel.CellSize - 10,
+                    Height = MainWindowViewModel.CellSize - 10,
+                    Stroke = Brushes.Transparent,
+                    Fill = Brushes.Green,
+                    Opacity = opacity,
+                    IsHitTestVisible = false
+                };
+                
+                Canvas.SetLeft(center, centerPosX * MainWindowViewModel.CellSize + 5);
+                Canvas.SetTop(center, centerPosY * MainWindowViewModel.CellSize + 5);
+                
+                _portals.Add(portal, (rect, center));
                 PathCanvas.Children.Add(rect);
+                PathCanvas.Children.Add(center);
             }
         }
 
@@ -217,8 +225,6 @@ namespace HpaStarPathfinding
         
         private void ClearClicked(object sender, RoutedEventArgs e)
         {
-            var button = (ToggleButton)Template.FindName("ChunksButton", this);
-            button.IsChecked = false;
             var button1 = (ToggleButton)Template.FindName("DrawPortalsButton", this);
             button1.IsChecked = false;
             
@@ -345,7 +351,8 @@ namespace HpaStarPathfinding
             ref Chunk chunk = ref _vm.chunks[chunkPos.y, chunkPos.x];
             foreach (var portal in chunk.portals)
             {
-                PathCanvas.Children.Remove(_portals[portal]);
+                PathCanvas.Children.Remove(_portals[portal].Item1);
+                PathCanvas.Children.Remove(_portals[portal].Item2);
                 _portals.Remove(portal);
             }
             chunk.RebuildPortals(_vm.Map, chunkPos.x, chunkPos.y);
@@ -439,7 +446,8 @@ namespace HpaStarPathfinding
             
             foreach (var portal in _portals)
             {
-                portal.Value.Opacity = 1.0;
+                portal.Value.Item1.Opacity = 1.0;
+                portal.Value.Item2.Opacity = 1.0;
             }
         }
 
@@ -453,7 +461,8 @@ namespace HpaStarPathfinding
             drawPortals = false;
             foreach (var portal in _portals)
             { 
-                portal.Value.Opacity = 0.0;
+                portal.Value.Item1.Opacity = 0.0;
+                portal.Value.Item2.Opacity = 0.0;
             }
         }
     }
