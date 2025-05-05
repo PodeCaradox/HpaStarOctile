@@ -1,10 +1,8 @@
-﻿using System.Collections.Generic;
-
-namespace HpaStarPathfinding.ViewModel
+﻿namespace HpaStarPathfinding.ViewModel
 {
-    public class Connection
+    public struct Connection
     {
-        private Portal connectedPortal;//HashValue With 1 Bit Direction, 4 Bits Length, 12 bits posX and 12 bits posY
-        private float cost;
+        public byte portal;
+        public byte cost;
     }
 }

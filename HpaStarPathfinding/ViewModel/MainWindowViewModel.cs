@@ -1,13 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using HpaStarPathfinding.pathfinding;
 
 namespace HpaStarPathfinding.ViewModel
 {
     public class MainWindowViewModel: ViewModelBase
     {
-        public const int GridSize = 40;
+        public const int MapSize = 40;
         public const int ChunkSize = 10;
+        public const int ChunkMapSize = MapSize / ChunkSize;
         public const int CellSize = 20;
+        public const int MaxPortalsInChunk = ChunkSize * 4;//4 = Enum.GetValues(typeof(Directions)).Length
 
         #region Propertys UI
 
@@ -97,18 +100,7 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
-        private Portal[,] _portals;
-
-        public Portal[,] Portals
-        {
-            get => _portals;
-            set
-            {
-                if (value == _portals) return;
-                _portals = value;
-                OnPropertyChanged();
-            }
-        }
+        public Portal[] Portals;
         
         private Chunk[,] _chunks;
 
@@ -132,13 +124,16 @@ namespace HpaStarPathfinding.ViewModel
             InitMap();
             pathStart = null;
             pathEnd = null;
-            chunks = new Chunk[GridSize / ChunkSize, GridSize / ChunkSize];
+            chunks = new Chunk[MapSize / ChunkSize, MapSize / ChunkSize];
             path = new List<Vector2D>();
         }
         
         private void InitMap()
         {
-            Map = new Cell[GridSize, GridSize];
+            int mapChunkSize = MapSize / ChunkSize;
+            //2 bits direction + 4 bits position + rest chunkindex.
+            Portals = new Portal[(mapChunkSize * mapChunkSize) * MaxPortalsInChunk];
+            Map = new Cell[MapSize, MapSize];
             for (int y = 0; y < Map.GetLength(0); y++)
             {
                 for (int x = 0; x < Map.GetLength(1); x++)

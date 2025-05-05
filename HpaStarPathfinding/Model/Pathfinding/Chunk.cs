@@ -27,29 +27,20 @@ namespace HpaStarPathfinding.ViewModel
         private const byte S_SE = S | SE;
         private const byte NW_W_SW = NW | W | SW;
         private const byte S_SW = S | SW;
-        
-        //maxMapSize is 1270 x 1270
-        public List<Portal> portals = new List<Portal>();//Hashmap
-        //public List<int> portalsHashes = new List<int>();//HashValue With 1 Bit Direction, 4 Bits Length, 4 bits posX and 4 bits posY and 7 bits chunkId = 20 bits
-        
-        
-        //5 bits position + direction -> direction = /10 und position % 10
-        //12 bits chunkId           17 Bits = 131071 Einräge
-        //or 13 bits chunkId
         public Chunk()
         {
         }
         
-        public void RebuildPortals(Cell[,] cells, int chunkIdX, int chunkIdY)
+        public void RebuildPortals(Cell[,] cells, ref Portal[] portals, int chunkIdX, int chunkIdY)
         {
-            portals = new List<Portal>();
+            int chunkId = chunkIdX + MainWindowViewModel.ChunkMapSize * chunkIdY;
             foreach (var direction in Enum.GetValues(typeof(Directions)).Cast<Directions>())
             {
-                RebuildPortalsInDirection(direction, cells, chunkIdX, chunkIdY);
+                RebuildPortalsInDirection(direction, cells, ref portals, chunkIdX, chunkIdY, chunkId);
             }
         }
         
-        public void RebuildPortalsInDirection(Directions dir, Cell[,] cells, int chunkIdX, int chunkIdY)
+        public void RebuildPortalsInDirection(Directions dir, Cell[,] cells, ref Portal[] portals, int chunkIdX, int chunkIdY, int chunkId)
         {
             
             if (dir == Directions.S)
@@ -57,37 +48,45 @@ namespace HpaStarPathfinding.ViewModel
                 int startX = chunkIdX * MainWindowViewModel.ChunkSize;
                 int startY = MainWindowViewModel.ChunkSize * chunkIdY + MainWindowViewModel.ChunkSize - 1;
                 byte[] dirToCheck = { SW_S_SE, S, E_SE, SW, W, SE, E};
-                CheckInDirection(cells, startX, startY, Directions.S, new Vector2D(1, 0), dirToCheck);
+                CreatePortalsInChunkDirection(cells, ref portals, chunkId, startX, startY, Directions.S, new Vector2D(1, 0), dirToCheck);
             }
             else if (dir == Directions.N)
             {
                 int startX = chunkIdX * MainWindowViewModel.ChunkSize;
                 int startY = MainWindowViewModel.ChunkSize * chunkIdY;
                 byte[] dirToCheck = { NW_N_NE, N, E_NE, NW, W, NE, E};
-                CheckInDirection(cells, startX, startY, Directions.N, new Vector2D(1, 0), dirToCheck);
+                CreatePortalsInChunkDirection(cells, ref portals, chunkId, startX, startY, Directions.N, new Vector2D(1, 0), dirToCheck);
             }
             else if (dir == Directions.E)
             {
                 int startX = chunkIdX * MainWindowViewModel.ChunkSize + MainWindowViewModel.ChunkSize - 1;
                 int startY = MainWindowViewModel.ChunkSize * chunkIdY;
                 byte[] dirToCheck = { NE_E_SE, E, S_SE, NE, N, SE, S};
-                CheckInDirection(cells, startX, startY, Directions.E, new Vector2D(0, 1), dirToCheck);
+                CreatePortalsInChunkDirection(cells, ref portals, chunkId, startX, startY, Directions.E, new Vector2D(0, 1), dirToCheck);
             }
             else if (dir == Directions.W)
             {
                 int startX = chunkIdX * MainWindowViewModel.ChunkSize;
                 int startY = MainWindowViewModel.ChunkSize * chunkIdY;
                 byte[] dirToCheck = { NW_W_SW, W, S_SW, NW, N, SW, S};
-                CheckInDirection(cells, startX, startY, Directions.W, new Vector2D(0, 1), dirToCheck);
+                CreatePortalsInChunkDirection(cells, ref portals, chunkId, startX, startY, Directions.W, new Vector2D(0, 1), dirToCheck);
             }
         }
 
-        private void CheckInDirection(Cell[,] cells, int startX, int startY, Directions direction, Vector2D directionVector,
+        private void CreatePortalsInChunkDirection(Cell[,] cells, ref Portal[] portals, int chunkId, int startX, int startY, Directions direction, Vector2D directionVector,
         byte[] checkDir)
         {
+            //remove old portals
+            for (int i = 0; i < MainWindowViewModel.ChunkSize; i++)
+            {
+                int key = Portal.GeneratePortalKey(chunkId, i, direction);
+                portals[key] = null;
+            }
+            
             //INIT VALUES
             bool closePortal = false;
             int portalSize = 0;
+            int portalPos = 0;
             Vector2D startPos = null;
             for (int i = 0; i < MainWindowViewModel.ChunkSize; i++)
             {
@@ -95,7 +94,7 @@ namespace HpaStarPathfinding.ViewModel
                 //Is there no Connection in NORTH-WEST_NORTH_NORTH-EAST Direction, do nothing
                 if ((cell.Connections & checkDir[0]) == checkDir[0])
                 {
-                    closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, direction);
+                    closePortal = ClosePortal(ref portals, chunkId, closePortal, ref startPos, ref portalSize, direction, portalPos);
                     continue;
                 }
 
@@ -103,12 +102,13 @@ namespace HpaStarPathfinding.ViewModel
                 { 
                     portalSize = 0;
                     startPos = cell.Position;
+                    portalPos = i;
                 }
                     
                 // Check Connection to NORTH
                 if ((cell.Connections & checkDir[1]) == WALKABLE) 
                 {
-                    closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, direction);
+                    closePortal = ClosePortal(ref portals, chunkId, closePortal, ref startPos, ref portalSize, direction, portalPos);
                     portalSize++; 
                         
                     //Am I at the end of my Portal in Direction EAST
@@ -137,10 +137,12 @@ namespace HpaStarPathfinding.ViewModel
                     {//I'm my own Portal in Direction NORTH-WEST
                         closePortal = true;
                         startPos = cell.Position;
+                        portalPos = i;
                         portalSize = 1;
                     }
                 }
-                closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, direction);
+                closePortal = ClosePortal(ref portals, chunkId, closePortal, ref startPos, ref portalSize, direction, portalPos);
+                
                 
                 //Check Connection to NORTH-EAST
                 if ((cell.Connections & checkDir[5]) == WALKABLE)
@@ -149,28 +151,32 @@ namespace HpaStarPathfinding.ViewModel
                     if ((cell.Connections & checkDir[6]) == WALKABLE)
                     {
                         startPos = cell.Position;
+                        portalPos = i;
                         portalSize = 1;
                     }
                     else
                     {//I'm my own Portal in Direction NORTH-EAST
                         startPos = cell.Position;
+                        portalPos = i;
                         portalSize = 1;
                         closePortal = true;
                     }
                 }
                 
-                closePortal = ClosePortal(closePortal, ref startPos, ref portalSize, direction);
+                closePortal = ClosePortal(ref portals, chunkId, closePortal, ref startPos, ref portalSize, direction, portalPos);
             }
                 
             //If the portal is not closed at the end close it.
-            ClosePortal(portalSize > 0, ref startPos, ref portalSize, direction);
+            ClosePortal(ref portals, chunkId, portalSize > 0, ref startPos, ref portalSize, direction, portalPos);
         }
 
-        private bool ClosePortal(bool createPortal, ref Vector2D startPos, ref int portalSize, Directions dir)
+        private bool ClosePortal(ref Portal[] portals, int chunkId, bool closePortal, ref Vector2D startPos, ref int portalSize, Directions dir, int portalPos)
         {
-            if (createPortal)
+            if (closePortal)
             {
-                portals.Add(new Portal(startPos, portalSize, dir));
+                Portal portal = new Portal(startPos, portalSize, dir);
+                int key = Portal.GeneratePortalKey(chunkId, portalPos, dir);
+                portals[key] = portal;
                 startPos = null;
                 portalSize = 0;
             }
