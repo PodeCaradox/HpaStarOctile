@@ -116,8 +116,8 @@ namespace HpaStarPathfinding
                 opacity = 1.0;
             }
             var brushes = new Brush[] { Brushes.Red, Brushes.Green, Brushes.Blue, Brushes.Violet};
-            int i = 0;                        //Directions.N      Directions.E        Directions.S         Directions.W
-            var directionVectors = new [] { new Vector2D(1, 0), new Vector2D(0, 1), new Vector2D(-1, 0), new Vector2D(0, -1) };
+            int i = 0;              //Looking in Directions.N        Directions.E        Directions.S        Directions.W
+            var steppingVector = new [] { DirectionsVector.E, DirectionsVector.S, DirectionsVector.W, DirectionsVector.N };
 
             foreach (Directions dirVec in Enum.GetValues(typeof(Directions)))
             {
@@ -126,7 +126,7 @@ namespace HpaStarPathfinding
                     int key = Portal.GeneratePortalKey(chunkId, j, dirVec);
                     var portal = _vm.Portals[key];
                     if(portal == null) continue;
-                    var dir = directionVectors[(int)portal.direction];
+                    var dir = steppingVector[(int)portal.direction];
 
                     int startPosX = portal.startPos.x;
                     int startPosY = portal.startPos.y;
