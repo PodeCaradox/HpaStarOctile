@@ -117,7 +117,7 @@ namespace HpaStarPathfinding
             }
             var brushes = new Brush[] { Brushes.Red, Brushes.Green, Brushes.Blue, Brushes.Violet};
             int i = 0;                              //Directions.N      Directions.E        Directions.S         Directions.W
-            var directionVectors = new [] { new Vector2D(1, 0), new Vector2D(0, 1), new Vector2D(1, 0), new Vector2D(0, 1) };
+            var directionVectors = new [] { new Vector2D(1, 0), new Vector2D(0, 1), new Vector2D(-1, 0), new Vector2D(0, -1) };
 
             foreach (Directions dirVec in Enum.GetValues(typeof(Directions)))
             {
@@ -134,6 +134,20 @@ namespace HpaStarPathfinding
                     int centerPosY = portal.centerPos.y;
                     int width = dir.x * portal.length;
                     int height = dir.y * portal.length;
+                    
+                    if (dir.x < 0)
+                    {
+                        startPosX += (width + 1);
+                        centerPosX += (width + 1);
+                        width *= -1;
+                    }
+                
+                    if (dir.y < 0)
+                    {
+                        startPosY += (height + 1);
+                        centerPosY += (height + 1);
+                        height *= -1;
+                    }
                     
                     Rectangle rect = new Rectangle
                     {

@@ -20,13 +20,13 @@ namespace HpaStarPathfinding.ViewModel
         private const byte W = 0b_0100_0000;
         private const byte NW = 0b_1000_0000;
         private const byte SW_S_SE = SW | S | SE;
-        private const byte E_SE = E | SE;
+        private const byte W_SW = W | SW;
         private const byte NW_N_NE = NW | N | NE;
         private const byte E_NE = E | NE;
         private const byte NE_E_SE = NE | E | SE;
         private const byte S_SE = S | SE;
         private const byte NW_W_SW = NW | W | SW;
-        private const byte S_SW = S | SW;
+        private const byte N_NW = N | NW;
         public Chunk()
         {
         }
@@ -42,13 +42,14 @@ namespace HpaStarPathfinding.ViewModel
         
         public void RebuildPortalsInDirection(Directions dir, Cell[,] cells, ref Portal[] portals, int chunkIdX, int chunkIdY, int chunkId)
         {
+            //CreatePortalForDiagonalChunk(cells, ref portals, chunkId, startX, startY, Directions.S,);
             
             if (dir == Directions.S)
             {
-                int startX = chunkIdX * MainWindowViewModel.ChunkSize;
+                int startX = chunkIdX * MainWindowViewModel.ChunkSize + MainWindowViewModel.ChunkSize - 1;
                 int startY = MainWindowViewModel.ChunkSize * chunkIdY + MainWindowViewModel.ChunkSize - 1;
-                byte[] dirToCheck = { SW_S_SE, S, E_SE, SW, W, SE, E};
-                CreatePortalsInChunkDirection(cells, ref portals, chunkId, startX, startY, Directions.S, new Vector2D(1, 0), dirToCheck);
+                byte[] dirToCheck = { SW_S_SE, S, W_SW, SE, E, SW, W};
+                CreatePortalsInChunkDirection(cells, ref portals, chunkId, startX, startY, Directions.S, new Vector2D(-1, 0), dirToCheck);
             }
             else if (dir == Directions.N)
             {
@@ -67,9 +68,9 @@ namespace HpaStarPathfinding.ViewModel
             else if (dir == Directions.W)
             {
                 int startX = chunkIdX * MainWindowViewModel.ChunkSize;
-                int startY = MainWindowViewModel.ChunkSize * chunkIdY;
-                byte[] dirToCheck = { NW_W_SW, W, S_SW, NW, N, SW, S};
-                CreatePortalsInChunkDirection(cells, ref portals, chunkId, startX, startY, Directions.W, new Vector2D(0, 1), dirToCheck);
+                int startY = MainWindowViewModel.ChunkSize * chunkIdY + MainWindowViewModel.ChunkSize - 1;
+                byte[] dirToCheck = { NW_W_SW, W, N_NW, SW, S, NW, N};
+                CreatePortalsInChunkDirection(cells, ref portals, chunkId, startX, startY, Directions.W, new Vector2D(0, -1), dirToCheck);
             }
         }
 
