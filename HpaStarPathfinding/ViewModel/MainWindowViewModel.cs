@@ -6,10 +6,13 @@ namespace HpaStarPathfinding.ViewModel
 {
     public class MainWindowViewModel: ViewModelBase
     {
+        //Rendering
+        public const int CellSize = 20;
+        
+        //Map config MapSize/ChunkSize should have no Remains  could be checked with modulo in future to handle the exception
         public const int MapSize = 40;
         public const int ChunkSize = 10;
         public const int ChunkMapSize = MapSize / ChunkSize;
-        public const int CellSize = 20;
         public const int MaxPortalsInChunk = ChunkSize * 4;//4 = Enum.GetValues(typeof(Directions)).Length
 
         #region Propertys UI

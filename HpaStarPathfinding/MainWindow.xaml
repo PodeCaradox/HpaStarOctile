@@ -56,6 +56,15 @@
                                         VerticalAlignment="Top"
                                         Width="80"
                                         x:Name="DrawPortalsButton" />
+                                    <ToggleButton
+                                        Checked="DrawPortalsConnectionsChecked"
+                                        Content="Draw Portal Connections"
+                                        HorizontalAlignment="Left"
+                                        Margin="340,0,0,0"
+                                        Unchecked="DrawPortalsConnectionsUnchecked"
+                                        VerticalAlignment="Top"
+                                        Width="80"
+                                        x:Name="DrawPortalsConnectionsButton" />
                                 </Grid>
                             </Border>
                             <!--  Content area  -->

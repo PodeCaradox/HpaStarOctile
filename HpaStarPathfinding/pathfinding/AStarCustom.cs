@@ -1,15 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using HpaStarPathfinding.ViewModel;
-
-namespace HpaStarPathfinding.pathfinding
+﻿namespace HpaStarPathfinding.pathfinding
 {
-    public class Astar
+    
+    using System;
+    using System.Collections.Generic;
+    using ViewModel;
+    
+    public class AStarCustom
     {
+
         private const float StraightCost = 1f;
         private const float DiagonalCost = 1.414f;
 
-        private static List<Cell> GetNeighbours(Cell[,] grid, Cell cell)
+        private static List<Cell> GetNeighbours(Cell[,] grid, Cell cell, Vector2D min, Vector2D max)
         {
             List<Cell> neighbours = new List<Cell>();
 
@@ -18,7 +20,7 @@ namespace HpaStarPathfinding.pathfinding
                 int newX = cell.Position.x + direction.x;
                 int newY = cell.Position.y + direction.y;
 
-                if (newX >= 0 && newX < grid.GetLength(1) && newY >= 0 && newY < grid.GetLength(0))
+                if (newX >= min.x && newX < max.x && newY >= min.y && newY < max.y)
                 {
                     neighbours.Add(grid[newY, newX]);
                 }
@@ -51,13 +53,14 @@ namespace HpaStarPathfinding.pathfinding
             return lowest;
         }
 
-        public static List<Vector2D> FindPath(Cell[,] grid, Vector2D start, Vector2D end)
+        public static float FindPath(Cell[,] grid, Vector2D start, Vector2D end, Vector2D min, Vector2D max)
         {
             Cell startCell = grid[start.y, start.x];
             Cell endCell = grid[end.y, end.x];
 
+            //can be ignored on hpaStar
             if (!startCell.Walkable || !endCell.Walkable)
-                return null;
+                return -1;
 
             HashSet<Cell> openSet = new HashSet<Cell>();
             HashSet<Cell> closedSet = new HashSet<Cell>();
@@ -74,7 +77,7 @@ namespace HpaStarPathfinding.pathfinding
                 openSet.Remove(currentCell);
                 closedSet.Add(currentCell);
 
-                foreach (var neighbour in GetNeighbours(grid, currentCell))
+                foreach (var neighbour in GetNeighbours(grid, currentCell, min, max))
                 {
                     if (!neighbour.Walkable || closedSet.Contains(neighbour))
                         continue;
@@ -92,24 +95,16 @@ namespace HpaStarPathfinding.pathfinding
                 }
             }
 
-            return null;
+            return -1;
         }
 
-        private static List<Vector2D> RetracePath(Cell startCell, Cell endCell)
+        private static float RetracePath(Cell startCell, Cell endCell)
         {
-            List<Vector2D> path = new List<Vector2D>();
-            Cell currentCell = endCell;
+            float cost = 0;
 
-            while (currentCell != startCell)
-            {
-                path.Add(currentCell.Position);
-                currentCell = currentCell.Parent;
-            }
-
-            path.Add(startCell.Position);
-
-            path.Reverse();
-            return path;
+            cost += endCell.GCost;
+            return cost;
         }
+    
     }
 }
