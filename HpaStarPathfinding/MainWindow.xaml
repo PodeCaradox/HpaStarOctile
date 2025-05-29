@@ -26,25 +26,30 @@
                                 VerticalAlignment="Top">
                                 <!--  Title bar content  -->
                                 <Grid>
-                                    <ToggleButton
-                                        Content="SetStart"
-                                        HorizontalAlignment="Left"
-                                        IsChecked="{Binding changePathfindingStartNodeEnabled, Mode=TwoWay}"
-                                        Margin="0,0,0,0"
-                                        VerticalAlignment="Top"
-                                        Width="50" />
-                                    <ToggleButton
-                                        Content="SetEnd"
-                                        HorizontalAlignment="Left"
-                                        IsChecked="{Binding changePathfindingEndNodeEnabled, Mode=TwoWay}"
-                                        Margin="50,0,0,0"
-                                        VerticalAlignment="Top"
-                                        Width="50" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <ToggleButton
+                                            Content="SetStart"
+                                            HorizontalAlignment="Left"
+                                            IsChecked="{Binding changePathfindingStartNodeEnabled, Mode=TwoWay}"
+                                            VerticalAlignment="Top"
+                                            Width="50" />
+                                        <ToggleButton
+                                            Content="SetEnd"
+                                            HorizontalAlignment="Left"
+                                            IsChecked="{Binding changePathfindingEndNodeEnabled, Mode=TwoWay}"
+                                            VerticalAlignment="Top"
+                                            Width="50" />
+                                        <ComboBox
+                                            ItemsSource="{Binding Algorithms}"
+                                            SelectedItem="{Binding SelectedAlgorithm}"
+                                            Width="100" />
+                                    </StackPanel>
+
                                     <Button
                                         Click="ClearClicked"
                                         Content="Clear"
                                         HorizontalAlignment="Left"
-                                        Margin="100,0,0,0"
+                                        Margin="200,0,0,0"
                                         VerticalAlignment="Top"
                                         Width="50" />
                                     <ToggleButton
@@ -65,6 +70,7 @@
                                         VerticalAlignment="Top"
                                         Width="80"
                                         x:Name="DrawPortalsConnectionsButton" />
+
                                 </Grid>
                             </Border>
                             <!--  Content area  -->

@@ -47,6 +47,33 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
+            
+        private String _selectedAlgorithm = Algorithm.AStar;
+
+        public String SelectedAlgorithm
+        {
+            get => _selectedAlgorithm;
+            set
+            {
+                if (Equals(value, _selectedAlgorithm)) return;
+                _selectedAlgorithm = value;
+                OnPropertyChanged();
+            }
+        }
+            
+        private List<String> _algorithms = new List<String>() {Algorithm.AStar, Algorithm.HPAStar};
+
+        public List<String> Algorithms
+        {
+            get => _algorithms;
+            set
+            {
+                if (Equals(value, _algorithms)) return;
+                _algorithms = value;
+                OnPropertyChanged();
+            }
+        }
+        
         #endregion
         
         #region Properties
@@ -169,6 +196,7 @@ namespace HpaStarPathfinding.ViewModel
         {
             if (pathStart == null || pathEnd == null)
                 return;
+            
             path = Astar.FindPath(_map, _pathStart, _pathEnd);
         }
 

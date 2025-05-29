@@ -534,9 +534,9 @@ namespace HpaStarPathfinding
                     
                     int keyOtherPortal = chunkIndexinPortalArray + connection.portal;
                     var otherPortal = _vm.Portals[keyOtherPortal];
-                    
-                    int connectionKey1 = ((key % MainWindowViewModel.MaxPortalsInChunk) << 8) + connection.portal;
-                    int connectionKey2 = key % MainWindowViewModel.MaxPortalsInChunk + (connection.portal << 8);
+                    var keyInChunk = key % MainWindowViewModel.MaxPortalsInChunk;
+                    int connectionKey1 = keyInChunk * MainWindowViewModel.MaxPortalsInChunk + connection.portal;
+                    int connectionKey2 = keyInChunk + connection.portal * MainWindowViewModel.MaxPortalsInChunk;
                     if(!alreadyDrawn.Add(connectionKey1)) continue;
                     if(!alreadyDrawn.Add(connectionKey2)) continue;
                     var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.centerPos);

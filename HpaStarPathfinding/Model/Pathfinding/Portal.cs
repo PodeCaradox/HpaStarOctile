@@ -15,9 +15,6 @@ namespace HpaStarPathfinding.ViewModel
         public Directions direction; //not needed is in hash
         
         //Future: i can calculate the Connection with the hash, so i dont need to store them but instead just look up if the portal on the otherside is null :)
-        public int OuterConnection1Hash;
-        public int OuterConnection2Hash;
-        public int OuterConnection3Hash;
         
         public Portal(Vector2D startPos, int length, Directions direction) {
             this.startPos = startPos;

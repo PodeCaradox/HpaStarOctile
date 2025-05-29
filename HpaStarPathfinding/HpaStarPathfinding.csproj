@@ -57,6 +57,7 @@
         <Compile Include="Model\Pathfinding\Directions.cs" />
         <Compile Include="Model\Pathfinding\Portal.cs" />
         <Compile Include="Model\Pathfinding\Vector2D.cs" />
+        <Compile Include="Model\UI\Algorithm.cs" />
         <Compile Include="Model\UI\CircleUI.cs" />
         <Compile Include="pathfinding\AStar.cs" />
         <Compile Include="pathfinding\AStarCustom.cs" />
