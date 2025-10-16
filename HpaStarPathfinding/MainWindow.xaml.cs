@@ -91,15 +91,6 @@ namespace HpaStarPathfinding
                 }
             });
 
-            Parallel.For(0, _vm.chunks.GetLength(0), y =>
-            {
-                for (int x = 0; x < _vm.chunks.GetLength(1); x++)
-                {
-                    ref Chunk chunk = ref _vm.chunks[y, x];
-                    chunk.ConnectToExternalPortals();
-                }
-            });
-
             UpdatePortalsOnCanvas();
         }
 
@@ -142,8 +133,8 @@ namespace HpaStarPathfinding
                     int startPosY = portal.startPos.y;
                     int centerPosX = portal.centerPos.x;
                     int centerPosY = portal.centerPos.y;
-                    int width = dir.x * portal.length;
-                    int height = dir.y * portal.length;
+                    int width = dir.x * portal.portalLength;
+                    int height = dir.y * portal.portalLength;
 
                     if (dir.x < 0)
                     {
@@ -177,13 +168,18 @@ namespace HpaStarPathfinding
                     Canvas.SetLeft(rect, startPosX * MainWindowViewModel.CellSize + 4);
                     Canvas.SetTop(rect, startPosY * MainWindowViewModel.CellSize + 4);
 
-
+                    Brush color = Brushes.Green;
+                    if (portal.mapBorderPortal)
+                    {
+                        color= Brushes.Red;
+                    }
+                    
                     Rectangle center = new Rectangle
                     {
                         Width = MainWindowViewModel.CellSize - 10,
                         Height = MainWindowViewModel.CellSize - 10,
                         Stroke = Brushes.Transparent,
-                        Fill = Brushes.Green,
+                        Fill = color,
                         Opacity = opacity,
                         IsHitTestVisible = false
                     };
@@ -371,12 +367,6 @@ namespace HpaStarPathfinding
                 RebuildPortalsInChunk(chunk);
             }
 
-            foreach (var chunkPos in _dirtyChunks)
-            {
-                ref Chunk chunk = ref _vm.chunks[chunkPos.y, chunkPos.x];
-                chunk.ConnectToExternalPortals();
-            }
-
             _dirtyChunks.Clear();
 
             CalcPath();
@@ -529,7 +519,7 @@ namespace HpaStarPathfinding
                 int chunkIndexinPortalArray = key / MainWindowViewModel.MaxPortalsInChunk * MainWindowViewModel.MaxPortalsInChunk;
                 foreach (var connection in portal.internalPortalConnections)
                 {
-                    if (connection.Equals(default)) break;
+                    if (connection.portal == byte.MaxValue) break;
                     
                     
                     int keyOtherPortal = chunkIndexinPortalArray + connection.portal;

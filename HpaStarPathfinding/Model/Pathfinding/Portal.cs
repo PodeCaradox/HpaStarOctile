@@ -6,8 +6,10 @@ namespace HpaStarPathfinding.ViewModel
     public class Portal
     {
         //only thing needed to know, to save data you can just implement it in your game with the length saved.
-        public byte length;
+        public bool mapBorderPortal;
+        public byte portalLength;
         public Connection[] internalPortalConnections;
+        public int[] externalPortalConnections;//only 2 at a time
         
         //debug stuff
         public Vector2D centerPos;//not needed is in hash
@@ -18,9 +20,19 @@ namespace HpaStarPathfinding.ViewModel
         
         public Portal(Vector2D startPos, int length, Directions direction) {
             this.startPos = startPos;
-            this.length = (byte)length;
+            this.portalLength = (byte)length;
             this.direction = direction;
             internalPortalConnections = new Connection[MainWindowViewModel.MaxPortalsInChunk - 1];
+            for (int i = 0; i < internalPortalConnections.Length; i++)
+            {
+                internalPortalConnections[i].portal = Byte.MaxValue;
+            }
+
+            externalPortalConnections = new int[3];
+            for (int i = 0; i < externalPortalConnections.Length; i++)
+            {
+                externalPortalConnections[i] = -1;
+            }
             centerPos = CalcCenterPos(direction, length, startPos);
         }
 
@@ -45,10 +57,49 @@ namespace HpaStarPathfinding.ViewModel
 
             return centerPos;
         }
+        
+        public static int GenerateOppositePortalKey(int portalKey, Directions portalDirection)
+        {
+            Vector2D posOtherPortal = PortalKeyToWorldPos(portalKey);
+            switch (portalDirection)
+            {
+                case Directions.N:
+                    posOtherPortal.y -= MainWindowViewModel.MapSize;
+                    break;
+                case Directions.E:
+                    posOtherPortal.x += 1;
+                    break;
+                case Directions.S:
+                    posOtherPortal.y += MainWindowViewModel.MapSize;
+                    break;
+                case Directions.W:
+                    posOtherPortal.x -= 1;
+                    break;
+            }
+            // int otherKey = posToPortalKey(posOtherPortal, portalDirection + 2);
+            //
+            // if (oherPortalKey)
+            // {
+            //     int oherPortalKey = 
+            // }
+            // int key = position + (int)direction  * MainWindowViewModel.ChunkSize + chunkIndex * MainWindowViewModel.MaxPortalsInChunk;
+            return -1;
+        }
+
+        private static int posToPortalKey(Vector2D posOtherPortal, Directions portalDirection)
+        {
+            throw new NotImplementedException();
+        }
 
         public static int GeneratePortalKey(int chunkIndex, int position, Directions direction)
         {
             int key = position + (int)direction  * MainWindowViewModel.ChunkSize + chunkIndex * MainWindowViewModel.MaxPortalsInChunk;
+            return key;
+        }
+        
+        public static int CalculateOtherPortalKeyFromConnection(int portalKey, byte connectionPortal)
+        {
+            int key = portalKey - (portalKey % MainWindowViewModel.MaxPortalsInChunk) + connectionPortal;
             return key;
         }
         
@@ -76,12 +127,8 @@ namespace HpaStarPathfinding.ViewModel
                 case Directions.W:
                     worldPos.y = worldPos.y - pos + dummy;
                     break;
-                default:
-                    throw new ArgumentOutOfRangeException();
             }
             return worldPos;
         }
-        
-        
     }
 }

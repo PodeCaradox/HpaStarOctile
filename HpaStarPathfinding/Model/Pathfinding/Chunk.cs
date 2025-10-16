@@ -86,11 +86,6 @@ namespace HpaStarPathfinding.ViewModel
                 }
             }
         }
-
-        public void ConnectToExternalPortals()
-        {
-            
-        }
         
         public void RebuildPortals(Cell[,] cells, ref Portal[] portals, int chunkIdX, int chunkIdY)
         {
@@ -262,6 +257,7 @@ namespace HpaStarPathfinding.ViewModel
             {
                 Portal portal = new Portal(startPos, portalSize, dir);
                 int key = Portal.GeneratePortalKey(chunkId, portalPos + portalSize / 2, dir);
+                portal.mapBorderPortal = portal.centerPos.x == 0 || portal.centerPos.x == MainWindowViewModel.MapSize - 1 || portal.centerPos.y == 0 || portal.centerPos.y == MainWindowViewModel.MapSize - 1;
                 portals[key] = portal;
                 startPos = null;
                 portalSize = 0;

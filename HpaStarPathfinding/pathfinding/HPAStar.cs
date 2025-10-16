@@ -10,19 +10,91 @@ namespace HpaStarPathfinding.pathfinding
         private const float StraightCost = 1f;
         private const float DiagonalCost = 1.414f;
         
-        public static List<PortalNode> FindPath(Cell[,] grid, Portal[] portals, Vector2D start, Vector2D end)
+        public static List<int> FindPath(Cell[,] grid, Portal[] portals, Vector2D start, Vector2D end)
         {
-            HashSet<PortalNode> openList = new HashSet<PortalNode>(FindPortalNodes(portals, grid, start));
-            HashSet<PortalNode> goals = new HashSet<PortalNode>(FindPortalNodes(portals, grid, end));
+            var startNodes  = FindPortalNodes(portals, grid, start);
+            HashSet<int> goalNodes  = new HashSet<int>(FindPortalNodes(portals, grid, end).Select(x => x.PortalKey));
 
-            while (openList.Any())
+            if (startNodes.Count == 0 || goalNodes.Count == 0)
+                return null;
+            
+            HashSet<Cell> openSet = new HashSet<Cell>();
+            HashSet<Cell> closedSet = new HashSet<Cell>();
+            Cell endCell = grid[end.y, end.x];
+            var cameFrom = new Dictionary<int, int>();
+            
+            foreach (var node in startNodes)
             {
-                var currentPortalNode = openList.First(); 
+                ref var portal = ref portals[node.PortalKey];
+                var startCell = grid[portal.centerPos.y, portal.centerPos.x];
+                startCell.PortalKey = node.PortalKey;
+                openSet.Add(startCell);
             }
             
-            
-            
+
+            while (openSet.Count > 0)
+            {
+                Cell currentCell = Astar.GetNodeWithLowestFCost(openSet);
+                if (goalNodes.Contains(currentCell.PortalKey))
+                    return ReconstructPath(cameFrom, currentCell.PortalKey);;
+
+                var currentPortal = portals[currentCell.PortalKey];
+                openSet.Remove(currentCell);
+                closedSet.Add(currentCell);
+
+                //Check External Connection
+                
+                foreach (var portalKey in currentPortal.externalPortalConnections)
+                {
+                    if (portalKey == -1) break;
+                    CheckConnection(grid, portals, portalKey, closedSet, currentCell, openSet, endCell, cameFrom);
+                }
+                
+                //Check internal Connections
+                foreach (var connection in currentPortal.internalPortalConnections)
+                {
+                    if(connection.portal == byte.MaxValue) continue; // portal is null
+                    var portalKey =
+                        Portal.CalculateOtherPortalKeyFromConnection(currentCell.PortalKey, connection.portal);
+                    CheckConnection(grid, portals, portalKey, closedSet, currentCell, openSet, endCell, cameFrom);
+                }
+            }
+
             return null;
+        }
+
+        private static void CheckConnection(Cell[,] grid, Portal[] portals, int portalKey, HashSet<Cell> closedSet, Cell currentCell,
+            HashSet<Cell> openSet, Cell endCell, Dictionary<int, int> cameFrom)
+        {
+            ref var portal = ref portals[portalKey];
+            var neighbour = grid[portal.centerPos.y, portal.centerPos.x];
+            if (closedSet.Contains(neighbour)) return;
+            neighbour.PortalKey = portalKey;
+            float tentativeGCost = currentCell.GCost + Astar.GetDistance(currentCell, neighbour);
+            if (tentativeGCost < neighbour.GCost || !openSet.Contains(neighbour))
+            {
+                neighbour.GCost = tentativeGCost;
+                neighbour.HCost = Astar.GetDistance(neighbour, endCell);
+                neighbour.Parent = currentCell;
+
+                if (!openSet.Contains(neighbour))
+                {
+                    cameFrom[currentCell.PortalKey] = portalKey;
+
+                    openSet.Add(neighbour);
+                }
+            }
+        }
+
+        private static List<int> ReconstructPath(Dictionary<int, int> cameFrom, int current)
+        {
+            var totalPath = new List<int> { current };
+            while (cameFrom.ContainsKey(current))
+            {
+                current = cameFrom[current];
+                totalPath.Insert(0, current);
+            }
+            return totalPath;
         }
 
         private static List<PortalNode> FindPortalNodes(Portal[] portals, Cell[,] grid, Vector2D goal)
@@ -47,16 +119,16 @@ namespace HpaStarPathfinding.pathfinding
             return nodes;
         }
 
-        public static List<Vector2D> PortalsToPath(Cell[,] grid, Portal[] portals, Vector2D pathStart, Vector2D pathEnd, List<PortalNode> pathAsPortals)
+        public static List<Vector2D> PortalsToPath(Cell[,] grid, Portal[] portals, Vector2D pathStart, Vector2D pathEnd, List<int> pathAsPortals)
         {
             //Todo use cached paths
-            List<Vector2D> path = Astar.FindPath(grid, pathStart, portals[pathAsPortals[0].PortalKey].centerPos);
+            List<Vector2D> path = Astar.FindPath(grid, pathStart, portals[pathAsPortals[0]].centerPos);
             for (int i = 0; i < pathAsPortals.Count - 1; i++)
             {
-                path.AddRange(Astar.FindPath(grid, portals[pathAsPortals[i].PortalKey].centerPos, portals[pathAsPortals[i + 1].PortalKey].centerPos));
+                path.AddRange(Astar.FindPath(grid, portals[pathAsPortals[i]].centerPos, portals[pathAsPortals[i + 1]].centerPos));
             }
 
-            path.AddRange(Astar.FindPath(grid, portals[pathAsPortals.Last().PortalKey].centerPos, pathEnd));
+            path.AddRange(Astar.FindPath(grid, portals[pathAsPortals.Last()].centerPos, pathEnd));
             return path;
         }
 

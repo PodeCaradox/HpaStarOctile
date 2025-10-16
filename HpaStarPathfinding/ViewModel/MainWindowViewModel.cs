@@ -205,6 +205,7 @@ namespace HpaStarPathfinding.ViewModel
             else if (_selectedAlgorithm == Algorithm.HPAStar)
             {
                 var pathAsPortals = HPAStar.FindPath(_map, Portals, _pathStart, _pathEnd);
+                if (pathAsPortals == null) return;
                 path = HPAStar.PortalsToPath(_map, Portals, _pathStart, _pathEnd, pathAsPortals);
             }
         }

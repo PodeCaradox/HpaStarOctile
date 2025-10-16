@@ -9,6 +9,7 @@
         public bool Walkable;
         public Cell Parent;
         public byte Connections; 
+        public int PortalKey; 
 
         public Cell(Vector2D pos, bool walkable = true)
         {

@@ -27,7 +27,7 @@ namespace HpaStarPathfinding.pathfinding
             return neighbours;
         }
 
-        private static float GetDistance(Cell a, Cell b)
+        public static float GetDistance(Cell a, Cell b)
         {
             int dstX = Math.Abs(a.Position.x - b.Position.x);
             int dstY = Math.Abs(a.Position.y - b.Position.y);
@@ -36,7 +36,7 @@ namespace HpaStarPathfinding.pathfinding
             return DiagonalCost * dstX + StraightCost * (dstY - dstX);
         }
 
-        private static Cell GetNodeWithLowestFCost(HashSet<Cell> openSet)
+        public static Cell GetNodeWithLowestFCost(HashSet<Cell> openSet)
         {
             Cell lowest = null;
             foreach (var node in openSet)
@@ -95,7 +95,7 @@ namespace HpaStarPathfinding.pathfinding
             return null;
         }
 
-        private static List<Vector2D> RetracePath(Cell startCell, Cell endCell)
+        public static List<Vector2D> RetracePath(Cell startCell, Cell endCell)
         {
             List<Vector2D> path = new List<Vector2D>();
             Cell currentCell = endCell;
