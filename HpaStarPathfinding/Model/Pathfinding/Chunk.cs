@@ -169,6 +169,9 @@ namespace HpaStarPathfinding.ViewModel
             int portalSize = 0;
             int portalPos = 0;
             Vector2D startPos = null;
+            int offsetStart = 0;
+            int otherPortalOffset = 0;
+            int offsetEnd = 0;
             for (int i = 0; i < MainWindowViewModel.ChunkSize; i++)
             {
                 ref Cell cell = ref cells[startY + steppingInDirVector.y * i, startX + steppingInDirVector.x * i];
@@ -190,9 +193,8 @@ namespace HpaStarPathfinding.ViewModel
                 if ((cell.Connections & checkDir[1]) == WALKABLE) 
                 {
                     closePortal = ClosePortal(ref portals, chunkId, closePortal, ref startPos, ref portalSize, direction, portalPos);
-                    portalSize++; 
-                        
-                    //Am I at the end of my Portal in Direction EAST
+                    portalSize++;   
+                    //Am I at the end of my Portal in Direction
                     // Check Connection to EAST
                     // Check Connection to NORTH-EAST
                     if ((cell.Connections & checkDir[2]) != WALKABLE)
@@ -211,6 +213,7 @@ namespace HpaStarPathfinding.ViewModel
                         //Do I belong to the Portal in the WEST
                         if ((cell.Connections & checkDir[4]) == WALKABLE)
                         {
+                            offsetEnd++; 
                             portalSize++;
                         }
                     }
@@ -220,6 +223,7 @@ namespace HpaStarPathfinding.ViewModel
                         startPos = cell.Position;
                         portalPos = i;
                         portalSize = 1;
+                        otherPortalOffset--;
                     }
                 }
                 closePortal = ClosePortal(ref portals, chunkId, closePortal, ref startPos, ref portalSize, direction, portalPos);
@@ -234,6 +238,7 @@ namespace HpaStarPathfinding.ViewModel
                         startPos = cell.Position;
                         portalPos = i;
                         portalSize = 1;
+                        offsetStart++;
                     }
                     else
                     {//I'm my own Portal in Direction NORTH-EAST
@@ -241,6 +246,7 @@ namespace HpaStarPathfinding.ViewModel
                         portalPos = i;
                         portalSize = 1;
                         closePortal = true;
+                        otherPortalOffset++;
                     }
                 }
                 
@@ -255,10 +261,11 @@ namespace HpaStarPathfinding.ViewModel
         {
             if (closePortal)
             {
+                //TODO achtung hier wegen diagonal portal das überschreibt
                 Portal portal = new Portal(startPos, portalSize, dir);
                 int key = Portal.GeneratePortalKey(chunkId, portalPos + portalSize / 2, dir);
-                portal.mapBorderPortal = portal.centerPos.x == 0 || portal.centerPos.x == MainWindowViewModel.MapSize - 1 || portal.centerPos.y == 0 || portal.centerPos.y == MainWindowViewModel.MapSize - 1;
-                portals[key] = portal;
+                if(portals[key] == null)
+                    portals[key] = portal;
                 startPos = null;
                 portalSize = 0;
             }

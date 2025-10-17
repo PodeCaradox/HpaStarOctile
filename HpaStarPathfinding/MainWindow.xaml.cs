@@ -26,7 +26,8 @@ namespace HpaStarPathfinding
         private const byte NOT_WALKABLE = 0b_1;
         private const byte BLOCKED = 0b_1111_1111;
         private const byte WALKABLE = 0b_0000_0000;
-        private bool drawPortals = false;
+        private bool drawPortals;
+        private bool drawPortalsConnections;
 
         private Rectangle[,] _chunks;
 
@@ -169,10 +170,6 @@ namespace HpaStarPathfinding
                     Canvas.SetTop(rect, startPosY * MainWindowViewModel.CellSize + 4);
 
                     Brush color = Brushes.Green;
-                    if (portal.mapBorderPortal)
-                    {
-                        color= Brushes.Red;
-                    }
                     
                     Rectangle center = new Rectangle
                     {
@@ -495,7 +492,6 @@ namespace HpaStarPathfinding
                 chunk.Opacity = 0.0;
             }
 
-            drawPortals = false;
             foreach (var portal in _portals)
             {
                 portal.Value.Item1.Opacity = 0.0;
@@ -505,11 +501,13 @@ namespace HpaStarPathfinding
 
         private void DrawPortalsConnectionsChecked(object sender, RoutedEventArgs e)
         {
+            drawPortalsConnections = true;
             DrawPortalConnections();
         }
 
         private void DrawPortalConnections()
         {
+            if (!drawPortalsConnections) return;
             HashSet<int> alreadyDrawn = new HashSet<int>();
             for (int key = 0; key < _vm.Portals.Length; key++)
             {
@@ -554,6 +552,7 @@ namespace HpaStarPathfinding
 
         private void DrawPortalsConnectionsUnchecked(object sender, RoutedEventArgs e)
         {
+            drawPortalsConnections = false;
             DeletePortalConnectionsDrawn();
         }
 

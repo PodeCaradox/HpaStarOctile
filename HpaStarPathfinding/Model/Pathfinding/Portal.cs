@@ -6,7 +6,6 @@ namespace HpaStarPathfinding.ViewModel
     public class Portal
     {
         //only thing needed to know, to save data you can just implement it in your game with the length saved.
-        public bool mapBorderPortal;
         public byte portalLength;
         public Connection[] internalPortalConnections;
         public int[] externalPortalConnections;//only 2 at a time
