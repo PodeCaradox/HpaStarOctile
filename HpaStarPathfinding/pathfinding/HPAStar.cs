@@ -20,6 +20,7 @@ namespace HpaStarPathfinding.pathfinding
             
             HashSet<Cell> openSet = new HashSet<Cell>();
             HashSet<Cell> closedSet = new HashSet<Cell>();
+            HashSet<Cell> startCells = new HashSet<Cell>();
             Cell endCell = grid[end.y, end.x];
             var cameFrom = new Dictionary<int, int>();
             
@@ -29,6 +30,7 @@ namespace HpaStarPathfinding.pathfinding
                 var startCell = grid[portal.centerPos.y, portal.centerPos.x];
                 startCell.PortalKey = node.PortalKey;
                 openSet.Add(startCell);
+                startCells.Add(startCell);
             }
             
 
@@ -36,7 +38,7 @@ namespace HpaStarPathfinding.pathfinding
             {
                 Cell currentCell = Astar.GetNodeWithLowestFCost(openSet);
                 if (goalNodes.Contains(currentCell.PortalKey))
-                    return ReconstructPath(cameFrom, currentCell.PortalKey);
+                    return ReconstructPath(startCells, endCell);
 
                 var currentPortal = portals[currentCell.PortalKey];
                 openSet.Remove(currentCell);
@@ -86,15 +88,22 @@ namespace HpaStarPathfinding.pathfinding
             }
         }
 
-        private static List<int> ReconstructPath(Dictionary<int, int> cameFrom, int current)
+        private static List<int> ReconstructPath(HashSet<Cell> startCells, Cell endCell)
         {
-            var totalPath = new List<int> { current };
-            while (cameFrom.ContainsKey(current))
+            List<int> path = new List<int>();
+            Cell currentCell = endCell;
+
+            while (!startCells.Contains(currentCell))
             {
-                current = cameFrom[current];
-                totalPath.Insert(0, current);
+                path.Add(currentCell.PortalKey);
+                currentCell = currentCell.Parent;
             }
-            return totalPath;
+            ;
+            path.Add(currentCell.PortalKey);
+
+            path.Reverse();
+            
+            return path;
         }
 
         private static List<PortalNode> FindPortalNodes(Portal[] portals, Cell[,] grid, Vector2D goal)

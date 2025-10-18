@@ -91,7 +91,7 @@ namespace HpaStarPathfinding
                 for (int x = 0; x < _vm.chunks.GetLength(1); x++)
                 {
                     ref Chunk chunk = ref _vm.chunks[y, x];
-                    chunk.RebuildPortals(_vm.Map, ref _vm.Portals, x, y);
+                    chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, x, y);
                     chunk.ConnectInternalPortals(_vm.Map, ref _vm.Portals, x, y);
                 }
             });
@@ -501,7 +501,7 @@ namespace HpaStarPathfinding
                 }
             }
 
-            chunk.RebuildPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
+            chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
             chunk.ConnectInternalPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
             CreatePortalsOnCanvas(chunk, chunkId);
 

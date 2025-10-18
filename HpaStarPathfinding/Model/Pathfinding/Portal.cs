@@ -1,43 +1,41 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace HpaStarPathfinding.ViewModel
 {
     public class Portal
     {
+        //debug stuff
+        public Vector2D centerPos; //not needed is in hash
+        public Directions direction; //not needed is in hash
+        public int[] externalPortalConnections; //only 2 at a time
+
+        public Connection[] internalPortalConnections;
+
         //only thing needed to know, to save data you can just implement it in your game with the length saved.
         public byte portalLength;
-        public Connection[] internalPortalConnections;
-        public int[] externalPortalConnections;//only 2 at a time
-        
-        //debug stuff
-        public Vector2D centerPos;//not needed is in hash
         public Vector2D startPos; //not needed is in hash
-        public Directions direction; //not needed is in hash
-        
+
         //Future: i can calculate the Connection with the hash, so i dont need to store them but instead just look up if the portal on the otherside is null :)
-        public Portal(Vector2D startPos, int length, Directions direction, int offsetStart, int offsetEnd) {
+        public Portal(Vector2D startPos, int length, Directions direction, int offsetStart, int offsetEnd)
+        {
             this.startPos = startPos;
-            this.portalLength = (byte)length;
+            portalLength = (byte)length;
             this.direction = direction;
             internalPortalConnections = new Connection[MainWindowViewModel.MaxPortalsInChunk - 1];
-            for (int i = 0; i < internalPortalConnections.Length; i++)
-            {
-                internalPortalConnections[i].portal = Byte.MaxValue;
-            }
+            for (var i = 0; i < internalPortalConnections.Length; i++)
+                internalPortalConnections[i].portal = byte.MaxValue;
 
             //3 because a portal can have 3 other portals it connects too
             externalPortalConnections = new int[3];
-            for (int i = 0; i < externalPortalConnections.Length; i++)
-            {
-                externalPortalConnections[i] = -1;
-            }
+            for (var i = 0; i < externalPortalConnections.Length; i++) externalPortalConnections[i] = -1;
+
             centerPos = CalcCenterPos(direction, length, startPos, offsetStart, offsetEnd);
         }
 
-        public Vector2D CalcCenterPos(Directions direction, int length, Vector2D startPos, int offsetStart, int offsetEnd)
+        public Vector2D CalcCenterPos(Directions direction, int length, Vector2D startPos, int offsetStart,
+            int offsetEnd)
         {
-            int offset = offsetStart + (length - offsetEnd - offsetStart) / 2;
+            var offset = offsetStart + (length - offsetEnd - offsetStart) / 2;
             switch (direction)
             {
                 case Directions.N:
@@ -59,23 +57,25 @@ namespace HpaStarPathfinding.ViewModel
 
         public static int GeneratePortalKey(int chunkIndex, int position, Directions direction)
         {
-            int key = position + (int)direction  * MainWindowViewModel.ChunkSize + chunkIndex * MainWindowViewModel.MaxPortalsInChunk;
+            var key = position + (int)direction * MainWindowViewModel.ChunkSize +
+                      chunkIndex * MainWindowViewModel.MaxPortalsInChunk;
             return key;
         }
-        
+
         public static int GetPortalKeyFromInternalConnection(int portalKey, byte connectionPortal)
         {
-            int key = portalKey - (portalKey % MainWindowViewModel.MaxPortalsInChunk) + connectionPortal;
+            var key = portalKey - portalKey % MainWindowViewModel.MaxPortalsInChunk + connectionPortal;
             return key;
         }
-        
+
         public static Vector2D PortalKeyToWorldPos(int key)
         {
-            int chunkId = key / MainWindowViewModel.MaxPortalsInChunk;
-            int dirAndPos = key % MainWindowViewModel.MaxPortalsInChunk;
-            Directions dir = (Directions)(dirAndPos / MainWindowViewModel.ChunkSize);
-            int pos = dirAndPos % MainWindowViewModel.ChunkSize;
-            Vector2D worldPos = new Vector2D(chunkId % MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkSize, chunkId / MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkSize);
+            var chunkId = key / MainWindowViewModel.MaxPortalsInChunk;
+            var dirAndPos = key % MainWindowViewModel.MaxPortalsInChunk;
+            var dir = (Directions)(dirAndPos / MainWindowViewModel.ChunkSize);
+            var pos = dirAndPos % MainWindowViewModel.ChunkSize;
+            var worldPos = new Vector2D(chunkId % MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkSize,
+                chunkId / MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkSize);
             switch (dir)
             {
                 case Directions.N:
@@ -93,34 +93,59 @@ namespace HpaStarPathfinding.ViewModel
                     worldPos.y += pos;
                     break;
             }
+
             return worldPos;
         }
 
-        public static int GetExternalPortal(int portalKey, Directions dir, int portalPos, int otherPortalOffset)
+        public static int GetOppositePortalInOtherChunk(int portalKey, Directions dir, int portalPos,
+            int otherPortalOffset)
         {
+            const int offsetChunkByY = MainWindowViewModel.MaxPortalsInChunk * MainWindowViewModel.ChunkMapSize;
+            const int offsetChunkByX = MainWindowViewModel.MaxPortalsInChunk;
             switch (dir)
             {
                 case Directions.N:
-                    portalKey = -1;
-                    break;
+                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, -1))
+                    {
+                        //offset inside the chunk the from top left 0 -> 29 to right bottom 
+                        return portalKey - offsetChunkByY - offsetChunkByX + MainWindowViewModel.ChunkSize * 3 - 1;
+                    }
+                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, MainWindowViewModel.ChunkSize)) return -1;
+                    return portalKey + MainWindowViewModel.ChunkSize * 2 - offsetChunkByY + otherPortalOffset;
                 case Directions.E:
-                    //first switch side: MainWindowViewModel.ChunkSize * 2
-                    //than go to the next chunk MainWindowViewModel.MaxPortalsInChunk
-                    portalKey += MainWindowViewModel.ChunkSize * 2 + MainWindowViewModel.MaxPortalsInChunk + otherPortalOffset;
-                    break;
+                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, -1))
+                    {
+                        //offset inside the chunk the from top right is 10 -> 39 to bottom left
+                        return portalKey + offsetChunkByX - offsetChunkByY + MainWindowViewModel.ChunkSize * 3 - 1;
+                    }
+                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, MainWindowViewModel.ChunkSize)) return -1;
+                    return portalKey + MainWindowViewModel.ChunkSize * 2 + offsetChunkByX + otherPortalOffset;
                 case Directions.S:
-                    portalKey = -1;
-                    break;
+                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, MainWindowViewModel.ChunkSize))
+                    {
+                        //offset inside the chunk the from bottom right is 29 -> 0 to top left
+                        return portalKey + offsetChunkByY + offsetChunkByX - (MainWindowViewModel.ChunkSize * 3 - 1);
+                    }
+                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, -1)) return -1;
+                    return portalKey - MainWindowViewModel.ChunkSize * 2 + offsetChunkByY + otherPortalOffset;
                 case Directions.W:
-                    portalKey = -1;
-                    break;
+                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, MainWindowViewModel.ChunkSize))
+                    {
+                        //offset inside the chunk the from bottom left is 39 -> 10 to top right
+                        return portalKey - offsetChunkByX + offsetChunkByY - (MainWindowViewModel.ChunkSize * 3 - 1);
+                    }
+                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, -1)) return -1;
+                    return portalKey - MainWindowViewModel.ChunkSize * 2 - offsetChunkByX + otherPortalOffset;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(dir), dir, null);
+                    return -1;
             }
-            if(portalPos + otherPortalOffset == MainWindowViewModel.ChunkSize || portalPos + otherPortalOffset == -1) {
-                return -1;
-            } 
-            return portalKey;
+            return -1;
+        }
+
+        private static bool IsOppositeDiagonalChunk(int chunkPosition, int outsidePosition)
+        {
+            if (chunkPosition == outsidePosition) return true;
+            return false;
         }
     }
 }

@@ -88,7 +88,7 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
-        public void RebuildPortals(Cell[,] cells, ref Portal[] portals, int chunkIdX, int chunkIdY)
+        public void RebuildAllPortals(Cell[,] cells, ref Portal[] portals, int chunkIdX, int chunkIdY)
         {
             int chunkId = chunkIdX + MainWindowViewModel.ChunkMapSize * chunkIdY;
             foreach (var direction in Enum.GetValues(typeof(Directions)).Cast<Directions>())
@@ -97,7 +97,7 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
-        public void RebuildPortalsInDirection(Directions dir, Cell[,] cells, ref Portal[] portals, int chunkIdX, int chunkIdY, int chunkId)
+        private void RebuildPortalsInDirection(Directions dir, Cell[,] cells, ref Portal[] portals, int chunkIdX, int chunkIdY, int chunkId)
         {
            
             int startX;
@@ -164,7 +164,6 @@ namespace HpaStarPathfinding.ViewModel
             Vector2D startPos = new Vector2D(startX, startY);
             int portalSize = 1;
             int offsetStart = 0;
-            
             int offsetEnd = 0;
             if ((cell.Connections & checkDiagonalConnection) == WALKABLE)
             {
@@ -283,9 +282,10 @@ namespace HpaStarPathfinding.ViewModel
             {
                 Portal portal = new Portal(startPos, portalSize, dir, offsetStart, offsetEnd);
                 int key = Portal.GeneratePortalKey(chunkId, centerPos, dir);
+                int externalKey = Portal.GetOppositePortalInOtherChunk(key, dir, centerPos, otherPortalOffset);
                 if (portals[key] == null)
                 {
-                    portal.externalPortalConnections[0] = Portal.GetExternalPortal(key, dir, portalPos, otherPortalOffset);
+                    portal.externalPortalConnections[0] = externalKey;
                     portals[key] = portal;
                 }
                 else
@@ -295,7 +295,7 @@ namespace HpaStarPathfinding.ViewModel
 
                         if (portals[key].externalPortalConnections[i] != -1)
                         {
-                            portals[key].externalPortalConnections[i] = Portal.GetExternalPortal(key, dir, portalPos, otherPortalOffset);
+                            portals[key].externalPortalConnections[i] = externalKey;
                             break;
                         }
                     }
