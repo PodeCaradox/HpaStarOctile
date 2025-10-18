@@ -147,18 +147,24 @@ namespace HpaStarPathfinding.ViewModel
         private void CreatePortalForDiagonalChunk(Cell[,] cells, ref Portal[] portals, int chunkId, int startX, int startY, Directions dir, Vector2D steppingInDirVector, byte checkDiagonalConnection)
         {
             int portalPos = 0;
+            int otherPortalOffset;
             if (dir == Directions.S || dir == Directions.W)
             {
                 portalPos = MainWindowViewModel.ChunkSize - 1;
                 startX += steppingInDirVector.x * portalPos;
                 startY += steppingInDirVector.y * portalPos;
+                otherPortalOffset = 1;
+            }
+            else
+            {
+                otherPortalOffset = -1;
             }
             
             ref Cell cell = ref cells[startY, startX];
             Vector2D startPos = new Vector2D(startX, startY);
             int portalSize = 1;
             int offsetStart = 0;
-            int otherPortalOffset = 1;
+            
             int offsetEnd = 0;
             if ((cell.Connections & checkDiagonalConnection) == WALKABLE)
             {
@@ -272,19 +278,24 @@ namespace HpaStarPathfinding.ViewModel
         private bool ClosePortal(ref Portal[] portals, int chunkId, bool closePortal, ref Vector2D startPos, ref int portalSize, Directions dir, int portalPos
             ,ref int offsetStart, ref int otherPortalOffset, ref int offsetEnd)
         {
+            int centerPos = portalPos + offsetStart + (portalSize - offsetEnd - offsetStart) / 2;
             if (closePortal)
             {
-                Portal portal = new Portal(startPos, portalSize, dir, offsetStart, otherPortalOffset, offsetEnd);
-                int key = Portal.GeneratePortalKey(chunkId, portalPos + offsetStart + (portalSize - offsetEnd - offsetStart) / 2, dir);
-                if(portals[key] == null)
+                Portal portal = new Portal(startPos, portalSize, dir, offsetStart, offsetEnd);
+                int key = Portal.GeneratePortalKey(chunkId, centerPos, dir);
+                if (portals[key] == null)
+                {
+                    portal.externalPortalConnections[0] = Portal.GetExternalPortal(key, dir, portalPos, otherPortalOffset);
                     portals[key] = portal;
+                }
                 else
                 {
                     for (int i = 1; i < portals[key].externalPortalConnections.Length; i++)
                     {
+
                         if (portals[key].externalPortalConnections[i] != -1)
                         {
-                            portals[key].externalPortalConnections[i] = Portal.GetExternalPortal(chunkId, portalPos + portalSize / 2, dir, otherPortalOffset);
+                            portals[key].externalPortalConnections[i] = Portal.GetExternalPortal(key, dir, portalPos, otherPortalOffset);
                             break;
                         }
                     }

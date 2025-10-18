@@ -16,7 +16,7 @@ namespace HpaStarPathfinding.ViewModel
         public Directions direction; //not needed is in hash
         
         //Future: i can calculate the Connection with the hash, so i dont need to store them but instead just look up if the portal on the otherside is null :)
-        public Portal(Vector2D startPos, int length, Directions direction, int offsetStart, int otherPortalOffset, int offsetEnd) {
+        public Portal(Vector2D startPos, int length, Directions direction, int offsetStart, int offsetEnd) {
             this.startPos = startPos;
             this.portalLength = (byte)length;
             this.direction = direction;
@@ -56,39 +56,6 @@ namespace HpaStarPathfinding.ViewModel
 
             return centerPos;
         }
-        
-        public static int GenerateOppositePortalKey(int portalKey, Directions portalDirection)
-        {
-            Vector2D posOtherPortal = PortalKeyToWorldPos(portalKey);
-            switch (portalDirection)
-            {
-                case Directions.N:
-                    posOtherPortal.y -= MainWindowViewModel.MapSize;
-                    break;
-                case Directions.E:
-                    posOtherPortal.x += 1;
-                    break;
-                case Directions.S:
-                    posOtherPortal.y += MainWindowViewModel.MapSize;
-                    break;
-                case Directions.W:
-                    posOtherPortal.x -= 1;
-                    break;
-            }
-            // int otherKey = posToPortalKey(posOtherPortal, portalDirection + 2);
-            //
-            // if (oherPortalKey)
-            // {
-            //     int oherPortalKey = 
-            // }
-            // int key = position + (int)direction  * MainWindowViewModel.ChunkSize + chunkIndex * MainWindowViewModel.MaxPortalsInChunk;
-            return -1;
-        }
-
-        private static int posToPortalKey(Vector2D posOtherPortal, Directions portalDirection)
-        {
-            throw new NotImplementedException();
-        }
 
         public static int GeneratePortalKey(int chunkIndex, int position, Directions direction)
         {
@@ -96,7 +63,7 @@ namespace HpaStarPathfinding.ViewModel
             return key;
         }
         
-        public static int CalculateOtherPortalKeyFromConnection(int portalKey, byte connectionPortal)
+        public static int GetPortalKeyFromInternalConnection(int portalKey, byte connectionPortal)
         {
             int key = portalKey - (portalKey % MainWindowViewModel.MaxPortalsInChunk) + connectionPortal;
             return key;
@@ -129,15 +96,31 @@ namespace HpaStarPathfinding.ViewModel
             return worldPos;
         }
 
-        public static int GetExternalPortal(int chunkId, int portalSize, Directions dir, int otherPortalOffset)
+        public static int GetExternalPortal(int portalKey, Directions dir, int portalPos, int otherPortalOffset)
         {
-            Vector2D worldPos = new Vector2D(chunkId % MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkSize, chunkId / MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkSize);
-            
-            int offset = 0;
-            int key = 0;
-            
-            
-            return key += offset;
+            switch (dir)
+            {
+                case Directions.N:
+                    portalKey = -1;
+                    break;
+                case Directions.E:
+                    //first switch side: MainWindowViewModel.ChunkSize * 2
+                    //than go to the next chunk MainWindowViewModel.MaxPortalsInChunk
+                    portalKey += MainWindowViewModel.ChunkSize * 2 + MainWindowViewModel.MaxPortalsInChunk + otherPortalOffset;
+                    break;
+                case Directions.S:
+                    portalKey = -1;
+                    break;
+                case Directions.W:
+                    portalKey = -1;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(dir), dir, null);
+            }
+            if(portalPos + otherPortalOffset == MainWindowViewModel.ChunkSize || portalPos + otherPortalOffset == -1) {
+                return -1;
+            } 
+            return portalKey;
         }
     }
 }

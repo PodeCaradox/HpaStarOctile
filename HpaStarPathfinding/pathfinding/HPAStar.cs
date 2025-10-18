@@ -36,7 +36,7 @@ namespace HpaStarPathfinding.pathfinding
             {
                 Cell currentCell = Astar.GetNodeWithLowestFCost(openSet);
                 if (goalNodes.Contains(currentCell.PortalKey))
-                    return ReconstructPath(cameFrom, currentCell.PortalKey);;
+                    return ReconstructPath(cameFrom, currentCell.PortalKey);
 
                 var currentPortal = portals[currentCell.PortalKey];
                 openSet.Remove(currentCell);
@@ -55,7 +55,7 @@ namespace HpaStarPathfinding.pathfinding
                 {
                     if(connection.portal == byte.MaxValue) continue; // portal is null
                     var portalKey =
-                        Portal.CalculateOtherPortalKeyFromConnection(currentCell.PortalKey, connection.portal);
+                        Portal.GetPortalKeyFromInternalConnection(currentCell.PortalKey, connection.portal);
                     CheckConnection(grid, portals, portalKey, closedSet, currentCell, openSet, endCell, cameFrom);
                 }
             }

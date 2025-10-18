@@ -62,14 +62,23 @@
                                         Width="80"
                                         x:Name="DrawPortalsButton" />
                                     <ToggleButton
-                                        Checked="DrawPortalsConnectionsChecked"
-                                        Content="Draw Portal Connections"
+                                        Checked="DrawPortalsInternalConnectionsChecked"
+                                        Content="Show Internal Connections"
                                         HorizontalAlignment="Left"
                                         Margin="340,0,0,0"
-                                        Unchecked="DrawPortalsConnectionsUnchecked"
+                                        Unchecked="DrawPortalsInternalConnectionsUnchecked"
                                         VerticalAlignment="Top"
-                                        Width="80"
+                                        Width="140"
                                         x:Name="DrawPortalsConnectionsButton" />
+                                    <ToggleButton
+                                        Checked="DrawPortalsExternalConnectionsChecked"
+                                        Content="Show External Connections"
+                                        HorizontalAlignment="Left"
+                                        Margin="480,0,0,0"
+                                        Unchecked="DrawPortalsExternalConnectionsUnchecked"
+                                        VerticalAlignment="Top"
+                                        Width="140"
+                                        x:Name="DrawPortalsExternalConnectionsButton" />
 
                                 </Grid>
                             </Border>

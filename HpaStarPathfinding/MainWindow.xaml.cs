@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -27,7 +28,8 @@ namespace HpaStarPathfinding
         private const byte BLOCKED = 0b_1111_1111;
         private const byte WALKABLE = 0b_0000_0000;
         private bool drawPortals;
-        private bool drawPortalsConnections;
+        private bool drawPortalsInternalConnections;
+        private bool drawPortalsExternalConnections;
 
         private Rectangle[,] _chunks;
 
@@ -43,7 +45,9 @@ namespace HpaStarPathfinding
         private HashSet<Vector2D> _dirtyChunks;
         private HashSet<Vector2D> _dirtyTiles;
 
-        private readonly List<Line> _portalConnections = new List<Line>();
+        private readonly List<Line> _portalInternalConnections = new List<Line>();
+        private readonly List<Line> _portalExternalConnections = new List<Line>();
+        private readonly List<Line> _hoverportalConnections = new List<Line>();
 
         #endregion
 
@@ -146,7 +150,9 @@ namespace HpaStarPathfinding
                         Stroke = brushes[i],
                         Fill = Brushes.Transparent,
                         Opacity = opacity,
-                        IsHitTestVisible = false
+                        IsHitTestVisible = false,
+                        IsManipulationEnabled = false,
+                        IsEnabled = false
                     };
                     i++;
                     if (i >= brushes.Length)
@@ -166,7 +172,9 @@ namespace HpaStarPathfinding
                         Stroke = Brushes.Transparent,
                         Fill = color,
                         Opacity = opacity,
-                        IsHitTestVisible = false
+                        IsHitTestVisible = false,
+                        IsManipulationEnabled = false,
+                        IsEnabled = false
                     };
 
                     Canvas.SetLeft(center, centerPosX * MainWindowViewModel.CellSize + 5);
@@ -268,10 +276,127 @@ namespace HpaStarPathfinding
 
         private void MapCellOnMouseEnter(object sender, MouseEventArgs e)
         {
+            DrawConnectionsOnHover(sender);
             if (e.LeftButton != MouseButtonState.Pressed)
                 return;
 
             ChangeMapCell(sender);
+        }
+
+        private int currentPortal = -1;
+        private void DrawConnectionsOnHover(object sender)
+        {
+            if (!drawPortals || !(sender is Rectangle rect) || !(rect.Tag is Cell mapCell))
+            {
+                RemoveIfNotHovered();
+                return;
+            }
+
+            List<int> keys = new List<int>();
+            int dummyX = mapCell.Position.x % MainWindowViewModel.ChunkSize;
+            int dummyY = mapCell.Position.y % MainWindowViewModel.ChunkSize;
+            int xOffset = mapCell.Position.x / MainWindowViewModel.ChunkSize * MainWindowViewModel.MaxPortalsInChunk;
+            int yOffset = mapCell.Position.y / MainWindowViewModel.ChunkSize * MainWindowViewModel.MaxPortalsInChunk * MainWindowViewModel.ChunkMapSize;
+            if(dummyX == 0)
+            {
+                var portalKey = dummyY + xOffset + yOffset + MainWindowViewModel.ChunkSize * 3;
+                keys.Add(portalKey);
+            } 
+            
+            if (dummyY == 0)
+            {  
+                var portalKey = dummyX + xOffset + yOffset;
+                keys.Add(portalKey);
+            }
+            
+            if (dummyX == 9)
+            {
+                var portalKey = dummyY + xOffset + yOffset + MainWindowViewModel.ChunkSize * 1;
+                keys.Add(portalKey);
+            }
+            
+            if (dummyY == 9)
+            {
+                var portalKey = dummyX + xOffset + yOffset + MainWindowViewModel.ChunkSize * 2;
+                keys.Add(portalKey);
+            }
+
+            if (keys.Count == 0)
+            {
+                RemoveIfNotHovered();
+                return;
+            }
+            if (currentPortal == keys[0]) return;
+            currentPortal = keys[0];
+            RemoveIfNotHovered();
+            foreach (var key in keys)
+            {
+                DrawPortalConnectionsOnHover(key);
+            }
+           
+        }
+
+        private void RemoveIfNotHovered()
+        {
+            foreach (var line in _hoverportalConnections)
+            {
+                PathCanvas.Children.Remove(line);
+            }
+            _hoverportalConnections.Clear();
+        }
+
+        public void DrawPortalConnectionsOnHover(int key)
+        {
+            ref var portal = ref _vm.Portals[key];
+            if (portal == null) return;
+                
+            int chunkIndexinPortalArray = key / MainWindowViewModel.MaxPortalsInChunk * MainWindowViewModel.MaxPortalsInChunk;
+            foreach (var connection in portal.internalPortalConnections)
+            {
+                if (connection.portal == byte.MaxValue) break;
+                    
+                int keyOtherPortal = chunkIndexinPortalArray + connection.portal;
+                var otherPortal = _vm.Portals[keyOtherPortal];
+                var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.centerPos);
+                var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.centerPos);
+                Line line = new Line
+                {
+                    StrokeThickness = 2,
+                    X1 = point1.x,
+                    X2 = point2.x,
+                    Y1 = point1.y,
+                    Y2 = point2.y,
+                    Stroke = Brushes.CornflowerBlue,
+                    IsHitTestVisible = false,
+                    IsManipulationEnabled = false,
+                    IsEnabled = false
+                };
+                _hoverportalConnections.Add(line);
+                PathCanvas.Children.Add(line);
+            }
+            
+            foreach (var keyOtherPortal in portal.externalPortalConnections)
+            {
+                if (keyOtherPortal == -1) break;
+                    
+                var otherPortal = _vm.Portals[keyOtherPortal];
+                var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.centerPos);
+                var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.centerPos);
+                Line line = new Line
+                {
+                    StrokeThickness = 2,
+                    X1 = point1.x,
+                    X2 = point2.x,
+                    Y1 = point1.y,
+                    Y2 = point2.y,
+                    Stroke = Brushes.CornflowerBlue,
+                    IsHitTestVisible = false,
+                    IsManipulationEnabled = false,
+                    IsEnabled = false
+                };
+                _hoverportalConnections.Add(line);
+                PathCanvas.Children.Add(line);
+            }
         }
 
         #endregion
@@ -351,7 +476,10 @@ namespace HpaStarPathfinding
             {
                 RebuildPortalsInChunk(chunk);
             }
-
+            DeletePortalInternalConnectionsDrawn();
+            DeletePortalExternalConnectionsDrawn();
+            DrawPortalInternalConnections();
+            DrawPortalExternalConnections();
             _dirtyChunks.Clear();
 
             CalcPath();
@@ -376,8 +504,7 @@ namespace HpaStarPathfinding
             chunk.RebuildPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
             chunk.ConnectInternalPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
             CreatePortalsOnCanvas(chunk, chunkId);
-            DeletePortalConnectionsDrawn();
-            DrawPortalConnections();
+
         }
 
         private static Brush GetCellColor(Cell mapCell)
@@ -418,7 +545,8 @@ namespace HpaStarPathfinding
                     Y1 = point1.y,
                     Y2 = point2.y,
                     Stroke = Brushes.Green,
-                    IsHitTestVisible = false
+                    IsHitTestVisible = false,
+                    IsManipulationEnabled = false
                 };
 
                 _lines.Add(line);
@@ -486,15 +614,48 @@ namespace HpaStarPathfinding
             }
         }
 
-        private void DrawPortalsConnectionsChecked(object sender, RoutedEventArgs e)
+        private void DrawPortalsInternalConnectionsChecked(object sender, RoutedEventArgs e)
         {
-            drawPortalsConnections = true;
-            DrawPortalConnections();
+            drawPortalsInternalConnections = true;
+            DrawPortalInternalConnections();
         }
 
-        private void DrawPortalConnections()
+        private void DrawPortalExternalConnections()
         {
-            if (!drawPortalsConnections) return;
+            if (!drawPortalsExternalConnections) return;
+             for (int key = 0; key < _vm.Portals.Length; key++)
+            {
+                ref var portal = ref _vm.Portals[key];
+                if (portal == null) continue;
+                
+                foreach (var keyOtherPortal in portal.externalPortalConnections)
+                {
+                    if (keyOtherPortal == -1) break;
+                    
+                    var otherPortal = _vm.Portals[keyOtherPortal];
+                    var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.centerPos);
+                    var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.centerPos);
+                    Line line = new Line
+                    {
+                        StrokeThickness = 2,
+                        X1 = point1.x,
+                        X2 = point2.x,
+                        Y1 = point1.y,
+                        Y2 = point2.y,
+                        Stroke = Brushes.Yellow,
+                        IsHitTestVisible = false,
+                        IsManipulationEnabled = false,
+                        IsEnabled = false
+                    };
+                    _portalExternalConnections.Add(line);
+                    PathCanvas.Children.Add(line);
+                }
+            }
+        }
+
+        private void DrawPortalInternalConnections()
+        {
+            if (!drawPortalsInternalConnections) return;
             HashSet<int> alreadyDrawn = new HashSet<int>();
             for (int key = 0; key < _vm.Portals.Length; key++)
             {
@@ -506,8 +667,8 @@ namespace HpaStarPathfinding
                 {
                     if (connection.portal == byte.MaxValue) break;
                     
-                    
                     int keyOtherPortal = chunkIndexinPortalArray + connection.portal;
+                    
                     var otherPortal = _vm.Portals[keyOtherPortal];
                     var keyInChunk = key % MainWindowViewModel.MaxPortalsInChunk;
                     int connectionKey1 = keyInChunk * MainWindowViewModel.MaxPortalsInChunk + connection.portal;
@@ -523,34 +684,54 @@ namespace HpaStarPathfinding
                         X2 = point2.x,
                         Y1 = point1.y,
                         Y2 = point2.y,
-                        Stroke = Brushes.Yellow,
-                        IsHitTestVisible = false
+                        Stroke = Brushes.Purple,
+                        IsHitTestVisible = false,
+                        IsManipulationEnabled = false,
+                        IsEnabled = false
                     };
-
-                    _portalConnections.Add(line);
+                    _portalInternalConnections.Add(line);
                     PathCanvas.Children.Add(line);
-                    
                 }
-                
-                
             }
         }
 
 
-        private void DrawPortalsConnectionsUnchecked(object sender, RoutedEventArgs e)
+        private void DrawPortalsInternalConnectionsUnchecked(object sender, RoutedEventArgs e)
         {
-            drawPortalsConnections = false;
-            DeletePortalConnectionsDrawn();
+            drawPortalsInternalConnections = false;
+            DeletePortalInternalConnectionsDrawn();
         }
 
-        private void DeletePortalConnectionsDrawn()
+        private void DrawPortalsExternalConnectionsChecked(object sender, RoutedEventArgs e)
         {
-            foreach (var portalConnection in _portalConnections)
+            drawPortalsExternalConnections = true;
+            DrawPortalExternalConnections();
+        }
+
+        private void DrawPortalsExternalConnectionsUnchecked(object sender, RoutedEventArgs e)
+        {
+            drawPortalsExternalConnections = false;
+            DeletePortalExternalConnectionsDrawn();
+        }
+
+        private void DeletePortalExternalConnectionsDrawn()
+        {
+            foreach (var portalConnection in _portalExternalConnections)
             {
                 PathCanvas.Children.Remove(portalConnection);
             }
 
-            _portalConnections.Clear();
+            _portalExternalConnections.Clear();
+        }
+
+        private void DeletePortalInternalConnectionsDrawn()
+        {
+            foreach (var portalConnection in _portalInternalConnections)
+            {
+                PathCanvas.Children.Remove(portalConnection);
+            }
+
+            _portalInternalConnections.Clear();
         }
     }
 }

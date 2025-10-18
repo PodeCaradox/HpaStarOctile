@@ -14,7 +14,7 @@ namespace HpaStarPathfinding.ViewModel
         public const int MapSize = 40;
         public const int ChunkSize = 10;
         public const int ChunkMapSize = MapSize / ChunkSize;
-        public const int MaxPortalsInChunk = ChunkSize * 4;//4 = Enum.GetValues(typeof(Directions)).Length
+        public const int MaxPortalsInChunk = ChunkSize * 4;//for each direction: 4 = Enum.GetValues(typeof(Directions)).Length
 
         #region Propertys UI
 
@@ -190,7 +190,7 @@ namespace HpaStarPathfinding.ViewModel
 
         public bool PathPointIsWall(Vector2D vector2D)
         {
-            return !_map[vector2D.x, vector2D.y].Walkable;
+            return !_map[vector2D.y, vector2D.x].Walkable;
         }
 
         public void FindPath()
