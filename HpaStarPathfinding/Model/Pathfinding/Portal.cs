@@ -16,8 +16,7 @@ namespace HpaStarPathfinding.ViewModel
         public Directions direction; //not needed is in hash
         
         //Future: i can calculate the Connection with the hash, so i dont need to store them but instead just look up if the portal on the otherside is null :)
-        
-        public Portal(Vector2D startPos, int length, Directions direction) {
+        public Portal(Vector2D startPos, int length, Directions direction, int offsetStart, int otherPortalOffset, int offsetEnd) {
             this.startPos = startPos;
             this.portalLength = (byte)length;
             this.direction = direction;
@@ -27,30 +26,31 @@ namespace HpaStarPathfinding.ViewModel
                 internalPortalConnections[i].portal = Byte.MaxValue;
             }
 
+            //3 because a portal can have 3 other portals it connects too
             externalPortalConnections = new int[3];
             for (int i = 0; i < externalPortalConnections.Length; i++)
             {
                 externalPortalConnections[i] = -1;
             }
-            centerPos = CalcCenterPos(direction, length, startPos);
+            centerPos = CalcCenterPos(direction, length, startPos, offsetStart, offsetEnd);
         }
 
-        public Vector2D CalcCenterPos(Directions direction, int length, Vector2D startPos)
+        public Vector2D CalcCenterPos(Directions direction, int length, Vector2D startPos, int offsetStart, int offsetEnd)
         {
-            int offset = length / 2;
+            int offset = offsetStart + (length - offsetEnd - offsetStart) / 2;
             switch (direction)
             {
                 case Directions.N:
                     centerPos = new Vector2D(startPos.x + offset, startPos.y);
                     break;
                 case Directions.S:
-                    centerPos = new Vector2D(startPos.x - offset + offset % 2, startPos.y);
+                    centerPos = new Vector2D(startPos.x + offset, startPos.y);
                     break;
                 case Directions.E:
                     centerPos = new Vector2D(startPos.x, startPos.y + offset);
                     break;
                 case Directions.W:
-                    centerPos = new Vector2D(startPos.x, startPos.y - offset + offset % 2);
+                    centerPos = new Vector2D(startPos.x, startPos.y + offset);
                     break;
             }
 
@@ -109,25 +109,35 @@ namespace HpaStarPathfinding.ViewModel
             Directions dir = (Directions)(dirAndPos / MainWindowViewModel.ChunkSize);
             int pos = dirAndPos % MainWindowViewModel.ChunkSize;
             Vector2D worldPos = new Vector2D(chunkId % MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkSize, chunkId / MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkSize);
-            int dummy = MainWindowViewModel.ChunkSize - 1;
             switch (dir)
             {
                 case Directions.N:
                     worldPos.x += pos;
                     break;
                 case Directions.E:
-                    worldPos.x += dummy;
+                    worldPos.x += MainWindowViewModel.ChunkSize - 1;
                     worldPos.y += pos;
                     break;
                 case Directions.S:
-                    worldPos.x = worldPos.x - pos + dummy;
-                    worldPos.y += dummy;
+                    worldPos.x += pos;
+                    worldPos.y += MainWindowViewModel.ChunkSize - 1;
                     break;
                 case Directions.W:
-                    worldPos.y = worldPos.y - pos + dummy;
+                    worldPos.y += pos;
                     break;
             }
             return worldPos;
+        }
+
+        public static int GetExternalPortal(int chunkId, int portalSize, Directions dir, int otherPortalOffset)
+        {
+            Vector2D worldPos = new Vector2D(chunkId % MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkSize, chunkId / MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkSize);
+            
+            int offset = 0;
+            int key = 0;
+            
+            
+            return key += offset;
         }
     }
 }

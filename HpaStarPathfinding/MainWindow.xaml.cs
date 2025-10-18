@@ -31,7 +31,7 @@ namespace HpaStarPathfinding
 
         private Rectangle[,] _chunks;
 
-        private Dictionary<Portal, (Rectangle, Rectangle)> _portals;
+        private Dictionary<int, (Rectangle, Rectangle)> _portals;
 
         private readonly List<Line> _lines = new List<Line>();
 
@@ -81,7 +81,7 @@ namespace HpaStarPathfinding
 
         private void InitializePortals()
         {
-            _portals = new Dictionary<Portal, (Rectangle, Rectangle)>();
+            _portals = new Dictionary<int, (Rectangle, Rectangle)>();
             Parallel.For(0, _vm.chunks.GetLength(0), y =>
             {
                 for (int x = 0; x < _vm.chunks.GetLength(1); x++)
@@ -119,7 +119,7 @@ namespace HpaStarPathfinding
             var brushes = new Brush[] { Brushes.Red, Brushes.Green, Brushes.Blue, Brushes.Violet };
             int i = 0; //Looking in Directions.N        Directions.E        Directions.S        Directions.W
             var steppingVector = new[]
-                { DirectionsVector.E, DirectionsVector.S, DirectionsVector.W, DirectionsVector.N };
+                { DirectionsVector.E, DirectionsVector.S, DirectionsVector.E, DirectionsVector.S };
 
             foreach (Directions dirVec in Enum.GetValues(typeof(Directions)))
             {
@@ -136,18 +136,6 @@ namespace HpaStarPathfinding
                     int centerPosY = portal.centerPos.y;
                     int width = dir.x * portal.portalLength;
                     int height = dir.y * portal.portalLength;
-
-                    if (dir.x < 0)
-                    {
-                        startPosX += (width + 1);
-                        width *= -1;
-                    }
-
-                    if (dir.y < 0)
-                    {
-                        startPosY += (height + 1);
-                        height *= -1;
-                    }
 
                     Rectangle rect = new Rectangle
                     {
@@ -184,7 +172,7 @@ namespace HpaStarPathfinding
                     Canvas.SetLeft(center, centerPosX * MainWindowViewModel.CellSize + 5);
                     Canvas.SetTop(center, centerPosY * MainWindowViewModel.CellSize + 5);
 
-                    _portals.Add(portal, (rect, center));
+                    _portals.Add(key, (rect, center));
                     PathCanvas.Children.Add(rect);
                     PathCanvas.Children.Add(center);
                 }
@@ -378,11 +366,10 @@ namespace HpaStarPathfinding
                 for (int j = 0; j < MainWindowViewModel.ChunkSize; j++)
                 {
                     int key = Portal.GeneratePortalKey(chunkId, j, dirVec);
-                    var portal = _vm.Portals[key];
-                    if (portal == null) continue;
-                    PathCanvas.Children.Remove(_portals[portal].Item1);
-                    PathCanvas.Children.Remove(_portals[portal].Item2);
-                    _portals.Remove(portal);
+                    if (!_portals.ContainsKey(key)) continue;
+                    PathCanvas.Children.Remove(_portals[key].Item1);
+                    PathCanvas.Children.Remove(_portals[key].Item2);
+                    _portals.Remove(key);
                 }
             }
 
