@@ -12,100 +12,102 @@ namespace HpaStarPathfinding.pathfinding
         
         public static List<int> FindPath(Cell[,] grid, Portal[] portals, Vector2D start, Vector2D end)
         {
-            var startNodes  = FindPortalNodes(portals, grid, start);
-            HashSet<int> goalNodes  = new HashSet<int>(FindPortalNodes(portals, grid, end).Select(x => x.PortalKey));
-
+            var startNodes  = FindPortalNodes(portals, grid, end);
+            HashSet<int> goalNodes  = new HashSet<int>(FindPortalNodes(portals, grid, start).Select(x => x.PortalKey));
+    
             if (startNodes.Count == 0 || goalNodes.Count == 0)
-                return null;
-            
-            HashSet<Cell> openSet = new HashSet<Cell>();
-            HashSet<Cell> closedSet = new HashSet<Cell>();
-            HashSet<Cell> startCells = new HashSet<Cell>();
-            Cell endCell = grid[end.y, end.x];
-            var cameFrom = new Dictionary<int, int>();
+                return new List<int>();
+            FastPriorityQueue open = new FastPriorityQueue(MainWindowViewModel.MaxPortalsInChunk * MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkMapSize);
+            HashSet<int> closedSet = new HashSet<int>();
+            Dictionary<int, PathfindingCell> getElement = new Dictionary<int, PathfindingCell>();
+            PathfindingCell endCell = new PathfindingCell(grid[end.y, end.x]);
             
             foreach (var node in startNodes)
             {
                 ref var portal = ref portals[node.PortalKey];
-                var startCell = grid[portal.centerPos.y, portal.centerPos.x];
+                var startCell = new PathfindingCell(grid[portal.centerPos.y, portal.centerPos.x]);
                 startCell.PortalKey = node.PortalKey;
-                openSet.Add(startCell);
-                startCells.Add(startCell);
+                open.Enqueue(startCell, 0);
+                getElement.Add(startCell.PortalKey, startCell);
             }
             
-
-            while (openSet.Count > 0)
+            PathfindingCell currentCell = null;
+            bool finished = false;
+            while (open.Count > 0)
             {
-                Cell currentCell = Astar.GetNodeWithLowestFCost(openSet);
+                currentCell = open.Dequeue();
                 if (goalNodes.Contains(currentCell.PortalKey))
-                    return ReconstructPath(startCells, endCell);
-
+                {
+                    finished = true;
+                    break;
+                }
+    
                 var currentPortal = portals[currentCell.PortalKey];
-                openSet.Remove(currentCell);
-                closedSet.Add(currentCell);
-
-                //Check External Connection
-                
+                closedSet.Add(currentCell.PortalKey);
+    
+                var g = currentCell.GCost + 1;
+                //Check external Connections
                 foreach (var portalKey in currentPortal.externalPortalConnections)
                 {
                     if (portalKey == -1) break;
-                    CheckConnection(grid, portals, portalKey, closedSet, currentCell, openSet, endCell, cameFrom);
+                    CheckConnection(grid, portals, getElement, portalKey, closedSet, currentCell, open, endCell, g);
                 }
                 
                 //Check internal Connections
                 foreach (var connection in currentPortal.internalPortalConnections)
                 {
-                    if(connection.portal == byte.MaxValue) continue; // portal is null
+                    if(connection.portal == byte.MaxValue) break;
                     var portalKey =
                         Portal.GetPortalKeyFromInternalConnection(currentCell.PortalKey, connection.portal);
-                    CheckConnection(grid, portals, portalKey, closedSet, currentCell, openSet, endCell, cameFrom);
+                    CheckConnection(grid, portals, getElement, portalKey, closedSet, currentCell, open, endCell, g);
                 }
             }
-
-            return null;
-        }
-
-        private static void CheckConnection(Cell[,] grid, Portal[] portals, int portalKey, HashSet<Cell> closedSet, Cell currentCell,
-            HashSet<Cell> openSet, Cell endCell, Dictionary<int, int> cameFrom)
-        {
-            ref var portal = ref portals[portalKey];
-            var neighbour = grid[portal.centerPos.y, portal.centerPos.x];
-            if (closedSet.Contains(neighbour)) return;
-            neighbour.PortalKey = portalKey;
-            float tentativeGCost = currentCell.GCost + Astar.GetDistance(currentCell, neighbour);
-            if (tentativeGCost < neighbour.GCost || !openSet.Contains(neighbour))
-            {
-                neighbour.GCost = tentativeGCost;
-                neighbour.HCost = Astar.GetDistance(neighbour, endCell);
-                neighbour.Parent = currentCell;
-
-                if (!openSet.Contains(neighbour))
-                {
-                    cameFrom[currentCell.PortalKey] = portalKey;
-
-                    openSet.Add(neighbour);
-                }
-            }
-        }
-
-        private static List<int> ReconstructPath(HashSet<Cell> startCells, Cell endCell)
-        {
-            List<int> path = new List<int>();
-            Cell currentCell = endCell;
-
-            while (!startCells.Contains(currentCell))
-            {
+    
+            var path = new List<int>();
+            if(!finished) return path;
+            
+            while (currentCell != null) {
                 path.Add(currentCell.PortalKey);
                 currentCell = currentCell.Parent;
             }
-            ;
-            path.Add(currentCell.PortalKey);
 
-            path.Reverse();
-            
             return path;
         }
-
+    
+        private static void CheckConnection(Cell[,] grid, Portal[] portals, Dictionary<int, PathfindingCell> getElement, int portalKey, HashSet<int> closedSet, PathfindingCell currentCell,
+            FastPriorityQueue open, PathfindingCell endCell, float g)
+        {
+            
+            if (getElement.TryGetValue(portalKey, out var neighbour)){}
+            else
+            {
+                ref var portal = ref portals[portalKey];
+                neighbour = new PathfindingCell(grid[portal.centerPos.y, portal.centerPos.x])
+                {
+                    PortalKey = portalKey
+                };
+                getElement.Add(portalKey, neighbour);
+            }
+            if (closedSet.Contains(portalKey)) return;
+            
+            neighbour.PortalKey = portalKey;
+            
+            if (!open.Contains(neighbour))
+            {
+                neighbour.GCost = g;
+                neighbour.HCost = GetDistance(neighbour, endCell);
+                neighbour.Parent = currentCell;
+                open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
+            }
+        }
+        
+        public static float GetDistance(PathfindingCell a, PathfindingCell b)
+        {
+            int dX = Math.Abs(a.Position.x - b.Position.x);
+            int dY = Math.Abs(a.Position.y - b.Position.y);
+            return StraightCost * (dX + dY) + DiagonalCost * Math.Min(dX, dY);
+        }
+    
         private static List<PortalNode> FindPortalNodes(Portal[] portals, Cell[,] grid, Vector2D goal)
         {
             Vector2D chunkPos = new Vector2D(goal.x / MainWindowViewModel.ChunkSize,
@@ -127,7 +129,7 @@ namespace HpaStarPathfinding.pathfinding
             }
             return nodes;
         }
-
+    
         public static List<Vector2D> PortalsToPath(Cell[,] grid, Portal[] portals, Vector2D pathStart, Vector2D pathEnd, List<int> pathAsPortals)
         {
             //Todo use cached paths
@@ -136,11 +138,11 @@ namespace HpaStarPathfinding.pathfinding
             {
                 path.AddRange(Astar.FindPath(grid, portals[pathAsPortals[i]].centerPos, portals[pathAsPortals[i + 1]].centerPos));
             }
-
+    
             path.AddRange(Astar.FindPath(grid, portals[pathAsPortals.Last()].centerPos, pathEnd));
             return path;
         }
-
+    
         
     }
 }

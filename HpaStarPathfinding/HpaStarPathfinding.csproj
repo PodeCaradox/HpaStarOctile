@@ -55,6 +55,8 @@
         <Compile Include="Model\Pathfinding\Cell.cs" />
         <Compile Include="Model\Pathfinding\Connection.cs" />
         <Compile Include="Model\Pathfinding\Directions.cs" />
+        <Compile Include="Model\Pathfinding\FastPriorityQueue.cs" />
+        <Compile Include="Model\Pathfinding\PathfindingCell.cs" />
         <Compile Include="Model\Pathfinding\Portal.cs" />
         <Compile Include="Model\Pathfinding\PortalNode.cs" />
         <Compile Include="Model\Pathfinding\Vector2D.cs" />
@@ -62,7 +64,6 @@
         <Compile Include="Model\UI\CircleUI.cs" />
         <Compile Include="pathfinding\AStar.cs" />
         <Compile Include="pathfinding\AStarCustom.cs" />
-        <Compile Include="pathfinding\Dijkstra.cs" />
         <Compile Include="pathfinding\HPAStar.cs" />
         <Compile Include="ViewModel\MainWindowViewModel.cs" />
         <Compile Include="ViewModel\ViewModelBase.cs" />

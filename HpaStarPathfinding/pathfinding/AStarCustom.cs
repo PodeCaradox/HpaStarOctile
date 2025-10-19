@@ -1,19 +1,18 @@
-﻿namespace HpaStarPathfinding.pathfinding
+﻿using System;
+using System.Collections.Generic;
+using HpaStarPathfinding.ViewModel;
+
+namespace HpaStarPathfinding.pathfinding
 {
-    
-    using System;
-    using System.Collections.Generic;
-    using ViewModel;
-    
     public class AStarCustom
     {
-
         private const float StraightCost = 1f;
         private const float DiagonalCost = 1.414f;
 
-        private static List<Cell> GetNeighbours(Cell[,] grid, Cell cell, Vector2D min, Vector2D max)
+        private static List<int> GetNeighbours(PathfindingCell cell, Vector2D min, Vector2D max)
         {
-            List<Cell> neighbours = new List<Cell>();
+            //TODO use here the bits
+            List<int> neighbours = new List<int>();
 
             foreach (var direction in DirectionsVector.AllDirections)
             {
@@ -22,89 +21,81 @@
 
                 if (newX >= min.x && newX < max.x && newY >= min.y && newY < max.y)
                 {
-                    neighbours.Add(grid[newY, newX]);
+                    neighbours.Add(newY * MainWindowViewModel.MapSize + newX);
                 }
             }
 
             return neighbours;
         }
 
-        private static float GetDistance(Cell a, Cell b)
+        public static float GetDistance(PathfindingCell a, PathfindingCell b)
         {
-            int dstX = Math.Abs(a.Position.x - b.Position.x);
-            int dstY = Math.Abs(a.Position.y - b.Position.y);
-            if (dstX > dstY)
-                return DiagonalCost * dstY + StraightCost * (dstX - dstY);
-            return DiagonalCost * dstX + StraightCost * (dstY - dstX);
-        }
-
-        private static Cell GetNodeWithLowestFCost(HashSet<Cell> openSet)
-        {
-            Cell lowest = null;
-            foreach (var node in openSet)
-            {
-                if (lowest == null || node.fCost < lowest.fCost ||
-                    (node.fCost == lowest.fCost && node.HCost < lowest.HCost))
-                {
-                    lowest = node;
-                }
-            }
-
-            return lowest;
+            int dX = Math.Abs(a.Position.x - b.Position.x);
+            int dY = Math.Abs(a.Position.y - b.Position.y);
+            return StraightCost * (dX + dY) + DiagonalCost * Math.Min(dX, dY);
         }
 
         public static float FindPath(Cell[,] grid, Vector2D start, Vector2D end, Vector2D min, Vector2D max)
         {
-            Cell startCell = grid[start.y, start.x];
-            Cell endCell = grid[end.y, end.x];
+            FastPriorityQueue open = new FastPriorityQueue(grid.GetLength(0) * grid.GetLength(1));
+            Cell startCell = grid[end.y, end.x];
+            PathfindingCell goalCell  = new PathfindingCell(grid[start.y, start.x]);
+            
+            HashSet<int> closedSet = new HashSet<int>();
+            Dictionary<int, PathfindingCell> getElement = new Dictionary<int, PathfindingCell>();
 
-            //can be ignored on hpaStar
-            if (!startCell.Walkable || !endCell.Walkable)
-                return -1;
+            open.Enqueue(new PathfindingCell(startCell), 0);
 
-            HashSet<Cell> openSet = new HashSet<Cell>();
-            HashSet<Cell> closedSet = new HashSet<Cell>();
-
-            openSet.Add(startCell);
-
-            while (openSet.Count > 0)
+            PathfindingCell currentCell = null;
+            bool finished = false;
+            while (open.Count > 0) 
             {
-                Cell currentCell = GetNodeWithLowestFCost(openSet);
+                currentCell = open.Dequeue();
 
-                if (currentCell.Position.Equals(endCell.Position))
-                    return RetracePath(startCell, endCell);
-
-                openSet.Remove(currentCell);
-                closedSet.Add(currentCell);
-
-                foreach (var neighbour in GetNeighbours(grid, currentCell, min, max))
+                if (goalCell.Position.x == currentCell.Position.x && goalCell.Position.y == currentCell.Position.y)
                 {
-                    if (!neighbour.Walkable || closedSet.Contains(neighbour))
+                    finished = true;
+                    break;
+                }
+
+                closedSet.Add(currentCell.Position.x + currentCell.Position.y * MainWindowViewModel.MapSize);
+
+                var g = currentCell.GCost + 1;
+                
+                foreach (var neighbourKey in GetNeighbours(currentCell, min, max))
+                {
+                    if (getElement.TryGetValue(neighbourKey, out var neighbour)){}
+                    else
+                    {
+                        neighbour = new PathfindingCell(grid[neighbourKey / MainWindowViewModel.MapSize,
+                            neighbourKey % MainWindowViewModel.MapSize]); 
+                        getElement.Add(neighbourKey, neighbour);
+                    }
+                        
+                    
+                    if (!neighbour.Walkable || closedSet.Contains(neighbour.Position.x + neighbour.Position.y * MainWindowViewModel.MapSize))
                         continue;
 
-                    float tentativeGCost = currentCell.GCost + GetDistance(currentCell, neighbour);
-                    if (tentativeGCost < neighbour.GCost || !openSet.Contains(neighbour))
+                   
+                    if (!open.Contains(neighbour))
                     {
-                        neighbour.GCost = tentativeGCost;
-                        neighbour.HCost = GetDistance(neighbour, endCell);
+                        neighbour.GCost = g;
+                        neighbour.HCost = GetDistance(neighbour, goalCell);
                         neighbour.Parent = currentCell;
-
-                        if (!openSet.Contains(neighbour))
-                            openSet.Add(neighbour);
+                        open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
                     }
                 }
             }
 
-            return -1;
-        }
-
-        private static float RetracePath(Cell startCell, Cell endCell)
-        {
+            
+            if(!finished) return -1;
             float cost = 0;
+            while (currentCell != null) {
+                cost += currentCell.GCost;
+                currentCell = currentCell.Parent;
+            }
 
-            cost += endCell.GCost;
             return cost;
         }
-    
     }
 }

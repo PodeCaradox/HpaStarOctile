@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using HpaStarPathfinding.pathfinding;
 
@@ -205,7 +206,7 @@ namespace HpaStarPathfinding.ViewModel
             else if (_selectedAlgorithm == Algorithm.HPAStar)
             {
                 var pathAsPortals = HPAStar.FindPath(_map, Portals, _pathStart, _pathEnd);
-                if (pathAsPortals == null) return;
+                if (pathAsPortals.Count == 0) return;
                 path = HPAStar.PortalsToPath(_map, Portals, _pathStart, _pathEnd, pathAsPortals);
             }
         }

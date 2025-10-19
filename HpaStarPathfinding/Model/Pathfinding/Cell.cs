@@ -2,14 +2,10 @@
 {
     public class Cell
     {
-        public float fCost => GCost + HCost;
-        public float GCost;
-        public float HCost;
-        public readonly Vector2D Position;
         public bool Walkable;
-        public Cell Parent;
+        public readonly Vector2D Position;
+        //all sides Connections
         public byte Connections; 
-        public int PortalKey; 
 
         public Cell(Vector2D pos, bool walkable = true)
         {
@@ -50,5 +46,7 @@
                 }
             }
         }
+        
+        public override string ToString() => $"[{Position.x},{Position.y}]";
     }
 }

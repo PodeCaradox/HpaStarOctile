@@ -293,31 +293,31 @@ namespace HpaStarPathfinding
             }
 
             List<int> keys = new List<int>();
-            int dummyX = mapCell.Position.x % MainWindowViewModel.ChunkSize;
-            int dummyY = mapCell.Position.y % MainWindowViewModel.ChunkSize;
+            int startX = mapCell.Position.x % MainWindowViewModel.ChunkSize;
+            int startY = mapCell.Position.y % MainWindowViewModel.ChunkSize;
             int xOffset = mapCell.Position.x / MainWindowViewModel.ChunkSize * MainWindowViewModel.MaxPortalsInChunk;
             int yOffset = mapCell.Position.y / MainWindowViewModel.ChunkSize * MainWindowViewModel.MaxPortalsInChunk * MainWindowViewModel.ChunkMapSize;
-            if(dummyX == 0)
+            if(startX == 0)
             {
-                var portalKey = dummyY + xOffset + yOffset + MainWindowViewModel.ChunkSize * 3;
+                var portalKey = startY + xOffset + yOffset + MainWindowViewModel.ChunkSize * 3;
                 keys.Add(portalKey);
             } 
             
-            if (dummyY == 0)
+            if (startY == 0)
             {  
-                var portalKey = dummyX + xOffset + yOffset;
+                var portalKey = startX + xOffset + yOffset;
                 keys.Add(portalKey);
             }
             
-            if (dummyX == 9)
+            if (startX == 9)
             {
-                var portalKey = dummyY + xOffset + yOffset + MainWindowViewModel.ChunkSize * 1;
+                var portalKey = startY + xOffset + yOffset + MainWindowViewModel.ChunkSize * 1;
                 keys.Add(portalKey);
             }
             
-            if (dummyY == 9)
+            if (startY == 9)
             {
-                var portalKey = dummyX + xOffset + yOffset + MainWindowViewModel.ChunkSize * 2;
+                var portalKey = startX + xOffset + yOffset + MainWindowViewModel.ChunkSize * 2;
                 keys.Add(portalKey);
             }
 
@@ -602,6 +602,7 @@ namespace HpaStarPathfinding
 
         private void DrawPortalsButtonUnchecked(object sender, RoutedEventArgs e)
         {
+            drawPortals = false;
             foreach (var chunk in _chunks)
             {
                 chunk.Opacity = 0.0;

@@ -8,7 +8,7 @@ namespace HpaStarPathfinding.ViewModel
 {
     public class Chunk
     {
-                
+        //Todo connect diagonal nodes witch each other side ;)        
         private const byte NOT_WALKABLE = 0b_1;
         private const byte WALKABLE = 0b_0;
         private const byte N = 0b_0000_0001;

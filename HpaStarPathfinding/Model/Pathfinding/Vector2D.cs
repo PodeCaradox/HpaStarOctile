@@ -46,5 +46,8 @@ namespace HpaStarPathfinding.ViewModel
         {
             return x.GetHashCode() ^ y.GetHashCode();
         }
+        
+        
+        public override string ToString() => $"[{x},{y}]";
     }
 }
