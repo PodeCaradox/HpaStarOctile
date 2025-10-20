@@ -28,13 +28,6 @@ namespace HpaStarPathfinding.pathfinding
             return neighbours;
         }
 
-        public static float GetDistance(PathfindingCell a, PathfindingCell b)
-        {
-            int dX = Math.Abs(a.Position.x - b.Position.x);
-            int dY = Math.Abs(a.Position.y - b.Position.y);
-            return StraightCost * (dX + dY) + DiagonalCost * Math.Min(dX, dY);
-        }
-
         public static float FindPath(Cell[,] grid, Vector2D start, Vector2D end, Vector2D min, Vector2D max)
         {
             FastPriorityQueue open = new FastPriorityQueue(grid.GetLength(0) * grid.GetLength(1));
@@ -80,7 +73,7 @@ namespace HpaStarPathfinding.pathfinding
                     if (!open.Contains(neighbour))
                     {
                         neighbour.GCost = g;
-                        neighbour.HCost = GetDistance(neighbour, goalCell);
+                        neighbour.HCost = Astar.GetDistance(neighbour, goalCell);
                         neighbour.Parent = currentCell;
                         open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
                     }

@@ -20,14 +20,14 @@ namespace HpaStarPathfinding.pathfinding
             FastPriorityQueue open = new FastPriorityQueue(MainWindowViewModel.MaxPortalsInChunk * MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkMapSize);
             HashSet<int> closedSet = new HashSet<int>();
             Dictionary<int, PathfindingCell> getElement = new Dictionary<int, PathfindingCell>();
-            PathfindingCell endCell = new PathfindingCell(grid[end.y, end.x]);
+            PathfindingCell endCell = new PathfindingCell(grid[start.y, start.x]);
             
             foreach (var node in startNodes)
             {
                 ref var portal = ref portals[node.PortalKey];
                 var startCell = new PathfindingCell(grid[portal.centerPos.y, portal.centerPos.x]);
                 startCell.PortalKey = node.PortalKey;
-                open.Enqueue(startCell, 0);
+                open.Enqueue(startCell, 0); //node.Cost + Astar.GetDistance(startCell, endCell)
                 getElement.Add(startCell.PortalKey, startCell);
             }
             
@@ -95,17 +95,10 @@ namespace HpaStarPathfinding.pathfinding
             if (!open.Contains(neighbour))
             {
                 neighbour.GCost = g;
-                neighbour.HCost = GetDistance(neighbour, endCell);
+                neighbour.HCost = Astar.GetDistance(neighbour, endCell);
                 neighbour.Parent = currentCell;
                 open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
             }
-        }
-        
-        public static float GetDistance(PathfindingCell a, PathfindingCell b)
-        {
-            int dX = Math.Abs(a.Position.x - b.Position.x);
-            int dY = Math.Abs(a.Position.y - b.Position.y);
-            return StraightCost * (dX + dY) + DiagonalCost * Math.Min(dX, dY);
         }
     
         private static List<PortalNode> FindPortalNodes(Portal[] portals, Cell[,] grid, Vector2D goal)

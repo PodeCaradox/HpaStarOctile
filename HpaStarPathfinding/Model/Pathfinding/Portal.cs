@@ -136,8 +136,6 @@ namespace HpaStarPathfinding.ViewModel
                     }
                     if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, -1)) return -1;
                     return portalKey - MainWindowViewModel.ChunkSize * 2 - offsetChunkByX + otherPortalOffset;
-                default:
-                    return -1;
             }
             return -1;
         }

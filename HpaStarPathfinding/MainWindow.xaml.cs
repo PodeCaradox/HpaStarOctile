@@ -207,6 +207,10 @@ namespace HpaStarPathfinding
                     Canvas.SetLeft(rect, x * MainWindowViewModel.CellSize);
                     Canvas.SetTop(rect, y * MainWindowViewModel.CellSize);
                     PathCanvas.Children.Add(rect);
+                    foreach (var dir in DirectionsVector.AllDirections)
+                    {
+                        
+                    }
                 }
             }
         }
