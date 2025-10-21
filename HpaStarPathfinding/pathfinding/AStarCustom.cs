@@ -73,7 +73,7 @@ namespace HpaStarPathfinding.pathfinding
                     if (!open.Contains(neighbour))
                     {
                         neighbour.GCost = g;
-                        neighbour.HCost = Astar.GetDistance(neighbour, goalCell);
+                        neighbour.HCost = Astar.Heuristic(neighbour, goalCell);
                         neighbour.Parent = currentCell;
                         open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
                     }

@@ -532,12 +532,14 @@ namespace HpaStarPathfinding
 
             var path = _vm.path.ToArray();
 
-            DrawPathUi(path);
+            
+            DrawPathUi(path, _vm.SelectedAlgorithm.Brush);
+            DrawPathUi(_vm.OtherPath.ToArray(), Brushes.Gray, 0.4 );
         }
 
-        private void DrawPathUi(Vector2D[] path)
+        private void DrawPathUi(Vector2D[] path, Brush brush, double opacity = 1)
         {
-            for (int i = 1; i < _vm.path.Count; i++)
+            for (int i = 1; i < path.Length; i++)
             {
                 var point1 = Vector2D.ConvertMapPointToCanvasPos(path[i - 1]);
                 var point2 = Vector2D.ConvertMapPointToCanvasPos(path[i]);
@@ -548,7 +550,8 @@ namespace HpaStarPathfinding
                     X2 = point2.x,
                     Y1 = point1.y,
                     Y2 = point2.y,
-                    Stroke = Brushes.Green,
+                    Opacity = opacity,
+                    Stroke = brush,
                     IsHitTestVisible = false,
                     IsManipulationEnabled = false
                 };

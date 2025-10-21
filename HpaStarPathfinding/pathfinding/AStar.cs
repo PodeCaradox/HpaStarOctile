@@ -7,33 +7,43 @@ namespace HpaStarPathfinding.pathfinding
 {
     public class Astar
     {
-        private const float StraightCost = 1f;
-        private const float DiagonalCost = 1.414f;
+        private const float StraightCost = 1;
+        private static readonly float DiagonalCost = (float)Math.Sqrt(2);
 
-        private static List<int> GetNeighbours(Cell[,] grid, PathfindingCell cell)
+        private class NeighbourCell
+        {
+            public int CellKey;
+            public float GCost;
+        }
+
+        private static List<NeighbourCell> GetNeighbours(Cell[,] grid, PathfindingCell cell)
         {
             //TODO use here the bits
-            List<int> neighbours = new List<int>();
-
+            List<NeighbourCell> neighbours = new List<NeighbourCell>();
+            int i = 0;
             foreach (var direction in DirectionsVector.AllDirections)
             {
+                
                 int newX = cell.Position.x + direction.x;
                 int newY = cell.Position.y + direction.y;
 
                 if (newX >= 0 && newX < grid.GetLength(1) && newY >= 0 && newY < grid.GetLength(0))
                 {
-                    neighbours.Add(newY * MainWindowViewModel.MapSize + newX);
+                    neighbours.Add(new NeighbourCell(){CellKey = newY * MainWindowViewModel.MapSize + newX, GCost = (i % 2 == 0)? StraightCost : DiagonalCost });
                 }
+
+                i++;
             }
 
             return neighbours;
         }
 
-        public static float GetDistance(PathfindingCell a, PathfindingCell b)
+        public static float Heuristic(PathfindingCell source, PathfindingCell destination)
         {
-            int dX = Math.Abs(a.Position.x - b.Position.x);
-            int dY = Math.Abs(a.Position.y - b.Position.y);
-            return StraightCost * (dX + dY) + DiagonalCost * Math.Min(dX, dY);
+            
+            float dx = Math.Abs(source.Position.x - destination.Position.x);
+            float dy = Math.Abs(source.Position.y - destination.Position.y);
+            return StraightCost * (dx + dy) + (DiagonalCost - 2 * StraightCost) * Math.Min(dx, dy);
         }
 
         public static List<Vector2D> FindPath(Cell[,] grid, Vector2D start, Vector2D end)
@@ -61,18 +71,18 @@ namespace HpaStarPathfinding.pathfinding
 
                 closedSet.Add(currentCell.Position.x + currentCell.Position.y * MainWindowViewModel.MapSize);
 
-                var g = currentCell.GCost + 1;
+                
                 
                 foreach (var neighbourKey in GetNeighbours(grid, currentCell))
                 {
-                    if (getElement.TryGetValue(neighbourKey, out var neighbour)){}
+                    if (getElement.TryGetValue(neighbourKey.CellKey, out var neighbour)){}
                     else
                     {
-                        neighbour = new PathfindingCell(grid[neighbourKey / MainWindowViewModel.MapSize,
-                            neighbourKey % MainWindowViewModel.MapSize]); 
-                        getElement.Add(neighbourKey, neighbour);
+                        neighbour = new PathfindingCell(grid[neighbourKey.CellKey / MainWindowViewModel.MapSize,
+                            neighbourKey.CellKey % MainWindowViewModel.MapSize]); 
+                        getElement.Add(neighbourKey.CellKey, neighbour);
                     }
-                        
+                    var g = currentCell.GCost + neighbourKey.GCost;
                     
                     if (!neighbour.Walkable || closedSet.Contains(neighbour.Position.x + neighbour.Position.y * MainWindowViewModel.MapSize))
                         continue;
@@ -81,12 +91,11 @@ namespace HpaStarPathfinding.pathfinding
                     if (!open.Contains(neighbour))
                     {
                         neighbour.GCost = g;
-                        neighbour.HCost = GetDistance(neighbour, goalCell);
+                        neighbour.HCost = Heuristic(neighbour, goalCell);
                         neighbour.Parent = currentCell;
                         open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
                     } 
                     else if (g + neighbour.HCost < neighbour.fCost) {
-
                         neighbour.GCost = g;
                         neighbour.Parent = currentCell;
                         open.UpdatePriority(neighbour, neighbour.GCost + neighbour.HCost);

@@ -50,9 +50,9 @@ namespace HpaStarPathfinding.ViewModel
         }
         
             
-        private String _selectedAlgorithm = Algorithm.AStar;
+        private AlgorithmSelection _selectedAlgorithm = Algorithm.AStar;
 
-        public String SelectedAlgorithm
+        public AlgorithmSelection SelectedAlgorithm
         {
             get => _selectedAlgorithm;
             set
@@ -63,9 +63,9 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
             
-        private List<String> _algorithms = new List<String>() {Algorithm.AStar, Algorithm.HPAStar};
+        private List<AlgorithmSelection> _algorithms = new List<AlgorithmSelection>() {Algorithm.AStar, Algorithm.HPAStar};
 
-        public List<String> Algorithms
+        public List<AlgorithmSelection> Algorithms
         {
             get => _algorithms;
             set
@@ -115,6 +115,19 @@ namespace HpaStarPathfinding.ViewModel
             {
                 if (value == _path) return;
                 _path = value;
+                OnPropertyChanged();
+            }
+        }
+        
+        private List<Vector2D> _oherPath = new List<Vector2D>();
+
+        public List<Vector2D> OtherPath
+        {
+            get => _oherPath;
+            set
+            {
+                if (value == _oherPath) return;
+                _oherPath = value;
                 OnPropertyChanged();
             }
         }
@@ -202,16 +215,21 @@ namespace HpaStarPathfinding.ViewModel
             if (_selectedAlgorithm == Algorithm.AStar)
             {
                 path = Astar.FindPath(_map, _pathStart, _pathEnd);
+                OtherPath = HpaStarFindPath();
             }
             else if (_selectedAlgorithm == Algorithm.HPAStar)
             {
-                var pathAsPortals = HPAStar.FindPath(_map, Portals, _pathStart, _pathEnd);
-                if (pathAsPortals.Count == 0) return;
-                path = HPAStar.PortalsToPath(_map, Portals, _pathStart, _pathEnd, pathAsPortals);
+                path = HpaStarFindPath();
+                OtherPath = Astar.FindPath(_map, _pathStart, _pathEnd);
             }
         }
 
-        
+        private List<Vector2D> HpaStarFindPath()
+        {
+            var pathAsPortals = HPAStar.FindPath(_map, Portals, _pathStart, _pathEnd);
+            if (pathAsPortals.Count == 0) return new List<Vector2D>();
+            return HPAStar.PortalsToPath(_map, Portals, _pathStart, _pathEnd, pathAsPortals);
+        }
 
         #endregion
     }

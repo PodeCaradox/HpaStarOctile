@@ -42,7 +42,21 @@
                                         <ComboBox
                                             ItemsSource="{Binding Algorithms}"
                                             SelectedItem="{Binding SelectedAlgorithm}"
-                                            Width="100" />
+                                            Width="100">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Rectangle
+                                                            Fill="{Binding Brush}"
+                                                            Height="16"
+                                                            Stroke="Black"
+                                                            StrokeThickness="1"
+                                                            Width="16" />
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
                                     </StackPanel>
 
                                     <Button

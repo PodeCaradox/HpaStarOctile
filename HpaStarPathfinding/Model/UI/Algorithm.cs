@@ -1,8 +1,17 @@
-﻿namespace HpaStarPathfinding.ViewModel
+﻿using System;
+using System.Windows.Media;
+
+namespace HpaStarPathfinding.ViewModel
 {
     public static class Algorithm
     {
-    public const string AStar = "A Star";
-    public const string HPAStar = "HPA Star";
+    public static AlgorithmSelection AStar = new AlgorithmSelection(){Brush = Brushes.Yellow, Name = "A Star"};
+    public static AlgorithmSelection HPAStar = new AlgorithmSelection(){Brush = Brushes.Red, Name = "HPA Star"};
+    }
+
+    public class AlgorithmSelection
+    {
+        public Brush Brush { get; set; }
+        public String Name { get; set; }
     }
 }
