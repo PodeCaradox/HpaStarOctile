@@ -19,33 +19,18 @@ namespace HpaStarPathfinding.ViewModel
 
         #region Propertys UI
 
-        private bool _changePathfindingStartNodeEnabled = false;
+        private bool _changePathfindingNodeEnabled = false;
 
-        public bool changePathfindingStartNodeEnabled
+        public bool changePathfindingNodeEnabled
         {
-            get { return _changePathfindingStartNodeEnabled; }
+            get { return _changePathfindingNodeEnabled; }
             set
             {
-                if (value != _changePathfindingStartNodeEnabled)
+                if (value != _changePathfindingNodeEnabled)
                 {
-                    if (value) changePathfindingEndNodeEnabled = false;
-                    _changePathfindingStartNodeEnabled = value;
+                    _changePathfindingNodeEnabled = value;
                     OnPropertyChanged();
                 }
-            }
-        }
-        
-        private bool _changePathfindingEndNodeEnabled = false;
-
-        public bool changePathfindingEndNodeEnabled
-        {
-            get => _changePathfindingEndNodeEnabled;
-            set
-            {
-                if (value == _changePathfindingEndNodeEnabled) return;
-                if (value) changePathfindingStartNodeEnabled = false;
-                _changePathfindingEndNodeEnabled = value;
-                OnPropertyChanged();
             }
         }
         

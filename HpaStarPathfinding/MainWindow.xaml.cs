@@ -57,12 +57,27 @@ namespace HpaStarPathfinding
         {
             DataContextChanged += OnDataContextChanged;
             InitializeComponent();
-            PathfindingWindow.Width = MainWindowViewModel.CellSize * MainWindowViewModel.MapSize + 22;
-            PathfindingWindow.Height = MainWindowViewModel.CellSize * MainWindowViewModel.MapSize + 76;
+            PathfindingWindow.SizeToContent = SizeToContent.Width;
+            
             PathCanvas.Height = MainWindowViewModel.CellSize * MainWindowViewModel.MapSize;
             PathCanvas.Width = MainWindowViewModel.CellSize * MainWindowViewModel.MapSize;
-            PathCanvas.MouseLeftButtonDown += MapOnMouseLeftButtonDown;
+            PathCanvas.MouseDown += MapOnMouseButtonDown;
             Init();
+            AccessKeyManager.Register("t", ChangePathToggleButton);
+            AccessKeyManager.Register("c", ClearPathToggleButton);
+            AccessKeyManager.Register("p", PathfindingAlgorithmComboBox);
+            AccessKeyManager.AddAccessKeyPressedHandler(PathfindingAlgorithmComboBox, ChangePathfindingAlgorithm);
+        }
+        
+        private void ChangePathfindingAlgorithm(object sender, AccessKeyPressedEventArgs e)
+        {
+            if (sender is ComboBox comboBox)
+            {
+                int currentIndex = comboBox.SelectedIndex;
+                int itemCount = comboBox.Items.Count;
+                comboBox.SelectedIndex = (currentIndex + 1) % itemCount;
+                e.Handled = true;
+            }
         }
 
         #endregion
@@ -201,7 +216,7 @@ namespace HpaStarPathfinding
                         Stroke = Brushes.Black,
                         Fill = GetCellColor(node)
                     };
-                    rect.MouseDown += MapCellMouseLeftButtonDown;
+                    rect.MouseDown += MapCellMouseButtonDown;
                     rect.MouseEnter += MapCellOnMouseEnter;
                     rect.Tag = node;
                     Canvas.SetLeft(rect, x * MainWindowViewModel.CellSize);
@@ -248,9 +263,9 @@ namespace HpaStarPathfinding
 
         private void ClearClicked(object sender, RoutedEventArgs e)
         {
-            var button1 = (ToggleButton)Template.FindName("DrawPortalsButton", this);
-            button1.IsChecked = false;
-
+            DrawChunksButton.IsChecked = false;
+            DrawPortalsButton.IsChecked = false;
+            drawPortals = false;
             PathCanvas.Children.Clear();
             Init();
         }
@@ -260,21 +275,32 @@ namespace HpaStarPathfinding
             _vm = DataContext as MainWindowViewModel;
         }
 
-        private void MapOnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void MapOnMouseButtonDown(object sender, MouseButtonEventArgs e)
         {
+            if (!_vm.changePathfindingNodeEnabled)
+                return;
+            
             Point p = Mouse.GetPosition(PathCanvas);
             Vector2D mapPoint = Vector2D.ConvertPointToMapPoint(p);
             if (_vm.PathPointIsWall(mapPoint))
                 return;
 
             var screenPoint = Vector2D.ConvertMapPointToCanvasPos(mapPoint);
-            ChangePathfindingStartPoint(mapPoint, screenPoint);
-            ChangePathfindingEndPoint(mapPoint, screenPoint);
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                ChangePathfindingStartPoint(mapPoint, screenPoint);
+            }
+            else if (e.RightButton == MouseButtonState.Pressed)
+            {
+                
+                ChangePathfindingEndPoint(mapPoint, screenPoint);
+            }
             CalcPath();
         }
 
-        private void MapCellMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void MapCellMouseButtonDown(object sender, MouseButtonEventArgs e)
         {
+            
             ChangeMapCell(sender);
         }
 
@@ -409,7 +435,7 @@ namespace HpaStarPathfinding
 
         private void ChangeMapCell(object sender)
         {
-            if (_vm.changePathfindingEndNodeEnabled || _vm.changePathfindingStartNodeEnabled)
+            if (_vm.changePathfindingNodeEnabled)
                 return;
 
             if (!(sender is Rectangle rect))
@@ -573,48 +599,48 @@ namespace HpaStarPathfinding
 
         private void ChangePathfindingEndPoint(Vector2D mapPoint, Vector2D screenPoint)
         {
-            if (!_vm.changePathfindingEndNodeEnabled) //Could be also a key pressed
-                return;
-
             _vm.pathEnd = mapPoint;
             _pathStartEnd[1].ChangePosition(PathCanvas, screenPoint);
         }
 
         private void ChangePathfindingStartPoint(Vector2D mapPoint, Vector2D screenPoint)
         {
-            if (!_vm.changePathfindingStartNodeEnabled) //Could be also a key pressed
-                return;
-
             _vm.pathStart = mapPoint;
             _pathStartEnd[0].ChangePosition(PathCanvas, screenPoint);
         }
 
         #endregion
+        
+        private void DrawChunksButtonChecked(object sender, RoutedEventArgs e)
+        {
+            foreach (var chunk in _chunks)
+            {
+                chunk.Opacity = 1.0;
+            }
+        }
 
 
         private void DrawPortalsButtonChecked(object sender, RoutedEventArgs e)
         {
             drawPortals = true;
-            foreach (var chunk in _chunks)
-            {
-                chunk.Opacity = 1.0;
-            }
-
             foreach (var portal in _portals)
             {
                 portal.Value.Item1.Opacity = 1.0;
                 portal.Value.Item2.Opacity = 1.0;
             }
         }
-
-        private void DrawPortalsButtonUnchecked(object sender, RoutedEventArgs e)
+        
+        private void DrawChunksButtonUnchecked(object sender, RoutedEventArgs e)
         {
-            drawPortals = false;
             foreach (var chunk in _chunks)
             {
                 chunk.Opacity = 0.0;
             }
+        }
 
+        private void DrawPortalsButtonUnchecked(object sender, RoutedEventArgs e)
+        {
+            drawPortals = false;
             foreach (var portal in _portals)
             {
                 portal.Value.Item1.Opacity = 0.0;
@@ -740,6 +766,16 @@ namespace HpaStarPathfinding
             }
 
             _portalInternalConnections.Clear();
+        }
+
+        private void Selector_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ResetPathUi();
+
+            _vm.FindPath();
+            
+            DrawPathUi(_vm.path.ToArray(), _vm.SelectedAlgorithm.Brush);
+            DrawPathUi(_vm.OtherPath.ToArray(), Brushes.Gray, 0.4 );
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿<Window
-    Background="Black"
+    Background="White"
     Name="PathfindingWindow"
     Title="MainWindow"
     mc:Ignorable="d"
@@ -13,102 +13,78 @@
     <Window.DataContext>
         <vm:MainWindowViewModel />
     </Window.DataContext>
-    <Window.Style>
-        <Style TargetType="Window">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Window">
-                        <Grid>
-                            <!--  Title bar  -->
-                            <Border
-                                Background="LightGray"
-                                Height="30"
-                                VerticalAlignment="Top">
-                                <!--  Title bar content  -->
-                                <Grid>
-                                    <StackPanel Orientation="Horizontal">
-                                        <ToggleButton
-                                            Content="SetStart"
-                                            HorizontalAlignment="Left"
-                                            IsChecked="{Binding changePathfindingStartNodeEnabled, Mode=TwoWay}"
-                                            VerticalAlignment="Top"
-                                            Width="50" />
-                                        <ToggleButton
-                                            Content="SetEnd"
-                                            HorizontalAlignment="Left"
-                                            IsChecked="{Binding changePathfindingEndNodeEnabled, Mode=TwoWay}"
-                                            VerticalAlignment="Top"
-                                            Width="50" />
-                                        <ComboBox
-                                            ItemsSource="{Binding Algorithms}"
-                                            SelectedItem="{Binding SelectedAlgorithm}"
-                                            Width="100">
-                                            <ComboBox.ItemTemplate>
-                                                <DataTemplate>
-                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <Rectangle
-                                                            Fill="{Binding Brush}"
-                                                            Height="16"
-                                                            Stroke="Black"
-                                                            StrokeThickness="1"
-                                                            Width="16" />
-                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ComboBox.ItemTemplate>
-                                        </ComboBox>
-                                    </StackPanel>
+    <StackPanel Margin="4" Orientation="Horizontal">
+        <StackPanel>
+            <ToggleButton
+                Content="Change Start/End Node (Left/Right Mouse)"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                IsChecked="{Binding changePathfindingNodeEnabled, Mode=TwoWay}"
+                x:Name="ChangePathToggleButton" />
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Pathfinding Algorithm: " VerticalAlignment="Center" />
+                <ComboBox
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    ItemsSource="{Binding Algorithms}"
+                    SelectedItem="{Binding SelectedAlgorithm}"
+                    SelectionChanged="Selector_OnSelectionChanged"
+                    Width="100"
+                    x:Name="PathfindingAlgorithmComboBox">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel
+                                HorizontalAlignment="Center"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                                <Rectangle
+                                    Fill="{Binding Brush}"
+                                    Height="16"
+                                    Stroke="Black"
+                                    StrokeThickness="1"
+                                    Width="16" />
+                                <TextBlock Margin="10,0,0,0" Text="{Binding Name}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+            <Button
+                Click="ClearClicked"
+                Content="Clear Content"
+                x:Name="ClearPathToggleButton" />
+            <CheckBox
+                Checked="DrawChunksButtonChecked"
+                Content="Draw Chunks"
+                Unchecked="DrawChunksButtonUnchecked"
+                x:Name="DrawChunksButton" />
+            <CheckBox
+                Checked="DrawPortalsButtonChecked"
+                Content="Draw Portal Entrances"
+                Unchecked="DrawPortalsButtonUnchecked"
+                x:Name="DrawPortalsButton" />
 
-                                    <Button
-                                        Click="ClearClicked"
-                                        Content="Clear"
-                                        HorizontalAlignment="Left"
-                                        Margin="200,0,0,0"
-                                        VerticalAlignment="Top"
-                                        Width="50" />
-                                    <ToggleButton
-                                        Checked="DrawPortalsButtonChecked"
-                                        Content="Draw Chunks"
-                                        HorizontalAlignment="Left"
-                                        Margin="260,0,0,0"
-                                        Unchecked="DrawPortalsButtonUnchecked"
-                                        VerticalAlignment="Top"
-                                        Width="80"
-                                        x:Name="DrawPortalsButton" />
-                                    <ToggleButton
-                                        Checked="DrawPortalsInternalConnectionsChecked"
-                                        Content="Show Internal Connections"
-                                        HorizontalAlignment="Left"
-                                        Margin="340,0,0,0"
-                                        Unchecked="DrawPortalsInternalConnectionsUnchecked"
-                                        VerticalAlignment="Top"
-                                        Width="140"
-                                        x:Name="DrawPortalsConnectionsButton" />
-                                    <ToggleButton
-                                        Checked="DrawPortalsExternalConnectionsChecked"
-                                        Content="Show External Connections"
-                                        HorizontalAlignment="Left"
-                                        Margin="480,0,0,0"
-                                        Unchecked="DrawPortalsExternalConnectionsUnchecked"
-                                        VerticalAlignment="Top"
-                                        Width="140"
-                                        x:Name="DrawPortalsExternalConnectionsButton" />
+            <CheckBox
+                Checked="DrawPortalsInternalConnectionsChecked"
+                Content="Show Internal Connections"
+                Unchecked="DrawPortalsInternalConnectionsUnchecked"
+                x:Name="DrawPortalsConnectionsButton" />
+            <CheckBox
+                Checked="DrawPortalsExternalConnectionsChecked"
+                Content="Show External Connections"
+                Unchecked="DrawPortalsExternalConnectionsUnchecked"
+                x:Name="DrawPortalsExternalConnectionsButton" />
 
-                                </Grid>
-                            </Border>
-                            <!--  Content area  -->
-                            <Grid Margin="0,30,0,0">
-                                <ContentPresenter />
-                            </Grid>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </Window.Style>
-    <Viewbox Stretch="Uniform">
-        <Canvas Background="White" Name="PathCanvas">
-            <!--  Content will be added dynamically  -->
-        </Canvas>
-    </Viewbox>
+            <TextBlock>Shortcut Keys:</TextBlock>
+            <TextBlock>T: Toggle Edit / Path Mode</TextBlock>
+            <TextBlock>P: Toggle Pathfinding Algorithm</TextBlock>
+            <TextBlock>C: Toggle Clear Content</TextBlock>
+        </StackPanel>
+        <Viewbox Stretch="UniformToFill">
+            <Canvas Background="White" Name="PathCanvas">
+                <!--  Content will be added dynamically  -->
+            </Canvas>
+        </Viewbox>
+    </StackPanel>
+
 </Window>
