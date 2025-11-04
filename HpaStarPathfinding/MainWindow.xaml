@@ -1,7 +1,8 @@
 ﻿<Window
     Background="White"
     Name="PathfindingWindow"
-    Title="MainWindow"
+    Title="Pathfinding Visualizer"
+    UseLayoutRounding="True"
     mc:Ignorable="d"
     x:Class="HpaStarPathfinding.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -16,25 +17,31 @@
     <StackPanel Margin="4" Orientation="Horizontal">
         <StackPanel>
             <ToggleButton
-                Content="Change Start/End Node (Left/Right Mouse)"
+                Checked="ChangePathToggleButton_OnChecked"
+                Content="Path Mode (Left / Right Mouse Button)"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Center"
                 IsChecked="{Binding changePathfindingNodeEnabled, Mode=TwoWay}"
                 x:Name="ChangePathToggleButton" />
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Pathfinding Algorithm: " VerticalAlignment="Center" />
+            <DockPanel
+                HorizontalAlignment="Stretch"
+                Margin="0,10,0,0"
+                VerticalAlignment="Center">
+                <TextBlock
+                    HorizontalAlignment="Stretch"
+                    Text="Pathfinding Algorithm: "
+                    VerticalAlignment="Center" />
                 <ComboBox
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Left"
                     ItemsSource="{Binding Algorithms}"
                     SelectedItem="{Binding SelectedAlgorithm}"
                     SelectionChanged="Selector_OnSelectionChanged"
-                    Width="100"
                     x:Name="PathfindingAlgorithmComboBox">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel
-                                HorizontalAlignment="Center"
+                                HorizontalAlignment="Stretch"
                                 Orientation="Horizontal"
                                 VerticalAlignment="Center">
                                 <Rectangle
@@ -48,14 +55,16 @@
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
-            </StackPanel>
+            </DockPanel>
             <Button
                 Click="ClearClicked"
-                Content="Clear Content"
+                Content="Clear"
+                Margin="0,10,0,0"
                 x:Name="ClearPathToggleButton" />
             <CheckBox
                 Checked="DrawChunksButtonChecked"
                 Content="Draw Chunks"
+                Margin="0,10,0,0"
                 Unchecked="DrawChunksButtonUnchecked"
                 x:Name="DrawChunksButton" />
             <CheckBox
@@ -75,10 +84,21 @@
                 Unchecked="DrawPortalsExternalConnectionsUnchecked"
                 x:Name="DrawPortalsExternalConnectionsButton" />
 
-            <TextBlock>Shortcut Keys:</TextBlock>
+            <TextBlock Margin="0,10,0,0">Shortcut Keys:</TextBlock>
             <TextBlock>T: Toggle Edit / Path Mode</TextBlock>
             <TextBlock>P: Toggle Pathfinding Algorithm</TextBlock>
-            <TextBlock>C: Toggle Clear Content</TextBlock>
+            <TextBlock>C: Clear</TextBlock>
+
+            <TextBlock Margin="0,10,0,0">Edit Cell:</TextBlock>
+            <Image
+                Height="{Binding .MultipliedCellSize}"
+                MouseLeftButtonDown="ChangeCellBorderClicked"
+                RenderOptions.BitmapScalingMode="NearestNeighbor"
+                RenderOptions.EdgeMode="Aliased"
+                SnapsToDevicePixels="True"
+                Source="{Binding CurrentSelectedCellSource}"
+                Width="{Binding .MultipliedCellSize}"
+                x:Name="ChangeCellBorderClickedImage" />
         </StackPanel>
         <Viewbox Stretch="UniformToFill">
             <Canvas Background="White" Name="PathCanvas">

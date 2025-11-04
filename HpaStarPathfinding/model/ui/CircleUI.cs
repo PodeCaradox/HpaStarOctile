@@ -7,7 +7,6 @@ namespace HpaStarPathfinding.Model
 {
     public class CircleUi
     {
-        //Bindings are better but here just for simple fast testing
         private const int CircleRadius = 10;
         private Ellipse ellipse { get; }
 
@@ -17,7 +16,10 @@ namespace HpaStarPathfinding.Model
             {
                 Width = CircleRadius * 2,
                 Height = CircleRadius * 2,
-                Fill = color
+                Fill = color,
+                IsHitTestVisible = false,
+                IsManipulationEnabled = false,
+                IsEnabled = false
             };
         }
 

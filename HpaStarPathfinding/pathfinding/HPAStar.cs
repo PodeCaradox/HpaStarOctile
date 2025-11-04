@@ -45,12 +45,12 @@ namespace HpaStarPathfinding.pathfinding
                 var currentPortal = portals[currentCell.PortalKey];
                 closedSet.Add(currentCell.PortalKey);
     
-                var g = currentCell.GCost + 1;
+                var g = currentCell.GCost;
                 //Check external Connections
                 foreach (var portalKey in currentPortal.externalPortalConnections)
                 {
                     if (portalKey == -1) break;
-                    CheckConnection(grid, portals, getElement, portalKey, closedSet, currentCell, open, endCell, g);
+                    CheckConnection(grid, portals, getElement, portalKey, closedSet, currentCell, open, endCell, g + 1);
                 }
                 
                 //Check internal Connections
@@ -59,7 +59,7 @@ namespace HpaStarPathfinding.pathfinding
                     if(connection.portal == byte.MaxValue) break;
                     var portalKey =
                         Portal.GetPortalKeyFromInternalConnection(currentCell.PortalKey, connection.portal);
-                    CheckConnection(grid, portals, getElement, portalKey, closedSet, currentCell, open, endCell, g);
+                    CheckConnection(grid, portals, getElement, portalKey, closedSet, currentCell, open, endCell, g + connection.cost);
                 }
             }
     
@@ -75,7 +75,7 @@ namespace HpaStarPathfinding.pathfinding
         }
     
         private static void CheckConnection(Cell[,] grid, Portal[] portals, Dictionary<int, PathfindingCell> getElement, int portalKey, HashSet<int> closedSet, PathfindingCell currentCell,
-            FastPriorityQueue open, PathfindingCell endCell, float g)
+            FastPriorityQueue open, PathfindingCell goalCell, float g)
         {
             
             if (getElement.TryGetValue(portalKey, out var neighbour)){}
@@ -95,9 +95,14 @@ namespace HpaStarPathfinding.pathfinding
             if (!open.Contains(neighbour))
             {
                 neighbour.GCost = g;
-                neighbour.HCost = Astar.Heuristic(neighbour, endCell);
+                neighbour.HCost = Heuristic.OctileDistanceHeuristic(neighbour, goalCell);
                 neighbour.Parent = currentCell;
                 open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
+            } 
+            else if (g + neighbour.HCost < neighbour.fCost) {
+                neighbour.GCost = g;
+                neighbour.Parent = currentCell;
+                open.UpdatePriority(neighbour, neighbour.GCost + neighbour.HCost);
             }
         }
     
@@ -116,7 +121,7 @@ namespace HpaStarPathfinding.pathfinding
                 int currentPortal = firstPortalKey + i;
                 if (portals[currentPortal] == null) continue;
                 //Todo flood fill could be faster.
-                float cost = AStarCustom.FindPath(grid, portals[currentPortal].centerPos, goal, min, max);
+                float cost = AStarOnlyCost.FindPath(grid, portals[currentPortal].centerPos, goal, min, max);
                 if(cost < 0) continue;
                 nodes.Add(new PortalNode(currentPortal, cost));
             }

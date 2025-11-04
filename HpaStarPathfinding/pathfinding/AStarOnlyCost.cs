@@ -4,30 +4,33 @@ using HpaStarPathfinding.ViewModel;
 
 namespace HpaStarPathfinding.pathfinding
 {
-    public class AStarCustom
+    public class AStarOnlyCost
     {
-        private const float StraightCost = 1f;
-        private const float DiagonalCost = 1.414f;
-
-        private static List<int> GetNeighbours(PathfindingCell cell, Vector2D min, Vector2D max)
+        private class NeighbourCell
         {
-            //TODO use here the bits
-            List<int> neighbours = new List<int>();
-
+            public int CellKey;
+            public float GCost;
+        }
+        
+        private static List<NeighbourCell> GetNeighbours(PathfindingCell cell, Vector2D min, Vector2D max)
+        {
+            List<NeighbourCell> neighbours = new List<NeighbourCell>();
+            int i = 0;
             foreach (var direction in DirectionsVector.AllDirections)
             {
                 int newX = cell.Position.x + direction.x;
                 int newY = cell.Position.y + direction.y;
-
-                if (newX >= min.x && newX < max.x && newY >= min.y && newY < max.y)
+                if (newX >= min.x && newX < max.x && newY >= min.y && newY < max.y && (cell.Connections & DirectionsAsByte.AllDirectionsAsByte[i]) == DirectionsAsByte.WALKABLE)
                 {
-                    neighbours.Add(newY * MainWindowViewModel.MapSize + newX);
+                    neighbours.Add(new NeighbourCell(){CellKey = newY * MainWindowViewModel.MapSize + newX, GCost = (i % 2 == 0)? Heuristic.StraightCost : Heuristic.DiagonalCost });
                 }
+
+                i++;
             }
 
             return neighbours;
         }
-
+       
         public static float FindPath(Cell[,] grid, Vector2D start, Vector2D end, Vector2D min, Vector2D max)
         {
             FastPriorityQueue open = new FastPriorityQueue(grid.GetLength(0) * grid.GetLength(1));
@@ -52,28 +55,27 @@ namespace HpaStarPathfinding.pathfinding
                 }
 
                 closedSet.Add(currentCell.Position.x + currentCell.Position.y * MainWindowViewModel.MapSize);
-
-                var g = currentCell.GCost + 1;
                 
                 foreach (var neighbourKey in GetNeighbours(currentCell, min, max))
                 {
-                    if (getElement.TryGetValue(neighbourKey, out var neighbour)){}
+                    if (getElement.TryGetValue(neighbourKey.CellKey, out var neighbour)){}
                     else
                     {
-                        neighbour = new PathfindingCell(grid[neighbourKey / MainWindowViewModel.MapSize,
-                            neighbourKey % MainWindowViewModel.MapSize]); 
-                        getElement.Add(neighbourKey, neighbour);
+                        neighbour = new PathfindingCell(grid[neighbourKey.CellKey / MainWindowViewModel.MapSize,
+                            neighbourKey.CellKey % MainWindowViewModel.MapSize]); 
+                        getElement.Add(neighbourKey.CellKey, neighbour);
                     }
-                        
+                    var g = currentCell.GCost + neighbourKey.GCost;
+
                     
-                    if (!neighbour.Walkable || closedSet.Contains(neighbour.Position.x + neighbour.Position.y * MainWindowViewModel.MapSize))
+                    if (closedSet.Contains(neighbour.Position.x + neighbour.Position.y * MainWindowViewModel.MapSize))
                         continue;
 
                    
                     if (!open.Contains(neighbour))
                     {
                         neighbour.GCost = g;
-                        neighbour.HCost = Astar.Heuristic(neighbour, goalCell);
+                        neighbour.HCost = Heuristic.OctileDistanceHeuristic(neighbour, goalCell);
                         neighbour.Parent = currentCell;
                         open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
                     }

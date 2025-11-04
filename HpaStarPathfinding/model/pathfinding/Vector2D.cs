@@ -16,15 +16,15 @@ namespace HpaStarPathfinding.ViewModel
         
         public static Vector2D ConvertMapPointToCanvasPos(Vector2D point)
         {
-            int x = point.x * MainWindowViewModel.CellSize + MainWindowViewModel.CellSize / 2;
-            int y = point.y * MainWindowViewModel.CellSize + MainWindowViewModel.CellSize / 2;
+            int x = point.x * MainWindowViewModel.cellSize + MainWindowViewModel.cellSize / 2;
+            int y = point.y * MainWindowViewModel.cellSize + MainWindowViewModel.cellSize / 2;
             return new Vector2D(x, y);
         }
         
         public static Vector2D ConvertPointToMapPoint(Point point)
         {
-            int x = (int)point.X / MainWindowViewModel.CellSize;
-            int y = (int)point.Y / MainWindowViewModel.CellSize;
+            int x = (int)point.X / MainWindowViewModel.cellSize;
+            int y = (int)point.Y / MainWindowViewModel.cellSize;
             return new Vector2D(x, y);
         }
         

@@ -1,24 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Documents;
 using HpaStarPathfinding.pathfinding;
+using static HpaStarPathfinding.ViewModel.DirectionsAsByte;
 
 namespace HpaStarPathfinding.ViewModel
 {
     public class Chunk
     {
         //Todo connect diagonal nodes witch each other side ;)        
-        private const byte NOT_WALKABLE = 0b_1;
-        private const byte WALKABLE = 0b_0;
-        private const byte N = 0b_0000_0001;
-        private const byte NE = 0b_0000_0010;
-        private const byte E = 0b_0000_0100;
-        private const byte SE = 0b_0000_1000;
-        private const byte S = 0b_0001_0000;
-        private const byte SW = 0b_0010_0000;
-        private const byte W = 0b_0100_0000;
-        private const byte NW = 0b_1000_0000;
+
         private const byte SW_S_SE = SW | S | SE;
         private const byte E_SE = E | SE;
         private const byte NW_N_NE = NW | N | NE;
@@ -47,7 +38,7 @@ namespace HpaStarPathfinding.ViewModel
             {
                 for (int j = i + 1; j < portalsHolder.Count; j++)
                 {
-                    float cost = AStarCustom.FindPath(cells, portalsHolder[i].pos, portalsHolder[j].pos, min, max);
+                    float cost = AStarOnlyCost.FindPath(cells, portalsHolder[i].pos, portalsHolder[j].pos, min, max);
                     if (cost < 0) continue; 
                     var portalHolder1 = portalsHolder[i];
                     var portalHolder2 = portalsHolder[j];

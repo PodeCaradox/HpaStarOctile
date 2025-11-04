@@ -5,7 +5,7 @@ namespace HpaStarPathfinding.ViewModel
     public struct Connection : IEquatable<Connection>
     {
         public byte portal;
-        public byte cost;
+        public float cost;
 
         public bool Equals(Connection other)
         {

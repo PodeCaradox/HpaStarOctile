@@ -25,7 +25,7 @@ namespace HpaStarPathfinding.ViewModel
             for (var i = 0; i < internalPortalConnections.Length; i++)
                 internalPortalConnections[i].portal = byte.MaxValue;
 
-            //3 because a portal can have 3 other portals it connects too
+            //3 because a portal can have 3 other portals it connects too(nope 4)
             externalPortalConnections = new int[3];
             for (var i = 0; i < externalPortalConnections.Length; i++) externalPortalConnections[i] = -1;
 

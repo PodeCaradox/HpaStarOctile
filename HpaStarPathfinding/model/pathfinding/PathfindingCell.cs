@@ -3,7 +3,6 @@
     public class PathfindingCell
     {
         public float fCost;
-        public bool Walkable;
         
         public float GCost;
         public float HCost;
@@ -20,7 +19,6 @@
         public PathfindingCell(Cell startCell)
         {
            Position = startCell.Position;   
-           Walkable = startCell.Walkable;
            Connections = startCell.Connections;
         }
         

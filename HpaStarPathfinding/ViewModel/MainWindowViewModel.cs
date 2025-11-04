@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Windows.Media.Imaging;
 using HpaStarPathfinding.pathfinding;
 
 namespace HpaStarPathfinding.ViewModel
@@ -9,8 +10,9 @@ namespace HpaStarPathfinding.ViewModel
     public class MainWindowViewModel: ViewModelBase
     {
         //Rendering
-        public const int CellSize = 20;
-        
+        public static int cellSize { get; } = 20;
+        public static int MultipliedCellSize { get; } = cellSize * 4;
+
         //Map config MapSize/ChunkSize should have no Remains  could be checked with modulo in future to handle the exception
         public const int MapSize = 40;
         public const int ChunkSize = 10;
@@ -19,6 +21,50 @@ namespace HpaStarPathfinding.ViewModel
 
         #region Propertys UI
 
+        private bool _enabledChangeCellBorderImage = false;
+        public bool EnabledChangeCellBorderImage
+        {
+            get { return _enabledChangeCellBorderImage; }
+            set
+            {
+                _enabledChangeCellBorderImage = value;
+                OnPropertyChanged();
+            }
+        }
+        
+        private Cell _currentSelectedCell;
+        public Cell CurrentSelectedCell
+        {
+            get { return _currentSelectedCell; }
+            set
+            {
+                _currentSelectedCell = value;
+                OnPropertyChanged();
+            }
+        }
+        
+        private WriteableBitmap _currentSelectedCellSource;
+        public WriteableBitmap CurrentSelectedCellSource
+        {
+            get { return _currentSelectedCellSource; }
+            set
+            {
+                _currentSelectedCellSource = value;
+                OnPropertyChanged();
+            }
+        }
+        
+        private WriteableBitmap[] _cellStates = new WriteableBitmap[byte.MaxValue + 1];
+        public WriteableBitmap[] CellStates
+        {
+            get { return _cellStates; }
+            set
+            {
+                _cellStates = value;
+                OnPropertyChanged();
+            }
+        }
+        
         private bool _changePathfindingNodeEnabled = false;
 
         public bool changePathfindingNodeEnabled
@@ -177,7 +223,6 @@ namespace HpaStarPathfinding.ViewModel
             {
                 for (int x = 0; x < Map.GetLength(1); x++)
                 {
-                    
                     Map[y, x].UpdateConnection(Map);
                 }
             }
@@ -189,7 +234,7 @@ namespace HpaStarPathfinding.ViewModel
 
         public bool PathPointIsWall(Vector2D vector2D)
         {
-            return !_map[vector2D.y, vector2D.x].Walkable;
+            return _map[vector2D.y, vector2D.x].Connections == DirectionsAsByte.NOT_WALKABLE;
         }
 
         public void FindPath()
