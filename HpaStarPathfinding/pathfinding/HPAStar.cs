@@ -27,7 +27,9 @@ namespace HpaStarPathfinding.pathfinding
                 ref var portal = ref portals[node.PortalKey];
                 var startCell = new PathfindingCell(grid[portal.centerPos.y, portal.centerPos.x]);
                 startCell.PortalKey = node.PortalKey;
-                open.Enqueue(startCell, 0); //node.Cost + Astar.GetDistance(startCell, endCell)
+                startCell.GCost = node.Cost;
+                startCell.HCost = Heuristic.GetHeuristic(startCell, endCell);
+                open.Enqueue(startCell, startCell.GCost + startCell.HCost); //node.Cost + Astar.GetDistance(startCell, endCell)
                 getElement.Add(startCell.PortalKey, startCell);
             }
             
@@ -50,7 +52,7 @@ namespace HpaStarPathfinding.pathfinding
                 foreach (var portalKey in currentPortal.externalPortalConnections)
                 {
                     if (portalKey == -1) break;
-                    CheckConnection(grid, portals, getElement, portalKey, closedSet, currentCell, open, endCell, g + 1);
+                    CheckConnection(grid, portals, getElement, portalKey, closedSet, currentCell, open, endCell, g + DiagonalCost);
                 }
                 
                 //Check internal Connections
@@ -95,7 +97,7 @@ namespace HpaStarPathfinding.pathfinding
             if (!open.Contains(neighbour))
             {
                 neighbour.GCost = g;
-                neighbour.HCost = Heuristic.OctileDistanceHeuristic(neighbour, goalCell);
+                neighbour.HCost = Heuristic.GetHeuristic(neighbour, goalCell);
                 neighbour.Parent = currentCell;
                 open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
             } 

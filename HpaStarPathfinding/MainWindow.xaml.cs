@@ -390,6 +390,7 @@ namespace HpaStarPathfinding
                 ChangePathfindingEndPoint(mapPoint, screenPoint);
             }
             CalcPath();
+            e.Handled = true;
         }
 
         private void MapCellMouseButtonDown(object sender, MouseButtonEventArgs e)
@@ -411,6 +412,7 @@ namespace HpaStarPathfinding
                 
                 SelectCell(cell);
             }
+            e.Handled = true;
         }
 
         private bool GetCell(object sender, out Cell cell)
@@ -574,12 +576,16 @@ namespace HpaStarPathfinding
         {
             ChangeSelection(Visibility.Hidden, null);
 
-            mapCell.Obstacle = newValue == BLOCKED;
             mapCell.Connections = newValue;
             _vm.Map[mapCell.Position.y, mapCell.Position.x] = mapCell;
 
             _dirtyTiles.Add(mapCell.Position);
 
+            CalculateChunksToUpdate(mapCell);
+        }
+
+        private void CalculateChunksToUpdate(Cell mapCell)
+        {
             Vector2D chunkPos = new Vector2D(mapCell.Position.x / ChunkSize,
                 mapCell.Position.y / ChunkSize);
             _dirtyChunks.Add(chunkPos);
@@ -930,7 +936,24 @@ namespace HpaStarPathfinding
             int pixelX = (int)(clickPosition.X * xRatio);
             int pixelY = (int)(clickPosition.Y * yRatio);
 
-            
+            for (int i = 0; i < _bordersInCell.Count; i++)
+            {
+                if (!_bordersInCell[i].Contains(new Point(pixelX, pixelY))) continue;
+
+                byte direction = (byte)(1 << i);
+                //If the bit is set (equal to direction), XOR will clear it.
+                //If the bit is not set, XOR will set it.
+                _vm.CurrentSelectedCell.Connections = (byte)(_vm.CurrentSelectedCell.Connections ^ direction);
+                var dir = DirectionsVector.AllDirections[i];
+                ref var otherCell = ref _vm.Map[_vm.CurrentSelectedCell.Position.y + dir.y, _vm.CurrentSelectedCell.Position.x + dir.x];
+                otherCell.Connections = (byte)(otherCell.Connections ^ Cell.RotateLeft(direction, 4));
+                _mapUi[otherCell.Position.y, otherCell.Position.x].Source = GetCellColor(otherCell);
+                
+                
+                _vm.CurrentSelectedCellSource = GetCellColor(_vm.CurrentSelectedCell);
+                _mapUi[_vm.CurrentSelectedCell.Position.y, _vm.CurrentSelectedCell.Position.x].Source = GetCellColor(_vm.CurrentSelectedCell);
+                CalculateChunksToUpdate(_vm.CurrentSelectedCell);
+            }
         }
     }
 }

@@ -78,7 +78,7 @@ namespace HpaStarPathfinding.pathfinding
                     if (!open.Contains(neighbour))
                     {
                         neighbour.GCost = g;
-                        neighbour.HCost = Heuristic.OctileDistanceHeuristic(neighbour, goalCell);
+                        neighbour.HCost = Heuristic.GetHeuristic(neighbour, goalCell);
                         neighbour.Parent = currentCell;
                         open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
                     } 
