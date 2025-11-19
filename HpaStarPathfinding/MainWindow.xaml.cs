@@ -814,24 +814,7 @@ namespace HpaStarPathfinding
                     
                     var otherPortal = _vm.Portals[keyOtherPortal];
                     var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.centerPos);
-                    Vector2D point2;
-                    Brush stroke = Brushes.Yellow;
-                    try
-                    {
-                        point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.centerPos);
-                    }
-                    catch (Exception e)
-                    {
-                        var test = Portal.PortalKeyToWorldPos(keyOtherPortal);
-                        Console.WriteLine("--------waeawe-----");
-                        Console.WriteLine(portal.centerPos.ToString());
-                        Console.WriteLine(key);
-                        Console.WriteLine(test.ToString());
-                        Console.WriteLine(keyOtherPortal);
-                        Console.WriteLine("---------");
-                        point2 = new Vector2D(0,0);
-                        stroke = Brushes.Red;
-                    }
+                    Vector2D point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.centerPos);
                     
                     Line line = new Line
                     {
@@ -840,7 +823,7 @@ namespace HpaStarPathfinding
                         X2 = point2.x,
                         Y1 = point1.y,
                         Y2 = point2.y,
-                        Stroke = stroke,
+                        Stroke = Brushes.Yellow,
                         IsHitTestVisible = false,
                         IsManipulationEnabled = false,
                         IsEnabled = false
