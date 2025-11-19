@@ -190,7 +190,9 @@ namespace HpaStarPathfinding.ViewModel
                 OnPropertyChanged();
             }
         }
-        
+
+        public bool calcPortals { get; set; } = false;
+
         #endregion
 
         #region Init

@@ -77,6 +77,8 @@ namespace HpaStarPathfinding
             AccessKeyManager.Register("c", ClearPathToggleButton);
             AccessKeyManager.Register("p", PathfindingAlgorithmComboBox);
             AccessKeyManager.AddAccessKeyPressedHandler(PathfindingAlgorithmComboBox, ChangePathfindingAlgorithm);
+
+            var dummy = Portal.PortalKeyToWorldPos(300);
         }
 
        
@@ -442,6 +444,7 @@ namespace HpaStarPathfinding
         private Cell currentChangedCell;
         private void MapCellOnMouseEnter(object sender, MouseEventArgs e)
         {
+            if (_vm.calcPortals) return;
             DrawConnectionsOnHover(sender);
             if (e.LeftButton != MouseButtonState.Pressed || _vm.changePathfindingNodeEnabled)
                 return;
@@ -605,6 +608,7 @@ namespace HpaStarPathfinding
 
         private void RebuildTiles()
         {
+            _vm.calcPortals = true;
             PathCanvas.IsEnabled = false;
             foreach (var mapCellPos in _dirtyTiles)
             {
@@ -618,6 +622,7 @@ namespace HpaStarPathfinding
             RebuildPortals();
 
             PathCanvas.IsEnabled = true;
+            _vm.calcPortals = false;
         }
 
         private void UpdateUICell(Vector2D mapCellPos)
@@ -939,14 +944,17 @@ namespace HpaStarPathfinding
             for (int i = 0; i < _bordersInCell.Count; i++)
             {
                 if (!_bordersInCell[i].Contains(new Point(pixelX, pixelY))) continue;
-
+                var dir = DirectionsVector.AllDirections[i];
+                int y = _vm.CurrentSelectedCell.Position.y + dir.y;
+                int x = _vm.CurrentSelectedCell.Position.x + dir.x;
+                if (x < 0 || x >= MapSize || y < 0 || y >= MapSize ) break;
+                
                 byte direction = (byte)(1 << i);
                 //If the bit is set (equal to direction), XOR will clear it.
                 //If the bit is not set, XOR will set it.
                 _vm.CurrentSelectedCell.Connections = (byte)(_vm.CurrentSelectedCell.Connections ^ direction);
-                var dir = DirectionsVector.AllDirections[i];
-                //TODO check outside Map
-                ref var otherCell = ref _vm.Map[_vm.CurrentSelectedCell.Position.y + dir.y, _vm.CurrentSelectedCell.Position.x + dir.x];
+                
+                ref var otherCell = ref _vm.Map[y, x];
                 otherCell.Connections = (byte)(otherCell.Connections ^ Cell.RotateLeft(direction, 4));
                 _mapUi[otherCell.Position.y, otherCell.Position.x].Source = GetCellColor(otherCell);
                 
@@ -954,6 +962,7 @@ namespace HpaStarPathfinding
                 _vm.CurrentSelectedCellSource = GetCellColor(_vm.CurrentSelectedCell);
                 _mapUi[_vm.CurrentSelectedCell.Position.y, _vm.CurrentSelectedCell.Position.x].Source = GetCellColor(_vm.CurrentSelectedCell);
                 CalculateChunksToUpdate(_vm.CurrentSelectedCell);
+                break;
             }
         }
     }

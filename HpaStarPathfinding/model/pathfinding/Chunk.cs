@@ -8,8 +8,6 @@ namespace HpaStarPathfinding.ViewModel
 {
     public class Chunk
     {
-        //Todo connect diagonal nodes witch each other side ;)        
-
         private const byte SW_S_SE = SW | S | SE;
         private const byte E_SE = E | SE;
         private const byte NW_N_NE = NW | N | NE;
@@ -18,11 +16,6 @@ namespace HpaStarPathfinding.ViewModel
         private const byte S_SE = S | SE;
         private const byte NW_W_SW = NW | W | SW;
         private const byte S_SW = S | SW;
-        
-        private const byte W_NW = W | NW;
-        private const byte W_SW = W | SW;
-        private const byte N_NW = N | NW;
-        private const byte N_NE = N | NE;
             
         private class PortalHolder
         {
@@ -95,13 +88,12 @@ namespace HpaStarPathfinding.ViewModel
         
         private void RebuildPortalsInDirection(Directions dir, Cell[,] cells, ref Portal[] portals, int chunkIdX, int chunkIdY, int chunkId)
         {
-           
             int startX;
             int startY;
             byte[] dirToCheck;
             Vector2D steppingInDirVector;
             Vector2D otherCellToCheck;
-            byte checkDiagonalChunk;
+            //byte checkDiagonalChunk;
 
             switch (dir)
             {
@@ -111,7 +103,7 @@ namespace HpaStarPathfinding.ViewModel
                     dirToCheck = new [] { SW_S_SE, S, E_SE, SW, W, SE, E_NE, E, N};
                     steppingInDirVector = new Vector2D(1, 0);
                     otherCellToCheck = new Vector2D(0, 1);
-                    checkDiagonalChunk = SE; 
+                    //checkDiagonalChunk = SE; 
                     break;
                 case Directions.N:
                     startX = chunkIdX * MainWindowViewModel.ChunkSize;
@@ -119,7 +111,7 @@ namespace HpaStarPathfinding.ViewModel
                     dirToCheck = new [] { NW_N_NE, N, E_NE, NW, W, NE, E_SE, E, S};
                     steppingInDirVector = new Vector2D(1, 0);
                     otherCellToCheck = new Vector2D(0, -1);
-                    checkDiagonalChunk = NW;
+                    //checkDiagonalChunk = NW;
                     break;
                 case Directions.E:
                     startX = chunkIdX * MainWindowViewModel.ChunkSize + MainWindowViewModel.ChunkSize - 1;
@@ -127,7 +119,7 @@ namespace HpaStarPathfinding.ViewModel
                     dirToCheck = new [] { NE_E_SE, E, S_SE, NE, N, SE, S_SW, S, W};
                     steppingInDirVector = new Vector2D(0, 1);
                     otherCellToCheck = new Vector2D(1, 0);
-                    checkDiagonalChunk = NE;
+                    //checkDiagonalChunk = NE;
                     break;
                 case Directions.W:
                     startX = chunkIdX * MainWindowViewModel.ChunkSize;
@@ -135,52 +127,22 @@ namespace HpaStarPathfinding.ViewModel
                     dirToCheck = new [] { NW_W_SW, W, S_SW, NW, N, SW, S_SE, S, E};
                     steppingInDirVector = new Vector2D(0, 1);
                     otherCellToCheck = new Vector2D(-1, 0);
-                    checkDiagonalChunk = SW;
+                    //checkDiagonalChunk = SW;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(dir), dir, null);
             }
             
             CreatePortalsInChunkDirection(cells, ref portals, chunkId, startX, startY, dir, steppingInDirVector, dirToCheck, otherCellToCheck);
-            CreatePortalForDiagonalChunk(cells, ref portals, chunkId, startX, startY, dir, steppingInDirVector, checkDiagonalChunk);
-        }
+            //CreatePortalForDiagonalChunk(cells, ref portals, chunkId, startX, startY, dir, steppingInDirVector, checkDiagonalChunk);
 
-        private void CreatePortalForDiagonalChunk(Cell[,] cells, ref Portal[] portals, int chunkId, int startX, int startY, Directions dir, Vector2D steppingInDirVector, byte checkDiagonalConnection)
-        {
-            int portalPos = 0;
-            int otherPortalOffset;
-            if (dir == Directions.S || dir == Directions.W)
-            {
-                portalPos = MainWindowViewModel.ChunkSize - 1;
-                startX += steppingInDirVector.x * portalPos;
-                startY += steppingInDirVector.y * portalPos;
-                otherPortalOffset = 1;
-            }
-            else
-            {
-                otherPortalOffset = -1;
-            }
-            
-            ref Cell cell = ref cells[startY, startX];
-            Vector2D startPos = new Vector2D(startX, startY);
-            int portalSize = 1;
-            int offsetStart = 0;
-            int offsetEnd = 0;
-            if ((cell.Connections & checkDiagonalConnection) == WALKABLE)
-            {
-                TryCreateOrUpdatePortal(ref portals, chunkId, true, ref startPos, ref portalSize, dir, portalPos, ref offsetStart, ref otherPortalOffset, ref offsetEnd);
-            }
         }
 
         private void CreatePortalsInChunkDirection(Cell[,] cells, ref Portal[] portals, int chunkId, int startX, int startY, Directions direction, Vector2D steppingInDirVector,
         byte[] checkDir, Vector2D otherCellToCheck)
         {
             //remove old portals
-            for (int i = 0; i < MainWindowViewModel.ChunkSize; i++)
-            {
-                int key = Portal.GeneratePortalKey(chunkId, i, direction);
-                portals[key] = null;
-            }
+            RemoveOldPortals(portals, chunkId, direction);
             
             //INIT VALUES
             bool closePortal = false;
@@ -201,8 +163,7 @@ namespace HpaStarPathfinding.ViewModel
                     closePortal = TryCreateOrUpdatePortal(ref portals, chunkId, closePortal, ref startPos, ref portalSize, direction, portalPos, ref offsetStart, ref otherPortalOffset, ref offsetEnd);
                     continue;
                 }
-
-
+                
                 // Check Connection to NORTH
                 if ((cell.Connections & checkDir[1]) == WALKABLE) 
                 {
@@ -214,8 +175,8 @@ namespace HpaStarPathfinding.ViewModel
                     //Opposite Cell in North
                     var oppositeCell = cells[yCell + otherCellToCheck.y, xCell + otherCellToCheck.x];
                     //Am I at the end of my Portal in Direction
-                    //Connection to EAST or NORTH-EAST not Walkable    Connection other cell EAST or SOUTH-EAST not Walkable
-                    if ((cell.Connections & checkDir[2]) != WALKABLE || (oppositeCell.Connections & checkDir[6]) != WALKABLE)
+                    if ((cell.Connections & checkDir[2]) != WALKABLE || //Connection to EAST or NORTH-EAST not Walkable 
+                        (oppositeCell.Connections & checkDir[6]) != WALKABLE) // Connection other cell EAST or SOUTH-EAST not Walkable
                     {
                         closePortal = true;
                     }
@@ -223,7 +184,7 @@ namespace HpaStarPathfinding.ViewModel
                     //Check Diagonal Connection to NORTH-WEST
                     if ((cell.Connections & checkDir[3]) == WALKABLE)
                     {
-                        //oppositeDiagonalCell NORTH-WEST
+                        //OppositeDiagonalCell NORTH-WEST
                         var oppositeDiagonalCell = cells[yCell + otherCellToCheck.y - steppingInDirVector.y, xCell + otherCellToCheck.x - steppingInDirVector.x];
                         //Check in direction South Not Walkable:
                         if((oppositeDiagonalCell.Connections & checkDir[8]) != WALKABLE)
@@ -235,7 +196,7 @@ namespace HpaStarPathfinding.ViewModel
                     //Check Diagonal Connection to NORTH-EAST
                     if ((cell.Connections & checkDir[5]) == WALKABLE)
                     {
-                        //oppositeDiagonalCell NORTH-EAST
+                        //OppositeDiagonalCell NORTH-EAST
                         var oppositeDiagonalCell = cells[yCell + otherCellToCheck.y + steppingInDirVector.y, xCell + otherCellToCheck.x + steppingInDirVector.x];
                         //Check in direction South Not Walkable:
                         if((oppositeDiagonalCell.Connections & checkDir[8]) != WALKABLE)
@@ -256,7 +217,6 @@ namespace HpaStarPathfinding.ViewModel
                     {
                         offsetEnd = 1; 
                         portalSize++;
-                        closePortal = true;
                     }
                 }
                 
@@ -269,7 +229,9 @@ namespace HpaStarPathfinding.ViewModel
                     //Check Connection to EAST if we can add this Tile to the new Portal
                     if ((cell.Connections & checkDir[7]) == WALKABLE)
                     {
-                        StartNewPortal(cell, i, out startPos, out portalPos, out portalSize);
+                        startPos = cell.Position;
+                        portalPos = i;
+                        portalSize = 1;
                         offsetStart = 1;
                         otherPortalOffset = 1;
                     }
@@ -280,6 +242,15 @@ namespace HpaStarPathfinding.ViewModel
                 
             //If the portal is not closed at the end close it.
             TryCreateOrUpdatePortal(ref portals, chunkId, portalSize > 0, ref startPos, ref portalSize, direction, portalPos, ref offsetStart, ref otherPortalOffset, ref offsetEnd);
+        }
+
+        private static void RemoveOldPortals(Portal[] portals, int chunkId, Directions direction)
+        {
+            for (int i = 0; i < MainWindowViewModel.ChunkSize; i++)
+            {
+                int key = Portal.GeneratePortalKey(chunkId, i, direction);
+                portals[key] = null;
+            }
         }
 
         private void CloseSinglePortal(ref Portal[] portals, int chunkId, Directions direction, Cell cell, int i, int otherPortalOffset)
@@ -293,23 +264,13 @@ namespace HpaStarPathfinding.ViewModel
             TryCreateOrUpdatePortal(ref portals, chunkId, true, ref tempStartPos, ref tempPortalSize, direction, tempPortalPos, ref tempOffsetStart, ref tempOtherPortalOffset, ref tempOffsetEnd);
         }
 
-        private static bool StartNewPortal(Cell cell, int i, out Vector2D startPos, out int portalPos, out int portalSize)
-        {
-            startPos = cell.Position;
-            portalPos = i;
-            portalSize = 1;
-            return true;
-        }
-
         private static Vector2D SetStartPos(Vector2D startPos, Cell cell, int i, ref int portalSize, ref int portalPos)
         {
-            if (startPos == null)
-            { 
-                portalSize = 0;
-                startPos = cell.Position;
-                portalPos = i;
-            }
-
+            if (startPos != null) return startPos;
+            
+            portalSize = 0;
+            startPos = cell.Position;
+            portalPos = i;
             return startPos;
         }
 
@@ -349,6 +310,34 @@ namespace HpaStarPathfinding.ViewModel
             offsetEnd = 0;
             
             return false;
+        }
+        
+        
+        private void CreatePortalForDiagonalChunk(Cell[,] cells, ref Portal[] portals, int chunkId, int startX, int startY, Directions dir, Vector2D steppingInDirVector, byte checkDiagonalConnection)
+        {
+            int portalPos = 0;
+            int otherPortalOffset;
+            if (dir == Directions.S || dir == Directions.W)
+            {
+                portalPos = MainWindowViewModel.ChunkSize - 1;
+                startX += steppingInDirVector.x * portalPos;
+                startY += steppingInDirVector.y * portalPos;
+                otherPortalOffset = 1;
+            }
+            else
+            {
+                otherPortalOffset = -1;
+            }
+            
+            ref Cell cell = ref cells[startY, startX];
+            Vector2D startPos = new Vector2D(startX, startY);
+            int portalSize = 1;
+            int offsetStart = 0;
+            int offsetEnd = 0;
+            if ((cell.Connections & checkDiagonalConnection) == WALKABLE)
+            {
+                TryCreateOrUpdatePortal(ref portals, chunkId, true, ref startPos, ref portalSize, dir, portalPos, ref offsetStart, ref otherPortalOffset, ref offsetEnd);
+            }
         }
     }
     
