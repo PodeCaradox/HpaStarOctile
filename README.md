@@ -1,3 +1,4 @@
 Simple Pathfinding Viewer:
 
-<img width="1209" height="1015" alt="grafik" src="https://github.com/user-attachments/assets/d618f2c6-bcd4-4c11-8662-7f9fe07daad9" />
+<img width="1210" height="1015" alt="grafik" src="https://github.com/user-attachments/assets/461c1777-faf1-4987-8b9b-61f7195c5c6e" />
+
