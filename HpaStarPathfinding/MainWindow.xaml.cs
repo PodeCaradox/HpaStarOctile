@@ -577,6 +577,8 @@ namespace HpaStarPathfinding
 
         private void ChangeMapCell(Cell mapCell, byte newValue)
         {
+            if (_vm.calcPortals) return;
+            _vm.calcPortals = true;
             ChangeSelection(Visibility.Hidden, null);
 
             mapCell.Connections = newValue;
@@ -585,6 +587,7 @@ namespace HpaStarPathfinding
             _dirtyTiles.Add(mapCell.Position);
 
             CalculateChunksToUpdate(mapCell);
+            _vm.calcPortals = false;
         }
 
         private void CalculateChunksToUpdate(Cell mapCell)
@@ -608,7 +611,7 @@ namespace HpaStarPathfinding
 
         private void RebuildTiles()
         {
-            _vm.calcPortals = true;
+            
             PathCanvas.IsEnabled = false;
             foreach (var mapCellPos in _dirtyTiles)
             {
@@ -622,7 +625,6 @@ namespace HpaStarPathfinding
             RebuildPortals();
 
             PathCanvas.IsEnabled = true;
-            _vm.calcPortals = false;
         }
 
         private void UpdateUICell(Vector2D mapCellPos)
@@ -810,7 +812,25 @@ namespace HpaStarPathfinding
                     
                     var otherPortal = _vm.Portals[keyOtherPortal];
                     var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.centerPos);
-                    var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.centerPos);
+                    Vector2D point2;
+                    Brush stroke = Brushes.Yellow;
+                    try
+                    {
+                        point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.centerPos);
+                    }
+                    catch (Exception e)
+                    {
+                        var test = Portal.PortalKeyToWorldPos(keyOtherPortal);
+                        Console.WriteLine("--------waeawe-----");
+                        Console.WriteLine(portal.centerPos.ToString());
+                        Console.WriteLine(key);
+                        Console.WriteLine(test.ToString());
+                        Console.WriteLine(keyOtherPortal);
+                        Console.WriteLine("---------");
+                        point2 = new Vector2D(0,0);
+                        stroke = Brushes.Red;
+                    }
+                    
                     Line line = new Line
                     {
                         StrokeThickness = 2,
@@ -818,7 +838,7 @@ namespace HpaStarPathfinding
                         X2 = point2.x,
                         Y1 = point1.y,
                         Y2 = point2.y,
-                        Stroke = Brushes.Yellow,
+                        Stroke = stroke,
                         IsHitTestVisible = false,
                         IsManipulationEnabled = false,
                         IsEnabled = false
@@ -935,6 +955,9 @@ namespace HpaStarPathfinding
             BitmapSource bitmapSource = image.Source as BitmapSource;
             if (bitmapSource == null) return;
 
+            if (_vm.calcPortals) return;
+            _vm.calcPortals = true;
+            
             double xRatio = bitmapSource.PixelWidth / image.ActualWidth;
             double yRatio = bitmapSource.PixelHeight / image.ActualHeight;
 
@@ -964,6 +987,7 @@ namespace HpaStarPathfinding
                 CalculateChunksToUpdate(_vm.CurrentSelectedCell);
                 break;
             }
+            _vm.calcPortals = false;
         }
     }
 }

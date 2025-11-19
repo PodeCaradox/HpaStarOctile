@@ -213,7 +213,7 @@ namespace HpaStarPathfinding.ViewModel
                 {
                     CloseSinglePortal(ref portals, chunkId, direction, cell, i, -1);
                     //Do I belong to the Portal in the WEST
-                    if ((cell.Connections & checkDir[4]) == WALKABLE)
+                    if (closePortal && (cell.Connections & checkDir[4]) == WALKABLE)
                     {
                         offsetEnd = 1; 
                         portalSize++;
@@ -239,9 +239,10 @@ namespace HpaStarPathfinding.ViewModel
                 
                 closePortal = TryCreateOrUpdatePortal(ref portals, chunkId, closePortal, ref startPos, ref portalSize, direction, portalPos, ref offsetStart, ref otherPortalOffset, ref offsetEnd);
             }
-                
+
+            if (portalSize > 0 && (offsetStart != 1 || portalPos != MainWindowViewModel.ChunkSize - 1))
             //If the portal is not closed at the end close it.
-            TryCreateOrUpdatePortal(ref portals, chunkId, portalSize > 0, ref startPos, ref portalSize, direction, portalPos, ref offsetStart, ref otherPortalOffset, ref offsetEnd);
+            TryCreateOrUpdatePortal(ref portals, chunkId, true, ref startPos, ref portalSize, direction, portalPos, ref offsetStart, ref otherPortalOffset, ref offsetEnd);
         }
 
         private static void RemoveOldPortals(Portal[] portals, int chunkId, Directions direction)
@@ -285,12 +286,24 @@ namespace HpaStarPathfinding.ViewModel
             int externalKey = Portal.GetOppositePortalInOtherChunk(key, dir, centerPos, otherPortalOffset);
             if (portals[key] == null)
             {
+                if (key == 80)
+                {
+                    var test = Portal.PortalKeyToWorldPos(externalKey);
+                    Console.WriteLine(test.ToString());
+                    Console.WriteLine(externalKey);
+                    Console.WriteLine("---------");
+                }
                 Portal portal = new Portal(startPos, portalSize, dir, offsetStart, offsetEnd);
                 portal.externalPortalConnections[0] = externalKey;
                 portals[key] = portal;
             }
             else
             {
+                if (key == 80)
+                {
+                    var test = Portal.PortalKeyToWorldPos(externalKey);
+                    Console.WriteLine(test.ToString());
+                }
                 portals[key].ChangeLength(startPos, (byte)portalSize, offsetStart, offsetEnd); 
                 for (int i = 1; i < portals[key].externalPortalConnections.Length; i++)
                 {
