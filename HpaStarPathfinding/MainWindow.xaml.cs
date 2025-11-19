@@ -342,6 +342,8 @@ namespace HpaStarPathfinding
         {
             DrawChunksButton.IsChecked = false;
             DrawPortalsButton.IsChecked = false;
+            DrawPortalsExternalConnectionsButton.IsChecked = false;
+            DrawPortalsConnectionsButton.IsChecked = false;
             drawPortals = false;
             ChangeSelection(Visibility.Hidden, null);
             PathCanvas.Children.Clear();

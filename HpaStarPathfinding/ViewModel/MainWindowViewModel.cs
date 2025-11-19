@@ -11,7 +11,7 @@ namespace HpaStarPathfinding.ViewModel
     {
         //Rendering
         public static int cellSize { get; } = 20;
-        public static int MultipliedCellSize { get; } = cellSize * 4;
+        public static int MultipliedCellSize { get; } = cellSize * 5;
 
         //Map config MapSize/ChunkSize should have no Remains  could be checked with modulo in future to handle the exception
         public const int MapSize = 40;

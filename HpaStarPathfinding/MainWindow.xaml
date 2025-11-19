@@ -90,7 +90,7 @@
             <TextBlock>P: Toggle Pathfinding Algorithm</TextBlock>
             <TextBlock>C: Clear</TextBlock>
 
-            <TextBlock Margin="0,10,0,0">Edit Cell:</TextBlock>
+            <TextBlock HorizontalAlignment="Center" Margin="0,10,0,0">Edit Cell (Right Click):</TextBlock>
             <Border
                 BorderBrush="Yellow"
                 BorderThickness="1"
