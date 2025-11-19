@@ -945,6 +945,7 @@ namespace HpaStarPathfinding
                 //If the bit is not set, XOR will set it.
                 _vm.CurrentSelectedCell.Connections = (byte)(_vm.CurrentSelectedCell.Connections ^ direction);
                 var dir = DirectionsVector.AllDirections[i];
+                //TODO check outside Map
                 ref var otherCell = ref _vm.Map[_vm.CurrentSelectedCell.Position.y + dir.y, _vm.CurrentSelectedCell.Position.x + dir.x];
                 otherCell.Connections = (byte)(otherCell.Connections ^ Cell.RotateLeft(direction, 4));
                 _mapUi[otherCell.Position.y, otherCell.Position.x].Source = GetCellColor(otherCell);

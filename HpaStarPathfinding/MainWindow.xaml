@@ -91,9 +91,17 @@
             <TextBlock>C: Clear</TextBlock>
 
             <TextBlock Margin="0,10,0,0">Edit Cell:</TextBlock>
-            <Border BorderThickness="1">
+            <Border
+                BorderBrush="Yellow"
+                BorderThickness="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
                 <Image
                     Height="{Binding .MultipliedCellSize}"
+                    MaxHeight="{Binding .MultipliedCellSize}"
+                    MaxWidth="{Binding .MultipliedCellSize}"
+                    MinHeight="{Binding .MultipliedCellSize}"
+                    MinWidth="{Binding .MultipliedCellSize}"
                     MouseLeftButtonDown="ChangeCellBorderClicked"
                     RenderOptions.BitmapScalingMode="NearestNeighbor"
                     RenderOptions.EdgeMode="Aliased"

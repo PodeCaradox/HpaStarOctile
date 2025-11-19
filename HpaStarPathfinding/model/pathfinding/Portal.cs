@@ -25,8 +25,8 @@ namespace HpaStarPathfinding.ViewModel
             for (var i = 0; i < internalPortalConnections.Length; i++)
                 internalPortalConnections[i].portal = byte.MaxValue;
 
-            //3 because a portal can have 3 other portals it connects too(nope 4)
-            externalPortalConnections = new int[3];
+            //3 because a portal can have 4 other portals it connects too(diagonals + 1)
+            externalPortalConnections = new int[4];
             for (var i = 0; i < externalPortalConnections.Length; i++) externalPortalConnections[i] = -1;
 
             centerPos = CalcCenterPos(direction, length, startPos, offsetStart, offsetEnd);
@@ -144,6 +144,17 @@ namespace HpaStarPathfinding.ViewModel
         {
             if (chunkPosition == outsidePosition) return true;
             return false;
+        }
+
+        public void ChangeLength(Vector2D portalPos, byte portalSize, int offsetStart, int offsetEnd)
+        {
+            if (portalSize > portalLength)
+            {
+                portalLength = portalSize;
+                startPos = portalPos;
+                centerPos = CalcCenterPos(direction, portalLength, startPos, offsetStart, offsetEnd);
+            }
+           
         }
     }
 }
