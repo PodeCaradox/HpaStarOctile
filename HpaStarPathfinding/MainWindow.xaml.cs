@@ -1,26 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
-using System.Windows.Threading;
 using HpaStarPathfinding.Model;
 using HpaStarPathfinding.ViewModel;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
 namespace HpaStarPathfinding
 {
-    
     public partial class MainWindow
     {
         #region Properties
@@ -49,16 +42,15 @@ namespace HpaStarPathfinding
         private readonly List<Line> _portalExternalConnections = new List<Line>();
         private readonly List<Line> _hoverPortalConnections = new List<Line>();
         private readonly List<Rect> _bordersInCell = new List<Rect>();
-        
+
         private Rectangle _selectionRectangle;
 
         private int currentPortal = -1;
-        
+
         private Image[,] _mapUi;
-        
+
         private Cell _currentChangedCell;
-        
-        
+
         #endregion
 
         #region Constructor
@@ -68,7 +60,7 @@ namespace HpaStarPathfinding
             DataContextChanged += OnDataContextChanged;
             InitializeComponent();
             PathfindingWindow.SizeToContent = SizeToContent.Width;
-            
+
             PathCanvas.Height = cellSize * MapSize;
             PathCanvas.Width = cellSize * MapSize;
             PathCanvas.MouseDown += MapOnMouseButtonDown;
@@ -82,28 +74,26 @@ namespace HpaStarPathfinding
             var dummy = Portal.PortalKeyToWorldPos(300);
         }
 
-       
-
         #endregion
 
         #region Init
-        
+
         private void InitBitmaps()
         {
-            _bordersInCell.Add(new Rect(5, 1, 10, 2));   // N,
-            _bordersInCell.Add(new Rect(15, 1, 4, 4));   // NE
-            _bordersInCell.Add(new Rect(17, 5, 2, 10));  // E, 
-            _bordersInCell.Add(new Rect(15, 15, 4, 4));  // SO
-            _bordersInCell.Add(new Rect(5, 17, 10, 2));  // S, 
-            _bordersInCell.Add(new Rect(1, 15, 4, 4));   // SW
-            _bordersInCell.Add(new Rect(1, 5, 2, 10));   // W, 
-            _bordersInCell.Add(new Rect(1, 1, 4, 4));    // NW
+            _bordersInCell.Add(new Rect(5, 1, 10, 2)); // N,
+            _bordersInCell.Add(new Rect(15, 1, 4, 4)); // NE
+            _bordersInCell.Add(new Rect(17, 5, 2, 10)); // E, 
+            _bordersInCell.Add(new Rect(15, 15, 4, 4)); // SO
+            _bordersInCell.Add(new Rect(5, 17, 10, 2)); // S, 
+            _bordersInCell.Add(new Rect(1, 15, 4, 4)); // SW
+            _bordersInCell.Add(new Rect(1, 5, 2, 10)); // W, 
+            _bordersInCell.Add(new Rect(1, 1, 4, 4)); // NW
             WriteableBitmap[] bmps = new WriteableBitmap[byte.MaxValue + 1];
             int stride = cellSize;
             for (int i = 0; i <= byte.MaxValue; i++)
             {
                 bmps[i] = new WriteableBitmap(cellSize, cellSize, 100, 100, PixelFormats.Gray8, null);
-               
+
                 byte[] pixelData = Enumerable.Repeat(byte.MaxValue, stride * cellSize).ToArray();
 
                 //Borders
@@ -111,13 +101,14 @@ namespace HpaStarPathfinding
                 {
                     if ((i & DirectionsAsByte.AllDirectionsAsByte[j]) == DirectionsAsByte.AllDirectionsAsByte[j])
                     {
-                        WritePixelData(ref pixelData, (int)_bordersInCell[j].X, (int)_bordersInCell[j].Y, (int)_bordersInCell[j].Width, (int)_bordersInCell[j].Height);
+                        WritePixelData(ref pixelData, (int)_bordersInCell[j].X, (int)_bordersInCell[j].Y,
+                            (int)_bordersInCell[j].Width, (int)_bordersInCell[j].Height);
                     }
                 }
-                
+
                 bmps[i].WritePixels(new Int32Rect(0, 0, cellSize, cellSize), pixelData, stride, 0);
             }
-            
+
             _vm.CellStates = bmps;
         }
 
@@ -136,7 +127,7 @@ namespace HpaStarPathfinding
         {
             PathCanvas.IsEnabled = false;
             _vm.Init();
-            
+
             _mapUi = new Image[MapSize, MapSize];
             InitializeGridMap();
             InitializeGridChunks();
@@ -145,7 +136,7 @@ namespace HpaStarPathfinding
             {
                 StrokeThickness = 2,
                 SnapsToDevicePixels = true,
-                StrokeDashArray= new DoubleCollection(new[]{ 1.0, 1.0 }),
+                StrokeDashArray = new DoubleCollection(new[] { 1.0, 1.0 }),
                 Width = cellSize,
                 Height = cellSize,
                 Stroke = Brushes.Gold,
@@ -154,8 +145,6 @@ namespace HpaStarPathfinding
                 IsHitTestVisible = false,
                 IsManipulationEnabled = false,
                 IsEnabled = false
-                
-                
             };
             PathCanvas.Children.Add(_selectionRectangle);
 
@@ -212,14 +201,16 @@ namespace HpaStarPathfinding
                     int key = Portal.GeneratePortalKey(chunkId, j, dirVec);
                     var portal = _vm.Portals[key];
                     if (portal == null) continue;
-                    var dir = steppingVector[(int)portal.direction];
-
-                    int startPosX = portal.startPos.x;
-                    int startPosY = portal.startPos.y;
-                    int centerPosX = portal.centerPos.x;
-                    int centerPosY = portal.centerPos.y;
-                    int width = dir.x * portal.portalLength;
-                    int height = dir.y * portal.portalLength;
+                    var dir = steppingVector[(int)dirVec];
+                    var startPos = portal.CenterPos;
+                    var offset = (_vm.Portals[key].PortalOffsetAndLength & (int)PortalLength.Offset) >>
+                                 (int)PortalLength.OffsetShift;
+                    int startPosX = startPos.x - offset * dir.x;
+                    int startPosY = startPos.y - offset * dir.y;
+                    int centerPosX = portal.CenterPos.x;
+                    int centerPosY = portal.CenterPos.y;
+                    int width = dir.x * (portal.PortalOffsetAndLength & (int)PortalLength.TotalLength);
+                    int height = dir.y * (portal.PortalOffsetAndLength & (int)PortalLength.TotalLength);
 
                     Rectangle rect = new Rectangle
                     {
@@ -244,7 +235,7 @@ namespace HpaStarPathfinding
                     Canvas.SetTop(rect, startPosY * cellSize + 4);
 
                     Brush color = Brushes.Green;
-                    
+
                     Rectangle center = new Rectangle
                     {
                         Width = cellSize - 10,
@@ -325,7 +316,7 @@ namespace HpaStarPathfinding
         #endregion
 
         #region Events
-        
+
         private void ChangePathfindingAlgorithm(object sender, AccessKeyPressedEventArgs e)
         {
             if (sender is ComboBox comboBox)
@@ -357,14 +348,14 @@ namespace HpaStarPathfinding
                 _vm.EnabledChangeCellBorderImage = false;
                 _vm.CurrentSelectedCell = null;
                 _vm.CurrentSelectedCellSource = null;
-            }else
+            }
+            else
 
             {
                 _vm.EnabledChangeCellBorderImage = true;
                 _vm.CurrentSelectedCell = mapCell;
                 _vm.CurrentSelectedCellSource = _vm.CellStates[mapCell.Connections];
             }
-            
         }
 
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -376,7 +367,7 @@ namespace HpaStarPathfinding
         {
             if (!_vm.changePathfindingNodeEnabled)
                 return;
-            
+
             Point p = Mouse.GetPosition(PathCanvas);
             Vector2D mapPoint = Vector2D.ConvertPointToMapPoint(p);
             if (_vm.PathPointIsWall(mapPoint))
@@ -389,9 +380,9 @@ namespace HpaStarPathfinding
             }
             else if (e.RightButton == MouseButtonState.Pressed)
             {
-                
                 ChangePathfindingEndPoint(mapPoint, screenPoint);
             }
+
             CalcPath();
             e.Handled = true;
         }
@@ -400,21 +391,21 @@ namespace HpaStarPathfinding
         {
             if (_vm.changePathfindingNodeEnabled)
                 return;
-            
+
             if (e.LeftButton == MouseButtonState.Pressed)
             {
                 if (!GetCell(sender, out Cell cell) && _currentChangedCell == cell) return;
                 _currentChangedCell = cell;
                 byte newValue = (cell.Connections == BLOCKED) ? WALKABLE : BLOCKED;
                 ChangeMapCell(cell, newValue);
-                
-            } 
+            }
             else if (e.RightButton == MouseButtonState.Pressed)
             {
                 if (!GetCell(sender, out Cell cell)) return;
-                
+
                 SelectCell(cell);
             }
+
             e.Handled = true;
         }
 
@@ -429,14 +420,14 @@ namespace HpaStarPathfinding
 
             if (mapCell.Position.Equals(_vm.pathStart) || mapCell.Position.Equals(_vm.pathEnd))
                 return false;
-            
+
             cell = mapCell;
+            
             return true;
         }
 
         private void SelectCell(Cell mapCell)
         {
-            
             Canvas.SetLeft(_selectionRectangle, mapCell.Position.x * cellSize);
             Canvas.SetTop(_selectionRectangle, mapCell.Position.y * cellSize);
             ChangeSelection(Visibility.Visible, mapCell);
@@ -452,7 +443,7 @@ namespace HpaStarPathfinding
             if (!GetCell(sender, out Cell cell) && _currentChangedCell == cell) return;
             _currentChangedCell = cell;
             byte newValue = (cell.Connections == BLOCKED) ? WALKABLE : BLOCKED;
-            
+
             ChangeMapCell(cell, newValue);
         }
 
@@ -469,24 +460,24 @@ namespace HpaStarPathfinding
             int startY = mapCell.Position.y % ChunkSize;
             int xOffset = mapCell.Position.x / ChunkSize * MaxPortalsInChunk;
             int yOffset = mapCell.Position.y / ChunkSize * MaxPortalsInChunk * ChunkMapSize;
-            if(startX == 0)
+            if (startX == 0)
             {
                 var portalKey = startY + xOffset + yOffset + ChunkSize * 3;
                 keys.Add(portalKey);
-            } 
-            
+            }
+
             if (startY == 0)
-            {  
+            {
                 var portalKey = startX + xOffset + yOffset;
                 keys.Add(portalKey);
             }
-            
+
             if (startX == 9)
             {
                 var portalKey = startY + xOffset + yOffset + ChunkSize * 1;
                 keys.Add(portalKey);
             }
-            
+
             if (startY == 9)
             {
                 var portalKey = startX + xOffset + yOffset + ChunkSize * 2;
@@ -498,6 +489,7 @@ namespace HpaStarPathfinding
                 RemoveIfNotHovered();
                 return;
             }
+
             if (currentPortal == keys[0]) return;
             currentPortal = keys[0];
             RemoveIfNotHovered();
@@ -505,7 +497,6 @@ namespace HpaStarPathfinding
             {
                 DrawPortalConnectionsOnHover(key);
             }
-           
         }
 
         private void RemoveIfNotHovered()
@@ -514,6 +505,7 @@ namespace HpaStarPathfinding
             {
                 PathCanvas.Children.Remove(line);
             }
+
             _hoverPortalConnections.Clear();
         }
 
@@ -521,16 +513,16 @@ namespace HpaStarPathfinding
         {
             ref var portal = ref _vm.Portals[key];
             if (portal == null) return;
-                
+
             int chunkIndexinPortalArray = key / MaxPortalsInChunk * MaxPortalsInChunk;
-            foreach (var connection in portal.internalPortalConnections)
+            foreach (var connection in portal.InternalPortalConnections)
             {
                 if (connection.portal == byte.MaxValue) break;
-                    
+
                 int keyOtherPortal = chunkIndexinPortalArray + connection.portal;
                 var otherPortal = _vm.Portals[keyOtherPortal];
-                var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.centerPos);
-                var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.centerPos);
+                var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
+                var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
                 Line line = new Line
                 {
                     StrokeThickness = 2,
@@ -546,14 +538,14 @@ namespace HpaStarPathfinding
                 _hoverPortalConnections.Add(line);
                 PathCanvas.Children.Add(line);
             }
-            
-            foreach (var keyOtherPortal in portal.externalPortalConnections)
+
+            foreach (var keyOtherPortal in portal.ExternalPortalConnections)
             {
                 if (keyOtherPortal == -1) break;
-                    
+
                 var otherPortal = _vm.Portals[keyOtherPortal];
-                var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.centerPos);
-                var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.centerPos);
+                var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
+                var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
                 Line line = new Line
                 {
                     StrokeThickness = 2,
@@ -611,7 +603,6 @@ namespace HpaStarPathfinding
 
         private void RebuildTiles()
         {
-            
             PathCanvas.IsEnabled = false;
             foreach (var mapCellPos in _dirtyTiles)
             {
@@ -619,7 +610,7 @@ namespace HpaStarPathfinding
                 mapCell.UpdateConnection(_vm.Map);
                 UpdateUiCell(mapCellPos);
             }
-            
+
             _dirtyTiles.Clear();
 
             RebuildPortals();
@@ -629,7 +620,6 @@ namespace HpaStarPathfinding
 
         private void UpdateUiCell(Vector2D mapCellPos)
         {
-            
             _mapUi[mapCellPos.y, mapCellPos.x].Source = GetCellColor(_vm.Map[mapCellPos.y, mapCellPos.x]);
             for (byte i = 0; i < DirectionsVector.AllDirections.Length; i++)
             {
@@ -640,10 +630,10 @@ namespace HpaStarPathfinding
                 {
                     continue;
                 }
-                _mapUi[mapCellPos.y + dirVec.y, mapCellPos.x + dirVec.x].Source = GetCellColor(_vm.Map[mapCellPos.y + dirVec.y, mapCellPos.x + dirVec.x]);
 
+                _mapUi[mapCellPos.y + dirVec.y, mapCellPos.x + dirVec.x].Source =
+                    GetCellColor(_vm.Map[mapCellPos.y + dirVec.y, mapCellPos.x + dirVec.x]);
             }
-            
         }
 
 
@@ -654,6 +644,7 @@ namespace HpaStarPathfinding
             {
                 RebuildPortalsInChunk(chunk);
             }
+
             DeletePortalInternalConnectionsDrawn();
             DeletePortalExternalConnectionsDrawn();
             DrawPortalInternalConnections();
@@ -681,7 +672,6 @@ namespace HpaStarPathfinding
             Chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
             Chunk.ConnectInternalPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
             CreatePortalsOnCanvas(chunkId);
-
         }
 
         private WriteableBitmap GetCellColor(Cell mapCell)
@@ -700,9 +690,9 @@ namespace HpaStarPathfinding
 
             var path = _vm.path.ToArray();
 
-            
+
             DrawPathUi(path, _vm.SelectedAlgorithm.Brush);
-            DrawPathUi(_vm.OtherPath.ToArray(), Brushes.Gray, 0.4 );
+            DrawPathUi(_vm.OtherPath.ToArray(), Brushes.Gray, 0.4);
         }
 
         private void DrawPathUi(Vector2D[] path, Brush brush, double opacity = 1)
@@ -720,9 +710,9 @@ namespace HpaStarPathfinding
                     Y2 = point2.y,
                     Opacity = opacity,
                     Stroke = brush,
-                              IsHitTestVisible = false,
-                              IsManipulationEnabled = false,
-                              IsEnabled = false
+                    IsHitTestVisible = false,
+                    IsManipulationEnabled = false,
+                    IsEnabled = false
                 };
 
                 _lines.Add(line);
@@ -753,7 +743,7 @@ namespace HpaStarPathfinding
         }
 
         #endregion
-        
+
         private void DrawChunksButtonChecked(object sender, RoutedEventArgs e)
         {
             foreach (var chunk in _chunks)
@@ -772,7 +762,7 @@ namespace HpaStarPathfinding
                 portal.Value.Item2.Opacity = 1.0;
             }
         }
-        
+
         private void DrawChunksButtonUnchecked(object sender, RoutedEventArgs e)
         {
             foreach (var chunk in _chunks)
@@ -800,19 +790,19 @@ namespace HpaStarPathfinding
         private void DrawPortalExternalConnections()
         {
             if (!drawPortalsExternalConnections) return;
-             for (int key = 0; key < _vm.Portals.Length; key++)
+            for (int key = 0; key < _vm.Portals.Length; key++)
             {
                 ref var portal = ref _vm.Portals[key];
                 if (portal == null) continue;
-                
-                foreach (var keyOtherPortal in portal.externalPortalConnections)
+
+                foreach (var keyOtherPortal in portal.ExternalPortalConnections)
                 {
                     if (keyOtherPortal == -1) break;
-                    
+
                     var otherPortal = _vm.Portals[keyOtherPortal];
-                    var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.centerPos);
-                    Vector2D point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.centerPos);
-                    
+                    var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
+                    Vector2D point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
+
                     Line line = new Line
                     {
                         StrokeThickness = 2,
@@ -837,24 +827,24 @@ namespace HpaStarPathfinding
             HashSet<int> alreadyDrawn = new HashSet<int>();
             for (int key = 0; key < _vm.Portals.Length; key++)
             {
-                if(key % MaxPortalsInChunk == 0) alreadyDrawn.Clear();
+                if (key % MaxPortalsInChunk == 0) alreadyDrawn.Clear();
                 ref var portal = ref _vm.Portals[key];
                 if (portal == null) continue;
                 int chunkIndexinPortalArray = key / MaxPortalsInChunk * MaxPortalsInChunk;
-                foreach (var connection in portal.internalPortalConnections)
+                foreach (var connection in portal.InternalPortalConnections)
                 {
                     if (connection.portal == byte.MaxValue) break;
-                    
+
                     int keyOtherPortal = chunkIndexinPortalArray + connection.portal;
-                    
+
                     var otherPortal = _vm.Portals[keyOtherPortal];
                     var keyInChunk = key % MaxPortalsInChunk;
                     int connectionKey1 = keyInChunk * MaxPortalsInChunk + connection.portal;
                     int connectionKey2 = keyInChunk + connection.portal * MaxPortalsInChunk;
-                    if(!alreadyDrawn.Add(connectionKey1)) continue;
-                    if(!alreadyDrawn.Add(connectionKey2)) continue;
-                    var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.centerPos);
-                    var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.centerPos);
+                    if (!alreadyDrawn.Add(connectionKey1)) continue;
+                    if (!alreadyDrawn.Add(connectionKey2)) continue;
+                    var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
+                    var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
                     Line line = new Line
                     {
                         StrokeThickness = 2,
@@ -917,9 +907,9 @@ namespace HpaStarPathfinding
             ResetPathUi();
 
             _vm.FindPath();
-            
+
             DrawPathUi(_vm.path.ToArray(), _vm.SelectedAlgorithm.Brush);
-            DrawPathUi(_vm.OtherPath.ToArray(), Brushes.Gray, 0.4 );
+            DrawPathUi(_vm.OtherPath.ToArray(), Brushes.Gray, 0.4);
         }
 
         private void ChangePathToggleButton_OnChecked(object sender, RoutedEventArgs e)
@@ -933,13 +923,13 @@ namespace HpaStarPathfinding
             if (image == null || image.Source == null) return;
 
             Point clickPosition = e.GetPosition(image);
-            
+
             BitmapSource bitmapSource = image.Source as BitmapSource;
             if (bitmapSource == null) return;
 
             if (_vm.calcPortals) return;
             _vm.calcPortals = true;
-            
+
             double xRatio = bitmapSource.PixelWidth / image.ActualWidth;
             double yRatio = bitmapSource.PixelHeight / image.ActualHeight;
 
@@ -952,23 +942,25 @@ namespace HpaStarPathfinding
                 var dir = DirectionsVector.AllDirections[i];
                 int y = _vm.CurrentSelectedCell.Position.y + dir.y;
                 int x = _vm.CurrentSelectedCell.Position.x + dir.x;
-                if (x < 0 || x >= MapSize || y < 0 || y >= MapSize ) break;
-                
+                if (x < 0 || x >= MapSize || y < 0 || y >= MapSize) break;
+
                 byte direction = (byte)(1 << i);
                 //If the bit is set (equal to direction), XOR will clear it.
                 //If the bit is not set, XOR will set it.
                 _vm.CurrentSelectedCell.Connections = (byte)(_vm.CurrentSelectedCell.Connections ^ direction);
-                
+
                 ref var otherCell = ref _vm.Map[y, x];
                 otherCell.Connections = (byte)(otherCell.Connections ^ Cell.RotateLeft(direction, 4));
                 _mapUi[otherCell.Position.y, otherCell.Position.x].Source = GetCellColor(otherCell);
-                
-                
+
+
                 _vm.CurrentSelectedCellSource = GetCellColor(_vm.CurrentSelectedCell);
-                _mapUi[_vm.CurrentSelectedCell.Position.y, _vm.CurrentSelectedCell.Position.x].Source = GetCellColor(_vm.CurrentSelectedCell);
+                _mapUi[_vm.CurrentSelectedCell.Position.y, _vm.CurrentSelectedCell.Position.x].Source =
+                    GetCellColor(_vm.CurrentSelectedCell);
                 CalculateChunksToUpdate(_vm.CurrentSelectedCell);
                 break;
             }
+
             _vm.calcPortals = false;
         }
     }

@@ -2,68 +2,62 @@
 
 namespace HpaStarPathfinding.ViewModel
 {
+    
+    [Flags]
+    public enum PortalLength : byte
+    {
+        Offset = 0b_1111_0000,
+        TotalLength = 0b_0000_1111,
+        OffsetShift = 4,
+    }
     public class Portal
     {
-        //debug stuff
-        public Vector2D startPos; //not needed is in hash
-        public Vector2D centerPos; //not needed is in hash
-        public Directions direction; //not needed is in hash
-        
-        public int[] externalPortalConnections; //only 2 at a time
-        public Connection[] internalPortalConnections;
+        public Vector2D CenterPos;
+        public byte PortalOffsetAndLength;
+        public readonly int[] ExternalPortalConnections; //only 2 at a time
+        public readonly Connection[] InternalPortalConnections;
 
-        //only thing needed to know, to save data you can just implement it in your game with the length saved.
-        public byte portalLength;
-
-        //Future: i can calculate the Connection with the hash, so i dont need to store them but instead just look up if the portal on the otherside is null :)
         public Portal(Vector2D startPos, int length, Directions direction, int offsetStart, int offsetEnd)
         {
-            this.startPos = startPos;
-            portalLength = (byte)length;
-            this.direction = direction;
-            internalPortalConnections = new Connection[MainWindowViewModel.MaxPortalsInChunk - 1];
-            for (var i = 0; i < internalPortalConnections.Length; i++)
-                internalPortalConnections[i].portal = byte.MaxValue;
+            PortalOffsetAndLength = (byte)length;
+            InternalPortalConnections = new Connection[MainWindowViewModel.MaxPortalsInChunk - 1];
+            for (var i = 0; i < InternalPortalConnections.Length; i++)
+                InternalPortalConnections[i].portal = byte.MaxValue;
 
-            //4 because a portal can have 4 other portals it connects too(diagonals + 1)
-            externalPortalConnections = new int[4];
-            for (var i = 0; i < externalPortalConnections.Length; i++) externalPortalConnections[i] = -1;
+            ExternalPortalConnections = new int[5];//diagonal can need 5, straight ones 3
+            for (var i = 0; i < ExternalPortalConnections.Length; i++) ExternalPortalConnections[i] = -1;
 
-            centerPos = CalcCenterPos(portalLength, offsetStart, offsetEnd);
+            CalcCenterPos(direction, startPos, PortalOffsetAndLength, offsetStart, offsetEnd);
         }
 
-        private Vector2D CalcCenterPos(int length, int offsetStart,
+        private void CalcCenterPos(Directions direction, Vector2D startPos, int length, int offsetStart,
             int offsetEnd)
         {
             var offset = offsetStart + (length - offsetEnd - offsetStart) / 2;
+            PortalOffsetAndLength |= (byte)(offset << (int)PortalLength.OffsetShift);
             switch (direction)
             {
                 case Directions.N:
-                    centerPos = new Vector2D(startPos.x + offset, startPos.y);
+                    CenterPos = new Vector2D(startPos.x + offset, startPos.y);
                     break;
                 case Directions.S:
-                    centerPos = new Vector2D(startPos.x + offset, startPos.y);
+                    CenterPos = new Vector2D(startPos.x + offset, startPos.y);
                     break;
                 case Directions.E:
-                    centerPos = new Vector2D(startPos.x, startPos.y + offset);
+                    CenterPos = new Vector2D(startPos.x, startPos.y + offset);
                     break;
                 case Directions.W:
-                    centerPos = new Vector2D(startPos.x, startPos.y + offset);
+                    CenterPos = new Vector2D(startPos.x, startPos.y + offset);
                     break;
             }
-
-            return centerPos;
         }
         
-        public void ChangeLength(Vector2D portalPos, byte portalSize, int offsetStart, int offsetEnd)
+        public void ChangeLength(Directions dir,Vector2D portalPos, byte portalSize, int offsetStart, int offsetEnd)
         {
-            if (portalSize >= portalLength) return;
+            if (portalSize >= (PortalOffsetAndLength & (int)PortalLength.TotalLength)) return;
             
-            portalLength = portalSize;
-            startPos = portalPos;
-            centerPos = CalcCenterPos( portalLength, offsetStart, offsetEnd);
-            
-           
+            PortalOffsetAndLength = portalSize;
+            CalcCenterPos(dir, portalPos, PortalOffsetAndLength, offsetStart, offsetEnd);
         }
 
         public static int GeneratePortalKey(int chunkIndex, int position, Directions direction)
@@ -106,6 +100,50 @@ namespace HpaStarPathfinding.ViewModel
             }
 
             return worldPos;
+        }
+        
+        public static int WorldPosToPortalKey(Vector2D worldPos)
+        {
+            var chunkX = (int)(worldPos.x / MainWindowViewModel.ChunkSize);
+            var chunkY = (int)(worldPos.y / MainWindowViewModel.ChunkSize);
+            var chunkId = chunkX + chunkY * MainWindowViewModel.ChunkMapSize;
+    
+            var localX = (int)(worldPos.x % MainWindowViewModel.ChunkSize);
+            var localY = (int)(worldPos.y % MainWindowViewModel.ChunkSize);
+    
+            Directions dir;
+            int pos;
+    
+            if (localX == 0)
+            {
+                dir = Directions.W;
+                pos = localY;
+            }
+            else if (localX == MainWindowViewModel.ChunkSize - 1)
+            {
+                dir = Directions.E;
+                pos = localY;
+            }
+            else if (localY == 0)
+            {
+                dir = Directions.N;
+                pos = localX;
+            }
+            else if (localY == MainWindowViewModel.ChunkSize - 1)
+            {
+                dir = Directions.S;
+                pos = localX;
+            }
+            else
+            {
+                // Not on a portal edge - return invalid key or handle appropriately
+                return -1;
+            }
+    
+            var dirAndPos = (int)dir * MainWindowViewModel.ChunkSize + pos;
+            var key = chunkId * MainWindowViewModel.MaxPortalsInChunk + dirAndPos;
+    
+            return key;
         }
         
     }

@@ -25,7 +25,7 @@ namespace HpaStarPathfinding.pathfinding
             foreach (var node in startNodes)
             {
                 ref var portal = ref portals[node.PortalKey];
-                var startCell = new PathfindingCell(grid[portal.centerPos.y, portal.centerPos.x]);
+                var startCell = new PathfindingCell(grid[portal.CenterPos.y, portal.CenterPos.x]);
                 startCell.PortalKey = node.PortalKey;
                 startCell.GCost = node.Cost;
                 startCell.HCost = Heuristic.GetHeuristic(startCell, endCell);
@@ -49,14 +49,14 @@ namespace HpaStarPathfinding.pathfinding
     
                 var g = currentCell.GCost;
                 //Check external Connections
-                foreach (var portalKey in currentPortal.externalPortalConnections)
+                foreach (var portalKey in currentPortal.ExternalPortalConnections)
                 {
                     if (portalKey == -1) break;
                     CheckConnection(grid, portals, getElement, portalKey, closedSet, currentCell, open, endCell, g + DiagonalCost);
                 }
                 
                 //Check internal Connections
-                foreach (var connection in currentPortal.internalPortalConnections)
+                foreach (var connection in currentPortal.InternalPortalConnections)
                 {
                     if(connection.portal == byte.MaxValue) break;
                     var portalKey =
@@ -84,7 +84,7 @@ namespace HpaStarPathfinding.pathfinding
             else
             {
                 ref var portal = ref portals[portalKey];
-                neighbour = new PathfindingCell(grid[portal.centerPos.y, portal.centerPos.x])
+                neighbour = new PathfindingCell(grid[portal.CenterPos.y, portal.CenterPos.x])
                 {
                     PortalKey = portalKey
                 };
@@ -123,7 +123,7 @@ namespace HpaStarPathfinding.pathfinding
                 int currentPortal = firstPortalKey + i;
                 if (portals[currentPortal] == null) continue;
                 //Todo flood fill could be faster.
-                float cost = AStarOnlyCost.FindPath(grid, portals[currentPortal].centerPos, goal, min, max);
+                float cost = AStarOnlyCost.FindPath(grid, portals[currentPortal].CenterPos, goal, min, max);
                 if(cost < 0) continue;
                 nodes.Add(new PortalNode(currentPortal, cost));
             }
@@ -133,13 +133,13 @@ namespace HpaStarPathfinding.pathfinding
         public static List<Vector2D> PortalsToPath(Cell[,] grid, Portal[] portals, Vector2D pathStart, Vector2D pathEnd, List<int> pathAsPortals)
         {
             //Todo use cached paths
-            List<Vector2D> path = Astar.FindPath(grid, pathStart, portals[pathAsPortals[0]].centerPos);
+            List<Vector2D> path = Astar.FindPath(grid, pathStart, portals[pathAsPortals[0]].CenterPos);
             for (int i = 0; i < pathAsPortals.Count - 1; i++)
             {
-                path.AddRange(Astar.FindPath(grid, portals[pathAsPortals[i]].centerPos, portals[pathAsPortals[i + 1]].centerPos));
+                path.AddRange(Astar.FindPath(grid, portals[pathAsPortals[i]].CenterPos, portals[pathAsPortals[i + 1]].CenterPos));
             }
     
-            path.AddRange(Astar.FindPath(grid, portals[pathAsPortals.Last()].centerPos, pathEnd));
+            path.AddRange(Astar.FindPath(grid, portals[pathAsPortals.Last()].CenterPos, pathEnd));
             return path;
         }
     
