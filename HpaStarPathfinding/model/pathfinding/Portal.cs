@@ -24,7 +24,7 @@ namespace HpaStarPathfinding.ViewModel
             for (var i = 0; i < InternalPortalConnections.Length; i++)
                 InternalPortalConnections[i].portal = byte.MaxValue;
 
-            ExternalPortalConnections = new int[5];//diagonal can need 5, straight ones 3
+            ExternalPortalConnections = new int[5];//diagonal can need 5(portals can be above each other in special cases, only diagonal), straight ones 3
             for (var i = 0; i < ExternalPortalConnections.Length; i++) ExternalPortalConnections[i] = -1;
 
             CalcCenterPos(direction, startPos, PortalOffsetAndLength, offsetStart, offsetEnd);
@@ -100,50 +100,6 @@ namespace HpaStarPathfinding.ViewModel
             }
 
             return worldPos;
-        }
-        
-        public static int WorldPosToPortalKey(Vector2D worldPos)
-        {
-            var chunkX = (int)(worldPos.x / MainWindowViewModel.ChunkSize);
-            var chunkY = (int)(worldPos.y / MainWindowViewModel.ChunkSize);
-            var chunkId = chunkX + chunkY * MainWindowViewModel.ChunkMapSize;
-    
-            var localX = (int)(worldPos.x % MainWindowViewModel.ChunkSize);
-            var localY = (int)(worldPos.y % MainWindowViewModel.ChunkSize);
-    
-            Directions dir;
-            int pos;
-    
-            if (localX == 0)
-            {
-                dir = Directions.W;
-                pos = localY;
-            }
-            else if (localX == MainWindowViewModel.ChunkSize - 1)
-            {
-                dir = Directions.E;
-                pos = localY;
-            }
-            else if (localY == 0)
-            {
-                dir = Directions.N;
-                pos = localX;
-            }
-            else if (localY == MainWindowViewModel.ChunkSize - 1)
-            {
-                dir = Directions.S;
-                pos = localX;
-            }
-            else
-            {
-                // Not on a portal edge - return invalid key or handle appropriately
-                return -1;
-            }
-    
-            var dirAndPos = (int)dir * MainWindowViewModel.ChunkSize + pos;
-            var key = chunkId * MainWindowViewModel.MaxPortalsInChunk + dirAndPos;
-    
-            return key;
         }
         
     }

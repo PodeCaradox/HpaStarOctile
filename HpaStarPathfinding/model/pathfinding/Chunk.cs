@@ -166,8 +166,8 @@ namespace HpaStarPathfinding.ViewModel
 
             TryCreatePortalsInChunkDirection(cells, ref portals, chunkId, startX, startY, dir, steppingInDirVector,
                 dirToCheck);
-            TryCreatePortalForDiagonalChunk(cells, ref portals, chunkId, startX, startY, dir, steppingInDirVector,
-                 portalDiagonalPosOffset, checkDiagonalChunk);
+             TryCreatePortalForDiagonalChunk(cells, ref portals, chunkId, startX, startY, dir, steppingInDirVector,
+                  portalDiagonalPosOffset, checkDiagonalChunk);
         }
 
         private static void TryCreatePortalForDiagonalChunk(Cell[,] cells, ref Portal[] portals, int chunkId, int startX,
@@ -410,7 +410,6 @@ namespace HpaStarPathfinding.ViewModel
             {
                 i++;
             }
-
             portals[key].ExternalPortalConnections[i] = externalKey;
         }
     }
