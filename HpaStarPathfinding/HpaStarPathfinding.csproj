@@ -58,6 +58,7 @@
         <Compile Include="model\pathfinding\FastPriorityQueue.cs" />
         <Compile Include="model\pathfinding\PathfindingCell.cs" />
         <Compile Include="model\pathfinding\Portal.cs" />
+        <Compile Include="model\pathfinding\PortalHolder.cs" />
         <Compile Include="model\pathfinding\PortalNode.cs" />
         <Compile Include="model\pathfinding\Vector2D.cs" />
         <Compile Include="model\ui\Algorithm.cs" />

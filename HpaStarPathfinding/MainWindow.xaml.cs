@@ -56,6 +56,7 @@ namespace HpaStarPathfinding
         
         private Image[,] _mapUi;
         
+        private Cell _currentChangedCell;
         
         
         #endregion
@@ -169,11 +170,10 @@ namespace HpaStarPathfinding
             _portals = new Dictionary<int, (Rectangle, Rectangle)>();
             Parallel.For(0, _vm.chunks.GetLength(0), y =>
             {
-                for (int x = 0; x < _vm.chunks.GetLength(1); x++)
+                for (var x = 0; x < _vm.chunks.GetLength(1); x++)
                 {
-                    ref Chunk chunk = ref _vm.chunks[y, x];
-                    chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, x, y);
-                    chunk.ConnectInternalPortals(_vm.Map, ref _vm.Portals, x, y);
+                    Chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, x, y);
+                    Chunk.ConnectInternalPortals(_vm.Map, ref _vm.Portals, x, y);
                 }
             });
 
@@ -182,18 +182,17 @@ namespace HpaStarPathfinding
 
         private void UpdatePortalsOnCanvas()
         {
-            for (int y = 0; y < _vm.chunks.GetLength(0); y++)
+            for (var y = 0; y < _vm.chunks.GetLength(0); y++)
             {
-                for (int x = 0; x < _vm.chunks.GetLength(1); x++)
+                for (var x = 0; x < _vm.chunks.GetLength(1); x++)
                 {
-                    ref Chunk chunk = ref _vm.chunks[y, x];
-                    int chunkId = x + y * ChunkMapSize;
-                    CreatePortalsOnCanvas(chunk, chunkId);
+                    var chunkId = x + y * ChunkMapSize;
+                    CreatePortalsOnCanvas(chunkId);
                 }
             }
         }
 
-        private void CreatePortalsOnCanvas(Chunk chunk, int chunkId)
+        private void CreatePortalsOnCanvas(int chunkId)
         {
             double opacity = 0.0;
             if (drawPortals)
@@ -303,7 +302,7 @@ namespace HpaStarPathfinding
                 for (int x = 0; x < MapSize / ChunkSize; x++)
                 {
                     _vm.chunks[y, x] = new Chunk();
-                    Rectangle rect = new Rectangle
+                    var rect = new Rectangle
                     {
                         Width = cellSize * ChunkSize - 4,
                         Height = cellSize * ChunkSize - 4,
@@ -312,9 +311,9 @@ namespace HpaStarPathfinding
                         Opacity = 0.0,
                         IsHitTestVisible = false,
                         IsManipulationEnabled = false,
-                        IsEnabled = false
+                        IsEnabled = false,
+                        Tag = _vm.chunks[y, x]
                     };
-                    rect.Tag = _vm.chunks[y, x];
                     Canvas.SetLeft(rect, x * cellSize * ChunkSize + 2);
                     Canvas.SetTop(rect, y * cellSize * ChunkSize + 2);
                     _chunks[y, x] = rect;
@@ -404,8 +403,8 @@ namespace HpaStarPathfinding
             
             if (e.LeftButton == MouseButtonState.Pressed)
             {
-                if (!GetCell(sender, out Cell cell) && currentChangedCell == cell) return;
-                currentChangedCell = cell;
+                if (!GetCell(sender, out Cell cell) && _currentChangedCell == cell) return;
+                _currentChangedCell = cell;
                 byte newValue = (cell.Connections == BLOCKED) ? WALKABLE : BLOCKED;
                 ChangeMapCell(cell, newValue);
                 
@@ -443,7 +442,6 @@ namespace HpaStarPathfinding
             ChangeSelection(Visibility.Visible, mapCell);
         }
 
-        private Cell currentChangedCell;
         private void MapCellOnMouseEnter(object sender, MouseEventArgs e)
         {
             if (_vm.calcPortals) return;
@@ -451,8 +449,8 @@ namespace HpaStarPathfinding
             if (e.LeftButton != MouseButtonState.Pressed || _vm.changePathfindingNodeEnabled)
                 return;
 
-            if (!GetCell(sender, out Cell cell) && currentChangedCell == cell) return;
-            currentChangedCell = cell;
+            if (!GetCell(sender, out Cell cell) && _currentChangedCell == cell) return;
+            _currentChangedCell = cell;
             byte newValue = (cell.Connections == BLOCKED) ? WALKABLE : BLOCKED;
             
             ChangeMapCell(cell, newValue);
@@ -519,7 +517,7 @@ namespace HpaStarPathfinding
             _hoverPortalConnections.Clear();
         }
 
-        public void DrawPortalConnectionsOnHover(int key)
+        private void DrawPortalConnectionsOnHover(int key)
         {
             ref var portal = ref _vm.Portals[key];
             if (portal == null) return;
@@ -619,7 +617,7 @@ namespace HpaStarPathfinding
             {
                 ref Cell mapCell = ref _vm.Map[mapCellPos.y, mapCellPos.x];
                 mapCell.UpdateConnection(_vm.Map);
-                UpdateUICell(mapCellPos);
+                UpdateUiCell(mapCellPos);
             }
             
             _dirtyTiles.Clear();
@@ -629,7 +627,7 @@ namespace HpaStarPathfinding
             PathCanvas.IsEnabled = true;
         }
 
-        private void UpdateUICell(Vector2D mapCellPos)
+        private void UpdateUiCell(Vector2D mapCellPos)
         {
             
             _mapUi[mapCellPos.y, mapCellPos.x].Source = GetCellColor(_vm.Map[mapCellPos.y, mapCellPos.x]);
@@ -667,23 +665,22 @@ namespace HpaStarPathfinding
 
         private void RebuildPortalsInChunk(Vector2D chunkPos)
         {
-            ref Chunk chunk = ref _vm.chunks[chunkPos.y, chunkPos.x];
             int chunkId = chunkPos.x + chunkPos.y * ChunkMapSize;
             foreach (Directions dirVec in Enum.GetValues(typeof(Directions)))
             {
                 for (int j = 0; j < ChunkSize; j++)
                 {
                     int key = Portal.GeneratePortalKey(chunkId, j, dirVec);
-                    if (!_portals.ContainsKey(key)) continue;
-                    PathCanvas.Children.Remove(_portals[key].Item1);
+                    if (!_portals.TryGetValue(key, out var portal)) continue;
+                    PathCanvas.Children.Remove(portal.Item1);
                     PathCanvas.Children.Remove(_portals[key].Item2);
                     _portals.Remove(key);
                 }
             }
 
-            chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
-            chunk.ConnectInternalPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
-            CreatePortalsOnCanvas(chunk, chunkId);
+            Chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
+            Chunk.ConnectInternalPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
+            CreatePortalsOnCanvas(chunkId);
 
         }
 

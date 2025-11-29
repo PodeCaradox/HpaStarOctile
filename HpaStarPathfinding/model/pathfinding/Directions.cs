@@ -1,16 +1,8 @@
 ﻿namespace HpaStarPathfinding.ViewModel
 {
     
-    public enum Directions: byte
+    public enum Directions
     {
-        // N = 0b_0000_0001,
-        // NE = 0b_0000_0010,
-        // E = 0b_0000_0100,
-        // SE = 0b_0000_1000,
-        // S = 0b_0001_0000,
-        // SW = 0b_0010_0000,
-        // W = 0b_0100_0000,
-        // NW = 0b_1000_0000
         N = 0,
         E = 1,
         S = 2,

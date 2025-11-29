@@ -5,15 +5,15 @@ namespace HpaStarPathfinding.ViewModel
     public class Portal
     {
         //debug stuff
+        public Vector2D startPos; //not needed is in hash
         public Vector2D centerPos; //not needed is in hash
         public Directions direction; //not needed is in hash
+        
         public int[] externalPortalConnections; //only 2 at a time
-
         public Connection[] internalPortalConnections;
 
         //only thing needed to know, to save data you can just implement it in your game with the length saved.
         public byte portalLength;
-        public Vector2D startPos; //not needed is in hash
 
         //Future: i can calculate the Connection with the hash, so i dont need to store them but instead just look up if the portal on the otherside is null :)
         public Portal(Vector2D startPos, int length, Directions direction, int offsetStart, int offsetEnd)
@@ -25,14 +25,14 @@ namespace HpaStarPathfinding.ViewModel
             for (var i = 0; i < internalPortalConnections.Length; i++)
                 internalPortalConnections[i].portal = byte.MaxValue;
 
-            //3 because a portal can have 4 other portals it connects too(diagonals + 1)
+            //4 because a portal can have 4 other portals it connects too(diagonals + 1)
             externalPortalConnections = new int[4];
             for (var i = 0; i < externalPortalConnections.Length; i++) externalPortalConnections[i] = -1;
 
-            centerPos = CalcCenterPos(direction, length, startPos, offsetStart, offsetEnd);
+            centerPos = CalcCenterPos(portalLength, offsetStart, offsetEnd);
         }
 
-        public Vector2D CalcCenterPos(Directions direction, int length, Vector2D startPos, int offsetStart,
+        private Vector2D CalcCenterPos(int length, int offsetStart,
             int offsetEnd)
         {
             var offset = offsetStart + (length - offsetEnd - offsetStart) / 2;
@@ -53,6 +53,17 @@ namespace HpaStarPathfinding.ViewModel
             }
 
             return centerPos;
+        }
+        
+        public void ChangeLength(Vector2D portalPos, byte portalSize, int offsetStart, int offsetEnd)
+        {
+            if (portalSize >= portalLength) return;
+            
+            portalLength = portalSize;
+            startPos = portalPos;
+            centerPos = CalcCenterPos( portalLength, offsetStart, offsetEnd);
+            
+           
         }
 
         public static int GeneratePortalKey(int chunkIndex, int position, Directions direction)
@@ -96,65 +107,6 @@ namespace HpaStarPathfinding.ViewModel
 
             return worldPos;
         }
-
-        public static int GetOppositePortalInOtherChunk(int portalKey, Directions dir, int portalPos,
-            int otherPortalOffset)
-        {
-            const int offsetChunkByY = MainWindowViewModel.MaxPortalsInChunk * MainWindowViewModel.ChunkMapSize;
-            const int offsetChunkByX = MainWindowViewModel.MaxPortalsInChunk;
-            switch (dir)
-            {
-                case Directions.N:
-                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, -1))
-                    {
-                        //offset inside the chunk the from top left 0 -> 29 to right bottom 
-                        return portalKey - offsetChunkByY - offsetChunkByX + MainWindowViewModel.ChunkSize * 3 - 1;
-                    }
-                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, MainWindowViewModel.ChunkSize)) return -1;
-                    return portalKey + MainWindowViewModel.ChunkSize * 2 - offsetChunkByY + otherPortalOffset;
-                case Directions.E:
-                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, -1))
-                    {
-                        //offset inside the chunk the from top right is 10 -> 39 to bottom left
-                        return portalKey + offsetChunkByX - offsetChunkByY + MainWindowViewModel.ChunkSize * 3 - 1;
-                    }
-                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, MainWindowViewModel.ChunkSize)) return -1;
-                    return portalKey + MainWindowViewModel.ChunkSize * 2 + offsetChunkByX + otherPortalOffset;
-                case Directions.S:
-                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, MainWindowViewModel.ChunkSize))
-                    {
-                        //offset inside the chunk the from bottom right is 29 -> 0 to top left
-                        return portalKey + offsetChunkByY + offsetChunkByX - (MainWindowViewModel.ChunkSize * 3 - 1);
-                    }
-                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, -1)) return -1;
-                    return portalKey - MainWindowViewModel.ChunkSize * 2 + offsetChunkByY + otherPortalOffset;
-                case Directions.W:
-                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, MainWindowViewModel.ChunkSize))
-                    {
-                        //offset inside the chunk the from bottom left is 39 -> 10 to top right
-                        return portalKey - offsetChunkByX + offsetChunkByY - (MainWindowViewModel.ChunkSize * 3 - 1);
-                    }
-                    if (IsOppositeDiagonalChunk(portalPos + otherPortalOffset, -1)) return -1;
-                    return portalKey - MainWindowViewModel.ChunkSize * 2 - offsetChunkByX + otherPortalOffset;
-            }
-            return -1;
-        }
-
-        private static bool IsOppositeDiagonalChunk(int chunkPosition, int outsidePosition)
-        {
-            if (chunkPosition == outsidePosition) return true;
-            return false;
-        }
-
-        public void ChangeLength(Vector2D portalPos, byte portalSize, int offsetStart, int offsetEnd)
-        {
-            if (portalSize > portalLength)
-            {
-                portalLength = portalSize;
-                startPos = portalPos;
-                centerPos = CalcCenterPos(direction, portalLength, startPos, offsetStart, offsetEnd);
-            }
-           
-        }
+        
     }
 }
