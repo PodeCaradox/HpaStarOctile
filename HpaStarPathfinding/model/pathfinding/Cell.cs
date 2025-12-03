@@ -6,7 +6,6 @@ namespace HpaStarPathfinding.ViewModel
     public class Cell
     {
         public readonly Vector2D Position;
-        //all sides Connections
         public byte Connections; 
     
 

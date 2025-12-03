@@ -51,6 +51,7 @@
             <Generator>MSBuild:Compile</Generator>
             <SubType>Designer</SubType>
         </ApplicationDefinition>
+        <Compile Include="model\PathfindingCache\PathFindingManager.cs" />
         <Compile Include="model\pathfinding\Chunk.cs" />
         <Compile Include="model\pathfinding\Cell.cs" />
         <Compile Include="model\pathfinding\Connection.cs" />

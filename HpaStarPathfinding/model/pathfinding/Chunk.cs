@@ -20,6 +20,10 @@ namespace HpaStarPathfinding.ViewModel
         private const int OffsetChunkByY = MainWindowViewModel.MaxPortalsInChunk * MainWindowViewModel.ChunkMapSize;
         private const int OffsetChunkByX = MainWindowViewModel.MaxPortalsInChunk;
 
+        public byte FirstPortalKey;
+        public byte ClearChunk;// all tiles are connected flood fill.
+        
+
         private static readonly int[] OppositePortalKeyOffsets =
         {
             -OffsetChunkByY + MainWindowViewModel.ChunkSize * 2, //North
@@ -53,59 +57,58 @@ namespace HpaStarPathfinding.ViewModel
         private static readonly Vector2D[] DirectionsVectorArray =
             { DirectionsVector.N, DirectionsVector.E, DirectionsVector.S, DirectionsVector.W };
 
-        public static void ConnectInternalPortals(Cell[,] cells, ref Portal[] portals, int chunkIdX, int chunkIdY)
+        public static void ConnectInternalPortals(Cell[,] cells, ref Chunk chunk, ref Portal[] portals, int chunkIdX, int chunkIdY)
         {
+            
             List<PortalHolder> portalsHolder = new List<PortalHolder>();
-            GetAllPortalsInChunk(portals, chunkIdX, chunkIdY, portalsHolder);
+            int firstPortalKey = GetAllPortalsInChunkAndFirstPortalKey(portals, chunkIdX, chunkIdY, portalsHolder);
             Vector2D min = new Vector2D(chunkIdX * MainWindowViewModel.ChunkSize,
                 chunkIdY * MainWindowViewModel.ChunkSize);
             Vector2D max = new Vector2D(min.x + MainWindowViewModel.ChunkSize, min.y + MainWindowViewModel.ChunkSize);
-            //here we could also cache the path
+            chunk.FirstPortalKey = byte.MaxValue;
             for (int i = 0; i < portalsHolder.Count - 1; i++)
             {
+                var portalHolder1 = portalsHolder[i];
+                if (chunk.FirstPortalKey > portalHolder1.Key) chunk.FirstPortalKey = portalHolder1.Key;
                 for (int j = i + 1; j < portalsHolder.Count; j++)
                 {
-                    float cost = AStarOnlyCost.FindPath(cells, portalsHolder[i].Pos, portalsHolder[j].Pos, min, max);
-                    if (cost < 0) continue;
-                    var portalHolder1 = portalsHolder[i];
                     var portalHolder2 = portalsHolder[j];
+                    //Todo flood fill faster.
+                    float cost = AStarOnlyCost.FindPath(cells, portalHolder1.Pos, portalHolder2.Pos, min, max);
+                    if (cost < 0) continue;
                     ref var internalPortalConnection1 =
-                        ref portalHolder1.Portal.InternalPortalConnections[portalHolder1.ArrayIndex];
+                        ref portals[firstPortalKey + portalHolder1.Key].InternalPortalConnections[portalHolder1.ArrayIndex];
                     ref var internalPortalConnection2 =
-                        ref portalHolder2.Portal.InternalPortalConnections[portalHolder2.ArrayIndex];
-                    internalPortalConnection1.cost = (byte)cost;
-                    internalPortalConnection1.portal =
-                        (byte)(portalHolder2.Key % MainWindowViewModel.MaxPortalsInChunk);
-                    internalPortalConnection2.cost = (byte)cost;
-                    internalPortalConnection2.portal =
-                        (byte)(portalHolder1.Key % MainWindowViewModel.MaxPortalsInChunk);
+                        ref portals[firstPortalKey + portalHolder2.Key].InternalPortalConnections[portalHolder2.ArrayIndex];
+                    internalPortalConnection1.cost = (ushort)cost;
+                    internalPortalConnection1.portal = portalHolder2.Key;
+                    internalPortalConnection2.cost = (ushort)cost;
+                    internalPortalConnection2.portal = portalHolder1.Key;
                     portalHolder1.ArrayIndex++;
                     portalHolder2.ArrayIndex++;
                 }
             }
         }
 
-        private static void GetAllPortalsInChunk(Portal[] portals, int chunkIdX, int chunkIdY,
+        private static int GetAllPortalsInChunkAndFirstPortalKey(Portal[] portals, int chunkIdX, int chunkIdY,
             List<PortalHolder> portalsHolder)
         {
             int chunkId = chunkIdX + MainWindowViewModel.ChunkMapSize * chunkIdY;
-            foreach (var direction in Enum.GetValues(typeof(Directions)).Cast<Directions>())
+            int key = Portal.GeneratePortalKey(chunkId, 0, 0);
+            for (byte i = 0; i < MainWindowViewModel.MaxPortalsInChunk; i++)
             {
-                for (int i = 0; i < MainWindowViewModel.ChunkSize; i++)
+                if (portals[key + i] == null)
+                    continue;
+                var portalHolder = new PortalHolder
                 {
-                    int key = Portal.GeneratePortalKey(chunkId, i, direction);
-                    if (portals[key] == null)
-                        continue;
-                    var portalHolder = new PortalHolder
-                    {
-                        Portal = portals[key],
-                        Key = key,
-                        ArrayIndex = 0,
-                        Pos = Portal.PortalKeyToWorldPos(key)
-                    };
-                    portalsHolder.Add(portalHolder);
-                }
+                    Key = i,
+                    ArrayIndex = 0,
+                    Pos = Portal.PortalKeyToWorldPos(key + i)
+                };
+                portalsHolder.Add(portalHolder);
             }
+
+            return key;
         }
 
         public static void RebuildAllPortals(Cell[,] cells, ref Portal[] portals, int chunkIdX, int chunkIdY)

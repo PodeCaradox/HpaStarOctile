@@ -258,7 +258,7 @@ namespace HpaStarPathfinding.ViewModel
 
         private List<Vector2D> HpaStarFindPath()
         {
-            var pathAsPortals = HPAStar.FindPath(_map, Portals, _pathStart, _pathEnd);
+            var pathAsPortals = HPAStar.FindPath(_map, _chunks, Portals, _pathStart, _pathEnd);
             if (pathAsPortals.Count == 0) return new List<Vector2D>();
             return HPAStar.PortalsToPath(_map, Portals, _pathStart, _pathEnd, pathAsPortals);
         }

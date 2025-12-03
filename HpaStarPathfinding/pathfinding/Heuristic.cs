@@ -5,8 +5,8 @@ namespace HpaStarPathfinding.pathfinding
 {
     public class Heuristic
     {
-        public static float StraightOctileCost = 1f;
-        public static float DiagonalOctileCost = 1.414f;
+        public static float StraightOctileCost = 10;
+        public static float DiagonalOctileCost = 14;
         
         public static float StraightChebyshevCost = 1f;
         public static float DiagonalChebyshevCost = 1f;

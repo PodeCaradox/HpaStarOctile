@@ -18,7 +18,7 @@ namespace HpaStarPathfinding
     {
         #region Properties
 
-        private const byte NOT_WALKABLE = 0b_1;
+        //private const byte NOT_WALKABLE = 0b_1;
         private const byte BLOCKED = 0b_1111_1111;
         private const byte WALKABLE = 0b_0000_0000;
         private bool drawPortals;
@@ -45,7 +45,7 @@ namespace HpaStarPathfinding
 
         private Rectangle _selectionRectangle;
 
-        private int currentPortal = -1;
+        private int _currentPortal = -1;
 
         private Image[,] _mapUi;
 
@@ -162,7 +162,7 @@ namespace HpaStarPathfinding
                 for (var x = 0; x < _vm.chunks.GetLength(1); x++)
                 {
                     Chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, x, y);
-                    Chunk.ConnectInternalPortals(_vm.Map, ref _vm.Portals, x, y);
+                    Chunk.ConnectInternalPortals(_vm.Map, ref _vm.chunks[y, x], ref _vm.Portals, x, y);
                 }
             });
 
@@ -490,8 +490,8 @@ namespace HpaStarPathfinding
                 return;
             }
 
-            if (currentPortal == keys[0]) return;
-            currentPortal = keys[0];
+            if (_currentPortal == keys[0]) return;
+            _currentPortal = keys[0];
             RemoveIfNotHovered();
             foreach (var key in keys)
             {
@@ -639,7 +639,6 @@ namespace HpaStarPathfinding
 
         private void RebuildPortals()
         {
-            //_timerRedrawPortals.Stop(); // Stop timer so it doesn’t repeat
             foreach (var chunk in _dirtyChunks)
             {
                 RebuildPortalsInChunk(chunk);
@@ -670,7 +669,7 @@ namespace HpaStarPathfinding
             }
 
             Chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
-            Chunk.ConnectInternalPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
+            Chunk.ConnectInternalPortals(_vm.Map, ref _vm.chunks[chunkPos.y, chunkPos.x], ref _vm.Portals, chunkPos.x, chunkPos.y);
             CreatePortalsOnCanvas(chunkId);
         }
 

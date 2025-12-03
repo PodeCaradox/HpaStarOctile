@@ -2,10 +2,10 @@
 
 namespace HpaStarPathfinding.ViewModel
 {
-    public struct Connection : IEquatable<Connection>
+    public struct Connection
     {
         public byte portal;
-        public byte cost;
+        public ushort cost;
 
         public bool Equals(Connection other)
         {
@@ -15,14 +15,6 @@ namespace HpaStarPathfinding.ViewModel
         public override bool Equals(object obj)
         {
             return obj is Connection other && Equals(other);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return (portal.GetHashCode() * 397) ^ cost.GetHashCode();
-            }
         }
     }
 }

@@ -2,8 +2,7 @@
 {
     public class PortalHolder
     {
-        public Portal Portal;
-        public int Key;
+        public byte Key;
         public int ArrayIndex;
         public Vector2D Pos;
     }

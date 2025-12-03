@@ -7,8 +7,8 @@
 
         public PortalNode(int portalKey, float cost)
         {
-            this.PortalKey = portalKey;
-            this.Cost = cost;
+            PortalKey = portalKey;
+            Cost = cost;
         }
     }
 }

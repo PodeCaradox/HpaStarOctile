@@ -10,10 +10,10 @@ namespace HpaStarPathfinding.pathfinding
         private const float StraightCost = 1f;
         private const float DiagonalCost = 1.414f;
         
-        public static List<int> FindPath(Cell[,] grid, Portal[] portals, Vector2D start, Vector2D end)
+        public static List<int> FindPath(Cell[,] grid, Chunk[,] chunks, Portal[] portals, Vector2D start, Vector2D end)
         {
-            var startNodes  = FindPortalNodes(portals, grid, end);
-            HashSet<int> goalNodes  = new HashSet<int>(FindPortalNodes(portals, grid, start).Select(x => x.PortalKey));
+            var startNodes  = FindPortalNodes(portals, grid, chunks, end);
+            HashSet<int> goalNodes  = new HashSet<int>(FindPortalNodes(portals, grid, chunks, start).Select(x => x.PortalKey));
     
             if (startNodes.Count == 0 || goalNodes.Count == 0)
                 return new List<int>();
@@ -52,7 +52,7 @@ namespace HpaStarPathfinding.pathfinding
                 foreach (var portalKey in currentPortal.ExternalPortalConnections)
                 {
                     if (portalKey == -1) break;
-                    CheckConnection(grid, portals, getElement, portalKey, closedSet, currentCell, open, endCell, g + DiagonalCost);
+                    CheckConnection(grid, portals, getElement, portalKey, closedSet, currentCell, open, endCell, g + StraightCost);
                 }
                 
                 //Check internal Connections
@@ -108,24 +108,33 @@ namespace HpaStarPathfinding.pathfinding
             }
         }
     
-        private static List<PortalNode> FindPortalNodes(Portal[] portals, Cell[,] grid, Vector2D goal)
-        {
+        private static List<PortalNode> FindPortalNodes(Portal[] portals, Cell[,] grid, Chunk[,] chunks, Vector2D goal)
+        {                  
             Vector2D chunkPos = new Vector2D(goal.x / MainWindowViewModel.ChunkSize,
-                goal.y / MainWindowViewModel.ChunkSize);
+                goal.y / MainWindowViewModel.ChunkSize);      
             int chunkId = chunkPos.x + MainWindowViewModel.ChunkMapSize * chunkPos.y;
-            //get chunk, get all Portals in Chunk, calculate Paths from end node to portals
-            int firstPortalKey = Portal.GeneratePortalKey(chunkId, 0, 0);
-            List<PortalNode> nodes = new List<PortalNode>();
+
+            int firstPortalPos = chunks[chunkPos.y, chunkPos.x].FirstPortalKey;
+            
             Vector2D min = new Vector2D(chunkPos.x * MainWindowViewModel.ChunkSize, chunkPos.y * MainWindowViewModel.ChunkSize);
             Vector2D max = min + new Vector2D(MainWindowViewModel.ChunkSize, MainWindowViewModel.ChunkSize);
-            for (int i = 0; i < MainWindowViewModel.MaxPortalsInChunk; i++)
+            
+            int firstPossiblePortalKeyInChunk = Portal.GeneratePortalKey(chunkId, 0, 0);
+            List<PortalNode> nodes = new List<PortalNode>();
+
+            //Todo flood fill faster.
+            int firstKey = firstPossiblePortalKeyInChunk + firstPortalPos;
+            var firstPortal = portals[firstKey];
+            float cost = AStarOnlyCost.FindPath(grid, firstPortal.CenterPos, goal, min, max);
+            if(cost >= 0) nodes.Add(new PortalNode(firstKey, cost));
+            
+            for (int i = 0; i < firstPortal.InternalPortalConnections.Length; i++)
             {
-                int currentPortal = firstPortalKey + i;
-                if (portals[currentPortal] == null) continue;
-                //Todo flood fill could be faster.
-                float cost = AStarOnlyCost.FindPath(grid, portals[currentPortal].CenterPos, goal, min, max);
+                byte otherPortalKey = firstPortal.InternalPortalConnections[i].portal;
+                if(otherPortalKey == byte.MaxValue) break;
+                cost = AStarOnlyCost.FindPath(grid, portals[firstPossiblePortalKeyInChunk + otherPortalKey].CenterPos, goal, min, max);
                 if(cost < 0) continue;
-                nodes.Add(new PortalNode(currentPortal, cost));
+                nodes.Add(new PortalNode(firstPossiblePortalKeyInChunk + otherPortalKey, cost));
             }
             return nodes;
         }
