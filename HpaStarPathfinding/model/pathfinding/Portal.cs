@@ -22,48 +22,25 @@ namespace HpaStarPathfinding.ViewModel
     public class Portal
     {
         public Vector2D CenterPos;
-        public byte PortalOffsetAndLength;
-        public ushort ExtIntLength;
-        public readonly int[] ExternalPortalConnections;
-        public readonly Connection[] InternalPortalConnections;
+        public byte PortalOffsetAndLength = 0;
+        public ushort ExtIntLength = 0;
+        public readonly int[] ExternalPortalConnections = new int[5]; //diagonal can need 5(portals can be above each other in special cases, only diagonal), straight ones 3
+        public readonly Connection[] InternalPortalConnections = new Connection[MainWindowViewModel.MaxPortalsInChunk - 1];
 
-        public Portal(Vector2D startPos, int length, Directions direction, int offsetStart, int offsetEnd)
-        {
-            PortalOffsetAndLength = (byte)length;
-            InternalPortalConnections = new Connection[MainWindowViewModel.MaxPortalsInChunk - 1];
-            ExtIntLength = 0;
-            ExternalPortalConnections = new int[5];//diagonal can need 5(portals can be above each other in special cases, only diagonal), straight ones 3
-            CalcCenterPos(direction, startPos, PortalOffsetAndLength, offsetStart, offsetEnd);
-        }
-
-        private void CalcCenterPos(Directions direction, Vector2D startPos, int length, int offsetStart,
-            int offsetEnd)
+        private void CalcCenterPos(Vector2D startPos, int length, int offsetStart,
+            int offsetEnd, Vector2D steppingInDirVector)
         {
             var offset = offsetStart + (length - offsetEnd - offsetStart) / 2;
             PortalOffsetAndLength |= (byte)(offset << (int)PortalLength.OffsetShift);
-            switch (direction)
-            {
-                case Directions.N:
-                    CenterPos = new Vector2D(startPos.x + offset, startPos.y);
-                    break;
-                case Directions.S:
-                    CenterPos = new Vector2D(startPos.x + offset, startPos.y);
-                    break;
-                case Directions.E:
-                    CenterPos = new Vector2D(startPos.x, startPos.y + offset);
-                    break;
-                case Directions.W:
-                    CenterPos = new Vector2D(startPos.x, startPos.y + offset);
-                    break;
-            }
+            CenterPos = new Vector2D(startPos.x + offset * steppingInDirVector.x, startPos.y+ offset * steppingInDirVector.y);
         }
         
-        public void ChangeLength(Directions dir,Vector2D portalPos, byte portalSize, int offsetStart, int offsetEnd)
+        public void ChangeLength(Vector2D portalPos, byte portalSize, int offsetStart, int offsetEnd, Vector2D steppingInDirVector)
         {
             if (portalSize <= (PortalOffsetAndLength & (int)PortalLength.TotalLength)) return;
             
             PortalOffsetAndLength = portalSize;
-            CalcCenterPos(dir, portalPos, PortalOffsetAndLength, offsetStart, offsetEnd);
+            CalcCenterPos(portalPos, PortalOffsetAndLength, offsetStart, offsetEnd, steppingInDirVector);
         }
 
         public static int GeneratePortalKey(int chunkIndex, int position, Directions direction)
@@ -107,6 +84,12 @@ namespace HpaStarPathfinding.ViewModel
 
             return worldPos;
         }
-        
+
+        public void AddExternalConnection(int externalKey)
+        {
+            int index = ExtIntLength >> (int)ExternalInternalLength.OffsetExtLength;
+            ExternalPortalConnections[index] = externalKey;
+            ExtIntLength = (ushort)(ExtIntLength + (1 << (int)ExternalInternalLength.OffsetExtLength));
+        }
     }
 }

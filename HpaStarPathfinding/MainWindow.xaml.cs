@@ -203,7 +203,7 @@ namespace HpaStarPathfinding
                     if (portal == null) continue;
                     var dir = steppingVector[(int)dirVec];
                     var startPos = portal.CenterPos;
-                    var offset = (_vm.Portals[key].PortalOffsetAndLength & (int)PortalLength.Offset) >> (int)PortalLength.OffsetShift;
+                    var offset = _vm.Portals[key].PortalOffsetAndLength >> (int)PortalLength.OffsetShift;
                     int startPosX = startPos.x - offset * dir.x;
                     int startPosY = startPos.y - offset * dir.y;
                     int centerPosX = portal.CenterPos.x;
