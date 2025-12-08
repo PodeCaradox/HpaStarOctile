@@ -203,8 +203,7 @@ namespace HpaStarPathfinding
                     if (portal == null) continue;
                     var dir = steppingVector[(int)dirVec];
                     var startPos = portal.CenterPos;
-                    var offset = (_vm.Portals[key].PortalOffsetAndLength & (int)PortalLength.Offset) >>
-                                 (int)PortalLength.OffsetShift;
+                    var offset = (_vm.Portals[key].PortalOffsetAndLength & (int)PortalLength.Offset) >> (int)PortalLength.OffsetShift;
                     int startPosX = startPos.x - offset * dir.x;
                     int startPosY = startPos.y - offset * dir.y;
                     int centerPosX = portal.CenterPos.x;
@@ -514,12 +513,12 @@ namespace HpaStarPathfinding
             ref var portal = ref _vm.Portals[key];
             if (portal == null) return;
 
-            int chunkIndexinPortalArray = key / MaxPortalsInChunk * MaxPortalsInChunk;
-            foreach (var connection in portal.InternalPortalConnections)
+            int chunkIndexInPortalArray = key / MaxPortalsInChunk * MaxPortalsInChunk;
+            int lengthInt = portal.ExtIntLength & (int)ExternalInternalLength.InternalLength;
+            for (int i = 0; i < lengthInt; i++)
             {
-                if (connection.portal == byte.MaxValue) break;
-
-                int keyOtherPortal = chunkIndexinPortalArray + connection.portal;
+                ref var connection = ref portal.InternalPortalConnections[i];
+                int keyOtherPortal = chunkIndexInPortalArray + connection.portalKey;
                 var otherPortal = _vm.Portals[keyOtherPortal];
                 var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
                 var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
@@ -539,8 +538,10 @@ namespace HpaStarPathfinding
                 PathCanvas.Children.Add(line);
             }
 
-            foreach (var keyOtherPortal in portal.ExternalPortalConnections)
+            int lengthExt = portal.ExtIntLength >> (int)ExternalInternalLength.OffsetExtLength;
+            for (int i = 0; i < lengthExt; i++)
             {
+                ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
                 if (keyOtherPortal == -1) break;
 
                 var otherPortal = _vm.Portals[keyOtherPortal];
@@ -793,10 +794,10 @@ namespace HpaStarPathfinding
             {
                 ref var portal = ref _vm.Portals[key];
                 if (portal == null) continue;
-
-                foreach (var keyOtherPortal in portal.ExternalPortalConnections)
+                int lengthExt = portal.ExtIntLength >> (int)ExternalInternalLength.OffsetExtLength;
+                for (int i = 0; i < lengthExt; i++)
                 {
-                    if (keyOtherPortal == -1) break;
+                    ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
 
                     var otherPortal = _vm.Portals[keyOtherPortal];
                     var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
@@ -830,16 +831,17 @@ namespace HpaStarPathfinding
                 ref var portal = ref _vm.Portals[key];
                 if (portal == null) continue;
                 int chunkIndexinPortalArray = key / MaxPortalsInChunk * MaxPortalsInChunk;
-                foreach (var connection in portal.InternalPortalConnections)
+                int lengthInt = portal.ExtIntLength & (int)ExternalInternalLength.InternalLength;
+                for (int i = 0; i < lengthInt; i++)
                 {
-                    if (connection.portal == byte.MaxValue) break;
-
-                    int keyOtherPortal = chunkIndexinPortalArray + connection.portal;
+                    ref var connection = ref portal.InternalPortalConnections[i];
+                    
+                    int keyOtherPortal = chunkIndexinPortalArray + connection.portalKey;
 
                     var otherPortal = _vm.Portals[keyOtherPortal];
                     var keyInChunk = key % MaxPortalsInChunk;
-                    int connectionKey1 = keyInChunk * MaxPortalsInChunk + connection.portal;
-                    int connectionKey2 = keyInChunk + connection.portal * MaxPortalsInChunk;
+                    int connectionKey1 = keyInChunk * MaxPortalsInChunk + connection.portalKey;
+                    int connectionKey2 = keyInChunk + connection.portalKey * MaxPortalsInChunk;
                     if (!alreadyDrawn.Add(connectionKey1)) continue;
                     if (!alreadyDrawn.Add(connectionKey2)) continue;
                     var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);

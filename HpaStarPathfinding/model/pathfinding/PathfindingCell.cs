@@ -2,10 +2,10 @@
 {
     public class PathfindingCell
     {
-        public float fCost;
+        public int fCost;
         
-        public float GCost;
-        public float HCost;
+        public int GCost;
+        public int HCost;
         
         public readonly Vector2D Position;
         

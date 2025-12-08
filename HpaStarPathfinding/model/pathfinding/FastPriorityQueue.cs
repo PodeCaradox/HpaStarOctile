@@ -53,7 +53,7 @@ namespace HpaStarPathfinding.ViewModel
         ///     O(log n)
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Enqueue(PathfindingCell node, float priority) {
+        public void Enqueue(PathfindingCell node, int priority) {
             node.fCost = priority;
             Count++;
             _nodes[Count] = node;
@@ -98,7 +98,7 @@ namespace HpaStarPathfinding.ViewModel
         ///     O(log n)
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void UpdatePriority(PathfindingCell node, float priority) {
+        public void UpdatePriority(PathfindingCell node, int priority) {
             node.fCost = priority;
             OnNodeUpdated(node);
         }

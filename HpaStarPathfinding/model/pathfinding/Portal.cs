@@ -8,25 +8,31 @@ namespace HpaStarPathfinding.ViewModel
     {
         Offset = 0b_1111_0000,
         TotalLength = 0b_0000_1111,
-        OffsetShift = 4,
+        OffsetShift = 4
     }
+    
+    [Flags]
+    public enum ExternalInternalLength : ushort
+    {
+        ExternalLength = 0b_1111_1111_0000_0000,
+        InternalLength = 0b_0000_0000_1111_1111,
+        OffsetExtLength = 8
+    }
+    
     public class Portal
     {
         public Vector2D CenterPos;
         public byte PortalOffsetAndLength;
-        public readonly int[] ExternalPortalConnections; //only 2 at a time
+        public ushort ExtIntLength;
+        public readonly int[] ExternalPortalConnections;
         public readonly Connection[] InternalPortalConnections;
 
         public Portal(Vector2D startPos, int length, Directions direction, int offsetStart, int offsetEnd)
         {
             PortalOffsetAndLength = (byte)length;
             InternalPortalConnections = new Connection[MainWindowViewModel.MaxPortalsInChunk - 1];
-            for (var i = 0; i < InternalPortalConnections.Length; i++)
-                InternalPortalConnections[i].portal = byte.MaxValue;
-
+            ExtIntLength = 0;
             ExternalPortalConnections = new int[5];//diagonal can need 5(portals can be above each other in special cases, only diagonal), straight ones 3
-            for (var i = 0; i < ExternalPortalConnections.Length; i++) ExternalPortalConnections[i] = -1;
-
             CalcCenterPos(direction, startPos, PortalOffsetAndLength, offsetStart, offsetEnd);
         }
 
@@ -54,7 +60,7 @@ namespace HpaStarPathfinding.ViewModel
         
         public void ChangeLength(Directions dir,Vector2D portalPos, byte portalSize, int offsetStart, int offsetEnd)
         {
-            if (portalSize >= (PortalOffsetAndLength & (int)PortalLength.TotalLength)) return;
+            if (portalSize <= (PortalOffsetAndLength & (int)PortalLength.TotalLength)) return;
             
             PortalOffsetAndLength = portalSize;
             CalcCenterPos(dir, portalPos, PortalOffsetAndLength, offsetStart, offsetEnd);

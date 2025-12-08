@@ -1,22 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using HpaStarPathfinding.model.Pathfinding;
 using HpaStarPathfinding.ViewModel;
 
 namespace HpaStarPathfinding.pathfinding
 {
     public class HPAStar
     {
-        private const float StraightCost = 1f;
-        private const float DiagonalCost = 1.414f;
         
         public static List<int> FindPath(Cell[,] grid, Chunk[,] chunks, Portal[] portals, Vector2D start, Vector2D end)
         {
             var startNodes  = FindPortalNodes(portals, grid, chunks, end);
+            if (startNodes.Count == 0) return new List<int>();
+            
             HashSet<int> goalNodes  = new HashSet<int>(FindPortalNodes(portals, grid, chunks, start).Select(x => x.PortalKey));
-    
-            if (startNodes.Count == 0 || goalNodes.Count == 0)
-                return new List<int>();
+            if (goalNodes.Count == 0) return new List<int>();
+            
             FastPriorityQueue open = new FastPriorityQueue(MainWindowViewModel.MaxPortalsInChunk * MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkMapSize);
             HashSet<int> closedSet = new HashSet<int>();
             Dictionary<int, PathfindingCell> getElement = new Dictionary<int, PathfindingCell>();
@@ -25,11 +25,13 @@ namespace HpaStarPathfinding.pathfinding
             foreach (var node in startNodes)
             {
                 ref var portal = ref portals[node.PortalKey];
-                var startCell = new PathfindingCell(grid[portal.CenterPos.y, portal.CenterPos.x]);
-                startCell.PortalKey = node.PortalKey;
-                startCell.GCost = node.Cost;
+                var startCell = new PathfindingCell(grid[portal.CenterPos.y, portal.CenterPos.x])
+                {
+                    PortalKey = node.PortalKey,
+                    GCost = node.Cost
+                };
                 startCell.HCost = Heuristic.GetHeuristic(startCell, endCell);
-                open.Enqueue(startCell, startCell.GCost + startCell.HCost); //node.Cost + Astar.GetDistance(startCell, endCell)
+                open.Enqueue(startCell, startCell.GCost + startCell.HCost);
                 getElement.Add(startCell.PortalKey, startCell);
             }
             
@@ -49,18 +51,18 @@ namespace HpaStarPathfinding.pathfinding
     
                 var g = currentCell.GCost;
                 //Check external Connections
-                foreach (var portalKey in currentPortal.ExternalPortalConnections)
+                int extLength = currentPortal.ExtIntLength >> (int)ExternalInternalLength.OffsetExtLength;
+                for (int i = 0; i < extLength; i++)
                 {
-                    if (portalKey == -1) break;
-                    CheckConnection(grid, portals, getElement, portalKey, closedSet, currentCell, open, endCell, g + StraightCost);
+                    CheckConnection(grid, portals, getElement, currentPortal.ExternalPortalConnections[i], closedSet, currentCell, open, endCell, g + Heuristic.StraightCost);
                 }
                 
                 //Check internal Connections
-                foreach (var connection in currentPortal.InternalPortalConnections)
+                int intLength = currentPortal.ExtIntLength & (int)ExternalInternalLength.InternalLength;
+                for (int i = 0; i < intLength; i++)
                 {
-                    if(connection.portal == byte.MaxValue) break;
-                    var portalKey =
-                        Portal.GetPortalKeyFromInternalConnection(currentCell.PortalKey, connection.portal);
+                    ref var connection = ref currentPortal.InternalPortalConnections[i];
+                    var portalKey = Portal.GetPortalKeyFromInternalConnection(currentCell.PortalKey, connection.portalKey);
                     CheckConnection(grid, portals, getElement, portalKey, closedSet, currentCell, open, endCell, g + connection.cost);
                 }
             }
@@ -77,7 +79,7 @@ namespace HpaStarPathfinding.pathfinding
         }
     
         private static void CheckConnection(Cell[,] grid, Portal[] portals, Dictionary<int, PathfindingCell> getElement, int portalKey, HashSet<int> closedSet, PathfindingCell currentCell,
-            FastPriorityQueue open, PathfindingCell goalCell, float g)
+            FastPriorityQueue open, PathfindingCell goalCell, int g)
         {
             
             if (getElement.TryGetValue(portalKey, out var neighbour)){}
@@ -108,37 +110,45 @@ namespace HpaStarPathfinding.pathfinding
             }
         }
     
-        private static List<PortalNode> FindPortalNodes(Portal[] portals, Cell[,] grid, Chunk[,] chunks, Vector2D goal)
+        private static List<PortalNode> FindPortalNodes(Portal[] portals, Cell[,] grid, Chunk[,] chunks, Vector2D start)
         {                  
-            Vector2D chunkPos = new Vector2D(goal.x / MainWindowViewModel.ChunkSize,
-                goal.y / MainWindowViewModel.ChunkSize);      
+            Vector2D chunkPos = new Vector2D(start.x / MainWindowViewModel.ChunkSize,
+                start.y / MainWindowViewModel.ChunkSize);      
             int chunkId = chunkPos.x + MainWindowViewModel.ChunkMapSize * chunkPos.y;
 
-            int firstPortalPos = chunks[chunkPos.y, chunkPos.x].FirstPortalKey;
+            byte firstPortalPos = chunks[chunkPos.y, chunkPos.x].FirstPortalKey;
             
             Vector2D min = new Vector2D(chunkPos.x * MainWindowViewModel.ChunkSize, chunkPos.y * MainWindowViewModel.ChunkSize);
             Vector2D max = min + new Vector2D(MainWindowViewModel.ChunkSize, MainWindowViewModel.ChunkSize);
             
             int firstPossiblePortalKeyInChunk = Portal.GeneratePortalKey(chunkId, 0, 0);
             List<PortalNode> nodes = new List<PortalNode>();
-
-            //Todo flood fill faster.
-            int firstKey = firstPossiblePortalKeyInChunk + firstPortalPos;
-            var firstPortal = portals[firstKey];
-            float cost = AStarOnlyCost.FindPath(grid, firstPortal.CenterPos, goal, min, max);
-            if(cost >= 0) nodes.Add(new PortalNode(firstKey, cost));
             
-            for (int i = 0; i < firstPortal.InternalPortalConnections.Length; i++)
+            //no path
+            if(firstPortalPos == byte.MaxValue) return nodes;
+
+            ushort[] costFields = BFS.FindAllCostsInChunkFromStartPos(grid, start, min, max);
+            for (byte i = firstPortalPos; i < MainWindowViewModel.MaxPortalsInChunk; i++)
             {
-                byte otherPortalKey = firstPortal.InternalPortalConnections[i].portal;
-                if(otherPortalKey == byte.MaxValue) break;
-                cost = AStarOnlyCost.FindPath(grid, portals[firstPossiblePortalKeyInChunk + otherPortalKey].CenterPos, goal, min, max);
-                if(cost < 0) continue;
-                nodes.Add(new PortalNode(firstPossiblePortalKeyInChunk + otherPortalKey, cost));
+                    ref var portal = ref portals[firstPossiblePortalKeyInChunk + i];
+                    if(portal == null) continue;
+                    var cost = BFS.GetCostForPath(costFields, portal.CenterPos);
+                    if(cost == ushort.MaxValue) continue;
+                    nodes.Add(new PortalNode(firstPossiblePortalKeyInChunk + i, cost));
+                    //RetrieveConnectedPortalsToStartPos;
+                    int length = portal.ExtIntLength & (int)ExternalInternalLength.InternalLength;
+                    for (int j = 0; j < length; j++)
+                    {
+                        byte portalKey = portal.InternalPortalConnections[j].portalKey;
+                        cost = BFS.GetCostForPath(costFields, portals[firstPossiblePortalKeyInChunk + portalKey].CenterPos);
+                        nodes.Add(new PortalNode(firstPossiblePortalKeyInChunk + portalKey, cost));
+                    }
+                    break;
             }
+            
             return nodes;
         }
-    
+
         public static List<Vector2D> PortalsToPath(Cell[,] grid, Portal[] portals, Vector2D pathStart, Vector2D pathEnd, List<int> pathAsPortals)
         {
             //Todo use cached paths

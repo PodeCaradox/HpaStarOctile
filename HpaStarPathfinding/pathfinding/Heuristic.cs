@@ -5,25 +5,25 @@ namespace HpaStarPathfinding.pathfinding
 {
     public class Heuristic
     {
-        public static float StraightOctileCost = 10;
-        public static float DiagonalOctileCost = 14;
+        public static ushort StraightOctileCost = 10;
+        public static ushort DiagonalOctileCost = 14;
         
-        public static float StraightChebyshevCost = 1f;
-        public static float DiagonalChebyshevCost = 1f;
+        public static float StraightChebyshevCost = 1;
+        public static float DiagonalChebyshevCost = 1;
         
-        public static float StraightCost = StraightOctileCost;
-        public static float DiagonalCost = DiagonalOctileCost;
+        public static ushort StraightCost = StraightOctileCost;
+        public static ushort DiagonalCost = DiagonalOctileCost;
         
-        public static float GetHeuristic(PathfindingCell source, PathfindingCell destination)
+        public static int GetHeuristic(PathfindingCell source, PathfindingCell destination)
         {
             return OctileDistanceHeuristic(source, destination);
         }
         
-        public static float OctileDistanceHeuristic(PathfindingCell source, PathfindingCell destination)
+        public static int OctileDistanceHeuristic(PathfindingCell source, PathfindingCell destination)
         {
             
-            float dx = Math.Abs(source.Position.x - destination.Position.x);
-            float dy = Math.Abs(source.Position.y - destination.Position.y);
+            int dx = Math.Abs(source.Position.x - destination.Position.x);
+            int dy = Math.Abs(source.Position.y - destination.Position.y);
             return StraightCost * (dx + dy) + (DiagonalCost - 2 * StraightCost) * Math.Min(dx, dy);
         }
         

@@ -11,7 +11,7 @@ namespace HpaStarPathfinding.pathfinding
         private class NeighbourCell
         {
             public int CellKey;
-            public float GCost;
+            public int GCost;
         }
 
         private static List<NeighbourCell> GetNeighbours(PathfindingCell cell)
@@ -69,7 +69,7 @@ namespace HpaStarPathfinding.pathfinding
                             neighbourKey.CellKey % MainWindowViewModel.MapSize]); 
                         getElement.Add(neighbourKey.CellKey, neighbour);
                     }
-                    var g = currentCell.GCost + neighbourKey.GCost;
+                    int g = currentCell.GCost + neighbourKey.GCost;
                     
                     if (closedSet.Contains(neighbour.Position.x + neighbour.Position.y * MainWindowViewModel.MapSize))
                         continue;

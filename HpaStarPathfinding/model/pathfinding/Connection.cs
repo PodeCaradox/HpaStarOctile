@@ -4,12 +4,12 @@ namespace HpaStarPathfinding.ViewModel
 {
     public struct Connection
     {
-        public byte portal;
+        public byte portalKey;
         public ushort cost;
 
         public bool Equals(Connection other)
         {
-            return portal == other.portal && cost == other.cost;
+            return portalKey == other.portalKey && cost == other.cost;
         }
 
         public override bool Equals(object obj)
