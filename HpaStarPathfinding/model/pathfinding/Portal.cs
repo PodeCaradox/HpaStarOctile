@@ -32,7 +32,7 @@ namespace HpaStarPathfinding.ViewModel
         {
             var offset = offsetStart + (length - offsetEnd - offsetStart) / 2;
             PortalOffsetAndLength |= (byte)(offset << (int)PortalLength.OffsetShift);
-            CenterPos = new Vector2D(startPos.x + offset * steppingInDirVector.x, startPos.y+ offset * steppingInDirVector.y);
+            CenterPos = new Vector2D(startPos.x + offset * steppingInDirVector.x, startPos.y + offset * steppingInDirVector.y);
         }
         
         public void ChangeLength(Vector2D portalPos, byte portalSize, int offsetStart, int offsetEnd, Vector2D steppingInDirVector)
@@ -56,6 +56,13 @@ namespace HpaStarPathfinding.ViewModel
             return key;
         }
 
+        public void AddExternalConnection(int externalKey)
+        {
+            int index = ExtIntLength >> (int)ExternalInternalLength.OffsetExtLength;
+            ExternalPortalConnections[index] = externalKey;
+            ExtIntLength = (ushort)(ExtIntLength + (1 << (int)ExternalInternalLength.OffsetExtLength));
+        }
+        
         public static Vector2D PortalKeyToWorldPos(int key)
         {
             var chunkId = key / MainWindowViewModel.MaxPortalsInChunk;
@@ -83,13 +90,6 @@ namespace HpaStarPathfinding.ViewModel
             }
 
             return worldPos;
-        }
-
-        public void AddExternalConnection(int externalKey)
-        {
-            int index = ExtIntLength >> (int)ExternalInternalLength.OffsetExtLength;
-            ExternalPortalConnections[index] = externalKey;
-            ExtIntLength = (ushort)(ExtIntLength + (1 << (int)ExternalInternalLength.OffsetExtLength));
         }
     }
 }

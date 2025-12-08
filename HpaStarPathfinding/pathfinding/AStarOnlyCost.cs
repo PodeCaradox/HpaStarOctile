@@ -22,7 +22,7 @@ namespace HpaStarPathfinding.pathfinding
                 int newY = cell.Position.y + direction.y;
                 if (newX >= min.x && newX < max.x && newY >= min.y && newY < max.y && (cell.Connections & DirectionsAsByte.AllDirectionsAsByte[i]) == DirectionsAsByte.WALKABLE)
                 {
-                    neighbours.Add(new NeighbourCell(){CellKey = newY * MainWindowViewModel.MapSize + newX, GCost = (i % 2 == 0)? Heuristic.StraightCost : Heuristic.DiagonalCost });
+                    neighbours.Add(new NeighbourCell(){CellKey = newY * MainWindowViewModel.MapSizeX + newX, GCost = (i % 2 == 0)? Heuristic.StraightCost : Heuristic.DiagonalCost });
                 }
 
                 i++;
@@ -54,21 +54,21 @@ namespace HpaStarPathfinding.pathfinding
                     break;
                 }
 
-                closedSet.Add(currentCell.Position.x + currentCell.Position.y * MainWindowViewModel.MapSize);
+                closedSet.Add(currentCell.Position.x + currentCell.Position.y * MainWindowViewModel.MapSizeX);
                 
                 foreach (var neighbourKey in GetNeighbours(currentCell, min, max))
                 {
                     if (getElement.TryGetValue(neighbourKey.CellKey, out var neighbour)){}
                     else
                     {
-                        neighbour = new PathfindingCell(grid[neighbourKey.CellKey / MainWindowViewModel.MapSize,
-                            neighbourKey.CellKey % MainWindowViewModel.MapSize]); 
+                        neighbour = new PathfindingCell(grid[neighbourKey.CellKey / MainWindowViewModel.MapSizeX,
+                            neighbourKey.CellKey % MainWindowViewModel.MapSizeX]); 
                         getElement.Add(neighbourKey.CellKey, neighbour);
                     }
                     int g = currentCell.GCost + neighbourKey.GCost;
 
                     
-                    if (closedSet.Contains(neighbour.Position.x + neighbour.Position.y * MainWindowViewModel.MapSize))
+                    if (closedSet.Contains(neighbour.Position.x + neighbour.Position.y * MainWindowViewModel.MapSizeX))
                         continue;
 
                    

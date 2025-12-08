@@ -61,8 +61,8 @@ namespace HpaStarPathfinding
             InitializeComponent();
             PathfindingWindow.SizeToContent = SizeToContent.Width;
 
-            PathCanvas.Height = cellSize * MapSize;
-            PathCanvas.Width = cellSize * MapSize;
+            PathCanvas.Height = cellSize * MapSizeY;
+            PathCanvas.Width = cellSize * MapSizeX;
             PathCanvas.MouseDown += MapOnMouseButtonDown;
             InitBitmaps();
             Init();
@@ -70,8 +70,6 @@ namespace HpaStarPathfinding
             AccessKeyManager.Register("c", ClearPathToggleButton);
             AccessKeyManager.Register("p", PathfindingAlgorithmComboBox);
             AccessKeyManager.AddAccessKeyPressedHandler(PathfindingAlgorithmComboBox, ChangePathfindingAlgorithm);
-
-            var dummy = Portal.PortalKeyToWorldPos(300);
         }
 
         #endregion
@@ -128,7 +126,7 @@ namespace HpaStarPathfinding
             PathCanvas.IsEnabled = false;
             _vm.Init();
 
-            _mapUi = new Image[MapSize, MapSize];
+            _mapUi = new Image[MapSizeY, MapSizeX];
             InitializeGridMap();
             InitializeGridChunks();
             InitializePortals();
@@ -285,11 +283,11 @@ namespace HpaStarPathfinding
 
         private void InitializeGridChunks()
         {
-            _chunks = new Rectangle[MapSize / ChunkSize,
-                MapSize / ChunkSize];
-            for (int y = 0; y < MapSize / ChunkSize; y++)
+            _chunks = new Rectangle[MapSizeY / ChunkSize,
+                MapSizeX / ChunkSize];
+            for (int y = 0; y < MapSizeY / ChunkSize; y++)
             {
-                for (int x = 0; x < MapSize / ChunkSize; x++)
+                for (int x = 0; x < MapSizeX / ChunkSize; x++)
                 {
                     _vm.chunks[y, x] = new Chunk();
                     var rect = new Rectangle
@@ -329,6 +327,14 @@ namespace HpaStarPathfinding
 
         private void ClearClicked(object sender, RoutedEventArgs e)
         {
+            _vm.UIMapX -= _vm.UIMapX % ChunkSize;
+            _vm.UIMapY -= _vm.UIMapY % ChunkSize;
+            
+            MapSizeX = _vm.UIMapX;
+            MapSizeY = _vm.UIMapY;
+            PathCanvas.Height = cellSize * MapSizeY;
+            PathCanvas.Width = cellSize * MapSizeX;
+            
             DrawChunksButton.IsChecked = false;
             DrawPortalsButton.IsChecked = false;
             DrawPortalsExternalConnectionsButton.IsChecked = false;
@@ -943,7 +949,7 @@ namespace HpaStarPathfinding
                 var dir = DirectionsVector.AllDirections[i];
                 int y = _vm.CurrentSelectedCell.Position.y + dir.y;
                 int x = _vm.CurrentSelectedCell.Position.x + dir.x;
-                if (x < 0 || x >= MapSize || y < 0 || y >= MapSize) break;
+                if (x < 0 || x >= MapSizeX || y < 0 || y >= MapSizeY) break;
 
                 byte direction = (byte)(1 << i);
                 //If the bit is set (equal to direction), XOR will clear it.
@@ -963,6 +969,12 @@ namespace HpaStarPathfinding
             }
 
             _vm.calcPortals = false;
+        }
+
+        private void Integer(object sender, TextCompositionEventArgs e)
+        {
+            e.Handled = !e.Text.All(cc => Char.IsNumber(cc));
+            base.OnPreviewTextInput(e);
         }
     }
 }

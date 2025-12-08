@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using HpaStarPathfinding.ViewModel;
+using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
 namespace HpaStarPathfinding.pathfinding
 {
@@ -16,24 +17,24 @@ namespace HpaStarPathfinding.pathfinding
         public static ushort[] FindAllCostsInChunkFromStartPos(Cell[,] grid, Vector2D start, Vector2D min, Vector2D max)
         {
 
-            ushort[] bfs = new ushort[MainWindowViewModel.ChunkSize * MainWindowViewModel.ChunkSize];
+            ushort[] bfs = new ushort[ChunkSize * ChunkSize];
             for (int i = 0; i < bfs.Length; i++)
             {
                 bfs[i] = ushort.MaxValue;
             }
             Queue<Vector2D> openList = new Queue<Vector2D>();
             openList.Enqueue(start); 
-            int key = start.x % MainWindowViewModel.ChunkSize + start.y % MainWindowViewModel.ChunkSize * MainWindowViewModel.ChunkSize;
+            int key = start.x % ChunkSize + start.y % ChunkSize * ChunkSize;
             bfs[key] = 0;
             while (openList.Count > 0)
             {
                 Vector2D current = openList.Dequeue();
-                key = current.x % MainWindowViewModel.ChunkSize + current.y % MainWindowViewModel.ChunkSize * MainWindowViewModel.ChunkSize;
+                key = current.x % ChunkSize + current.y % ChunkSize * ChunkSize;
                 
                 Cell currentCell = grid[current.y, current.x];
                 foreach (var neighbourKey in GetNeighbours(currentCell, min, max))
                 {
-                    int otherKey = neighbourKey.CellPos.x % MainWindowViewModel.ChunkSize + neighbourKey.CellPos.y % MainWindowViewModel.ChunkSize * MainWindowViewModel.ChunkSize;
+                    int otherKey = neighbourKey.CellPos.x % ChunkSize + neighbourKey.CellPos.y % ChunkSize * ChunkSize;
                     if (bfs[otherKey] != ushort.MaxValue)
                     {
                         if(bfs[otherKey] > bfs[key] + neighbourKey.GCost) 
@@ -71,7 +72,7 @@ namespace HpaStarPathfinding.pathfinding
 
         public static ushort GetCostForPath(ushort[] costFields, Vector2D goal)
         {
-            int key = goal.x % MainWindowViewModel.ChunkSize + goal.y % MainWindowViewModel.ChunkSize * MainWindowViewModel.ChunkSize;
+            int key = goal.x % ChunkSize + goal.y % ChunkSize * ChunkSize;
             return costFields[key];
         }
     }

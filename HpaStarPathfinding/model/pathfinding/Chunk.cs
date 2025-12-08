@@ -18,8 +18,8 @@ namespace HpaStarPathfinding.ViewModel
         private const byte NW_W_SW = NW | W | SW;
         private const byte S_SW = S | SW;
 
-        private const int OffsetChunkByY = MaxPortalsInChunk * ChunkMapSize;
-        private const int OffsetChunkByX = MaxPortalsInChunk;
+        private static int OffsetChunkByY = MaxPortalsInChunk * ChunkMapSize;
+        private static int OffsetChunkByX = MaxPortalsInChunk;
 
         public byte FirstPortalKey;
         public byte ClearChunk;// all tiles are connected flood fill.
@@ -102,7 +102,7 @@ namespace HpaStarPathfinding.ViewModel
                 {
                     Key = i,
                     ArrayIndex = 0,
-                    Pos = Portal.PortalKeyToWorldPos(portalKey)
+                    Pos = portals[portalKey].CenterPos
                 };
                 portalsHolder.Add(portalHolder);
             }

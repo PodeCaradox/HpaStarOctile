@@ -14,103 +14,211 @@
     <Window.DataContext>
         <vm:MainWindowViewModel />
     </Window.DataContext>
+    <Window.Resources>
+        <vm:MainWindowViewModel x:Key="versionManager" />
+    </Window.Resources>
     <StackPanel Margin="4" Orientation="Horizontal">
-        <StackPanel>
-            <ToggleButton
-                Checked="ChangePathToggleButton_OnChecked"
-                Content="Path Mode (Left / Right Mouse Button)"
-                HorizontalAlignment="Stretch"
-                HorizontalContentAlignment="Center"
-                IsChecked="{Binding changePathfindingNodeEnabled, Mode=TwoWay}"
-                x:Name="ChangePathToggleButton" />
-            <DockPanel
-                HorizontalAlignment="Stretch"
-                Margin="0,10,0,0"
-                VerticalAlignment="Center">
-                <TextBlock
-                    HorizontalAlignment="Stretch"
-                    Text="Pathfinding Algorithm: "
-                    VerticalAlignment="Center" />
-                <ComboBox
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Left"
-                    ItemsSource="{Binding Algorithms}"
-                    MinWidth="100px"
-                    SelectedItem="{Binding SelectedAlgorithm}"
-                    SelectionChanged="Selector_OnSelectionChanged"
-                    x:Name="PathfindingAlgorithmComboBox">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel
-                                HorizontalAlignment="Stretch"
-                                Orientation="Horizontal"
-                                VerticalAlignment="Center">
-                                <Rectangle
-                                    Fill="{Binding Brush}"
-                                    Height="16"
-                                    Stroke="Black"
-                                    StrokeThickness="1"
-                                    Width="16" />
-                                <TextBlock Margin="10,0,0,0" Text="{Binding Name}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </DockPanel>
-            <Button
-                Click="ClearClicked"
-                Content="Clear"
-                Margin="0,10,0,0"
-                x:Name="ClearPathToggleButton" />
-            <CheckBox
-                Checked="DrawChunksButtonChecked"
-                Content="Draw Chunks"
-                Margin="0,10,0,0"
-                Unchecked="DrawChunksButtonUnchecked"
-                x:Name="DrawChunksButton" />
-            <CheckBox
-                Checked="DrawPortalsButtonChecked"
-                Content="Draw Portal Entrances"
-                Unchecked="DrawPortalsButtonUnchecked"
-                x:Name="DrawPortalsButton" />
+        <Grid>
+            <Grid.Resources>
+                <Style TargetType="Expander">
+                    <Setter Property="Padding" Value="0,0,0,10" />
+                </Style>
+            </Grid.Resources>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Expander
+                Background="White"
+                ExpandDirection="Down"
+                HorizontalAlignment="Left"
+                IsExpanded="True">
+                <Expander.Header>
+                    <Grid Height="26" Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Expander}}, Path=ActualWidth}">
+                        <Rectangle Fill="LightGray" />
+                        <TextBlock Padding="5,0,0,0" VerticalAlignment="Center">Map:</TextBlock>
+                    </Grid>
+                </Expander.Header>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock VerticalAlignment="Center">Map Size:</TextBlock>
+                    <TextBox
+                        Grid.Column="1"
+                        PreviewTextInput="Integer"
+                        Text="{Binding UIMapX, Mode=TwoWay}"
+                        VerticalContentAlignment="Center" />
+                    <TextBox
+                        Grid.Column="2"
+                        PreviewTextInput="Integer"
+                        Text="{Binding UIMapY, Mode=TwoWay}"
+                        VerticalContentAlignment="Center" />
+                    <Button
+                        Click="ClearClicked"
+                        Content="Create Map"
+                        Grid.Column="3"
+                        Padding="5,5,5,5"
+                        x:Name="ClearPathToggleButton" />
+                    <TextBlock
+                        Grid.ColumnSpan="4"
+                        Grid.Row="1"
+                        HorizontalAlignment="Center"
+                        Margin="0,10,0,0">
+                        Edit Cell (Right Click):
+                    </TextBlock>
+                    <Border
+                        BorderBrush="Yellow"
+                        BorderThickness="1"
+                        Grid.ColumnSpan="4"
+                        Grid.Row="2"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                        <Image
+                            Height="{Binding .MultipliedCellSize}"
+                            MaxHeight="{Binding .MultipliedCellSize}"
+                            MaxWidth="{Binding .MultipliedCellSize}"
+                            MinHeight="{Binding .MultipliedCellSize}"
+                            MinWidth="{Binding .MultipliedCellSize}"
+                            MouseLeftButtonDown="ChangeCellBorderClicked"
+                            RenderOptions.BitmapScalingMode="NearestNeighbor"
+                            RenderOptions.EdgeMode="Aliased"
+                            SnapsToDevicePixels="True"
+                            Source="{Binding CurrentSelectedCellSource}"
+                            Width="{Binding .MultipliedCellSize}"
+                            x:Name="ChangeCellBorderClickedImage" />
+                    </Border>
+                </Grid>
+            </Expander>
+            <Expander
+                Background="White"
+                ExpandDirection="Down"
+                Grid.Column="0"
+                Grid.Row="1"
+                HorizontalAlignment="Left"
+                IsExpanded="True">
+                <Expander.Header>
+                    <Grid Height="26" Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Expander}}, Path=ActualWidth}">
+                        <Rectangle Fill="LightGray" />
+                        <TextBlock Padding="5,0,0,0" VerticalAlignment="Center">Pathfinding:</TextBlock>
+                    </Grid>
+                </Expander.Header>
+                <StackPanel>
+                    <ToggleButton
+                        Checked="ChangePathToggleButton_OnChecked"
+                        Content="Path Mode (Left / Right Mouse Button)"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        IsChecked="{Binding changePathfindingNodeEnabled, Mode=TwoWay}"
+                        x:Name="ChangePathToggleButton" />
+                    <DockPanel
+                        HorizontalAlignment="Stretch"
+                        Margin="0,10,0,0"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            HorizontalAlignment="Stretch"
+                            Text="Pathfinding Algorithm: "
+                            VerticalAlignment="Center" />
+                        <ComboBox
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            ItemsSource="{Binding Algorithms}"
+                            MinWidth="100px"
+                            SelectedItem="{Binding SelectedAlgorithm}"
+                            SelectionChanged="Selector_OnSelectionChanged"
+                            x:Name="PathfindingAlgorithmComboBox">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel
+                                        HorizontalAlignment="Stretch"
+                                        Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                        <Rectangle
+                                            Fill="{Binding Brush}"
+                                            Height="16"
+                                            Stroke="Black"
+                                            StrokeThickness="1"
+                                            Width="16" />
+                                        <TextBlock Margin="10,0,0,0" Text="{Binding Name}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </DockPanel>
+                </StackPanel>
+            </Expander>
+            <Expander
+                Background="White"
+                ExpandDirection="Down"
+                Grid.Column="0"
+                Grid.Row="2"
+                HorizontalAlignment="Left"
+                IsExpanded="True">
+                <Expander.Header>
+                    <Grid Height="26" Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Expander}}, Path=ActualWidth}">
+                        <Rectangle Fill="LightGray" />
+                        <TextBlock Padding="5,0,0,0" VerticalAlignment="Center">Debug:</TextBlock>
+                    </Grid>
+                </Expander.Header>
+                <StackPanel>
+                    <CheckBox
+                        Checked="DrawChunksButtonChecked"
+                        Content="Draw Chunks"
+                        Margin="0,10,0,0"
+                        Unchecked="DrawChunksButtonUnchecked"
+                        x:Name="DrawChunksButton" />
+                    <CheckBox
+                        Checked="DrawPortalsButtonChecked"
+                        Content="Draw Portal Entrances"
+                        Unchecked="DrawPortalsButtonUnchecked"
+                        x:Name="DrawPortalsButton" />
 
-            <CheckBox
-                Checked="DrawPortalsInternalConnectionsChecked"
-                Content="Show Internal Connections"
-                Unchecked="DrawPortalsInternalConnectionsUnchecked"
-                x:Name="DrawPortalsConnectionsButton" />
-            <CheckBox
-                Checked="DrawPortalsExternalConnectionsChecked"
-                Content="Show External Connections"
-                Unchecked="DrawPortalsExternalConnectionsUnchecked"
-                x:Name="DrawPortalsExternalConnectionsButton" />
-
-            <TextBlock Margin="0,10,0,0">Shortcut Keys:</TextBlock>
-            <TextBlock>T: Toggle Edit / Path Mode</TextBlock>
-            <TextBlock>P: Toggle Pathfinding Algorithm</TextBlock>
-            <TextBlock>C: Clear</TextBlock>
-
-            <TextBlock HorizontalAlignment="Center" Margin="0,10,0,0">Edit Cell (Right Click):</TextBlock>
-            <Border
-                BorderBrush="Yellow"
-                BorderThickness="1"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center">
-                <Image
-                    Height="{Binding .MultipliedCellSize}"
-                    MaxHeight="{Binding .MultipliedCellSize}"
-                    MaxWidth="{Binding .MultipliedCellSize}"
-                    MinHeight="{Binding .MultipliedCellSize}"
-                    MinWidth="{Binding .MultipliedCellSize}"
-                    MouseLeftButtonDown="ChangeCellBorderClicked"
-                    RenderOptions.BitmapScalingMode="NearestNeighbor"
-                    RenderOptions.EdgeMode="Aliased"
-                    SnapsToDevicePixels="True"
-                    Source="{Binding CurrentSelectedCellSource}"
-                    Width="{Binding .MultipliedCellSize}"
-                    x:Name="ChangeCellBorderClickedImage" />
-            </Border>
-        </StackPanel>
+                    <CheckBox
+                        Checked="DrawPortalsInternalConnectionsChecked"
+                        Content="Show Internal Connections"
+                        Unchecked="DrawPortalsInternalConnectionsUnchecked"
+                        x:Name="DrawPortalsConnectionsButton" />
+                    <CheckBox
+                        Checked="DrawPortalsExternalConnectionsChecked"
+                        Content="Show External Connections"
+                        Unchecked="DrawPortalsExternalConnectionsUnchecked"
+                        x:Name="DrawPortalsExternalConnectionsButton" />
+                </StackPanel>
+            </Expander>
+            <Expander
+                Background="White"
+                ExpandDirection="Down"
+                Grid.Column="0"
+                Grid.Row="3"
+                HorizontalAlignment="Left"
+                IsExpanded="True">
+                <Expander.Header>
+                    <Grid Height="26" Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Expander}}, Path=ActualWidth}">
+                        <Rectangle Fill="LightGray" />
+                        <TextBlock Padding="5,0,0,0" VerticalAlignment="Center">Shortcut Keys:</TextBlock>
+                    </Grid>
+                </Expander.Header>
+                <StackPanel>
+                    <TextBlock>T: Toggle Edit / Path Mode</TextBlock>
+                    <TextBlock>P: Toggle Pathfinding Algorithm</TextBlock>
+                    <TextBlock>C: Reset</TextBlock>
+                </StackPanel>
+            </Expander>
+        </Grid>
+        <StackPanel />
         <Viewbox Stretch="UniformToFill">
             <Canvas Background="White" Name="PathCanvas">
                 <!--  Content will be added dynamically  -->

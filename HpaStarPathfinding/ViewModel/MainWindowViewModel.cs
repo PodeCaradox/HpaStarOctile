@@ -14,12 +14,36 @@ namespace HpaStarPathfinding.ViewModel
         public static int MultipliedCellSize { get; } = cellSize * 5;
 
         //Map config MapSize/ChunkSize should have no Remains  could be checked with modulo in future to handle the exception
-        public const int MapSize = 40;
         public const int ChunkSize = 10;
-        public const int ChunkMapSize = MapSize / ChunkSize;
         public const int MaxPortalsInChunk = ChunkSize * 4;//for each direction: 4 = Enum.GetValues(typeof(Directions)).Length
 
         #region Propertys UI
+        
+        public static int ChunkMapSize = 50;
+        public static int MapSizeX = 50;
+        public static int MapSizeY = 40;
+        
+        private int _uIMapX = MapSizeX;
+        public int UIMapX
+        {
+            get { return _uIMapX; }
+            set
+            {
+                _uIMapX = value;
+                OnPropertyChanged();
+            }
+        }
+        
+        private int _uIMapY = MapSizeY;
+        public int UIMapY
+        {
+            get { return _uIMapY; }
+            set
+            {
+                _uIMapY = value;
+                OnPropertyChanged();
+            }
+        }
 
         private bool _enabledChangeCellBorderImage = false;
         public bool EnabledChangeCellBorderImage
@@ -202,16 +226,16 @@ namespace HpaStarPathfinding.ViewModel
             InitMap();
             pathStart = null;
             pathEnd = null;
-            chunks = new Chunk[MapSize / ChunkSize, MapSize / ChunkSize];
+            chunks = new Chunk[MapSizeY / ChunkSize, MapSizeX / ChunkSize];
             path = new List<Vector2D>();
         }
         
         private void InitMap()
         {
-            int mapChunkSize = MapSize / ChunkSize;
+            int mapChunkSize = MapSizeY / ChunkSize * MapSizeX / ChunkSize;
             //2 bits direction + 4 bits position + rest chunkindex.
             Portals = new Portal[(mapChunkSize * mapChunkSize) * MaxPortalsInChunk];
-            Map = new Cell[MapSize, MapSize];
+            Map = new Cell[MapSizeY, MapSizeX];
             for (int y = 0; y < Map.GetLength(0); y++)
             {
                 for (int x = 0; x < Map.GetLength(1); x++)
