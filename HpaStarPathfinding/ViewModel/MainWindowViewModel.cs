@@ -19,8 +19,8 @@ namespace HpaStarPathfinding.ViewModel
 
         #region Propertys UI
         
-        public static int ChunkMapSize = 50;
         public static int MapSizeX = 50;
+        public static int ChunkMapSize = MapSizeX / ChunkSize;
         public static int MapSizeY = 40;
         
         private int _uIMapX = MapSizeX;
@@ -223,18 +223,16 @@ namespace HpaStarPathfinding.ViewModel
 
         public void Init()
         {
+            chunks = new Chunk[MapSizeY / ChunkSize, MapSizeX / ChunkSize];
             InitMap();
             pathStart = null;
             pathEnd = null;
-            chunks = new Chunk[MapSizeY / ChunkSize, MapSizeX / ChunkSize];
             path = new List<Vector2D>();
         }
         
         private void InitMap()
         {
-            int mapChunkSize = MapSizeY / ChunkSize * MapSizeX / ChunkSize;
-            //2 bits direction + 4 bits position + rest chunkindex.
-            Portals = new Portal[(mapChunkSize * mapChunkSize) * MaxPortalsInChunk];
+            Portals = new Portal[chunks.Length * MaxPortalsInChunk];
             Map = new Cell[MapSizeY, MapSizeX];
             for (int y = 0; y < Map.GetLength(0); y++)
             {

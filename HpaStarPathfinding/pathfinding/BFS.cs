@@ -16,7 +16,6 @@ namespace HpaStarPathfinding.pathfinding
         
         public static ushort[] FindAllCostsInChunkFromStartPos(Cell[,] grid, Vector2D start, Vector2D min, Vector2D max)
         {
-
             ushort[] bfs = new ushort[ChunkSize * ChunkSize];
             for (int i = 0; i < bfs.Length; i++)
             {

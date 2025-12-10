@@ -51,14 +51,14 @@ namespace HpaStarPathfinding.pathfinding
     
                 var g = currentCell.GCost;
                 //Check external Connections
-                int extLength = currentPortal.ExtIntLength >> (int)ExternalInternalLength.OffsetExtLength;
+                int extLength = currentPortal.ExtIntCountElements >> (int)ExternalInternalLength.OffsetExtLength;
                 for (int i = 0; i < extLength; i++)
                 {
                     CheckConnection(grid, portals, getElement, currentPortal.ExternalPortalConnections[i], closedSet, currentCell, open, endCell, g + Heuristic.StraightCost);
                 }
                 
                 //Check internal Connections
-                int intLength = currentPortal.ExtIntLength & (int)ExternalInternalLength.InternalLength;
+                int intLength = currentPortal.ExtIntCountElements & (int)ExternalInternalLength.InternalLength;
                 for (int i = 0; i < intLength; i++)
                 {
                     ref var connection = ref currentPortal.InternalPortalConnections[i];
@@ -103,7 +103,7 @@ namespace HpaStarPathfinding.pathfinding
                 neighbour.Parent = currentCell;
                 open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
             } 
-            else if (g + neighbour.HCost < neighbour.fCost) {
+            else if (g + neighbour.HCost < neighbour.FCost) {
                 neighbour.GCost = g;
                 neighbour.Parent = currentCell;
                 open.UpdatePriority(neighbour, neighbour.GCost + neighbour.HCost);
@@ -136,7 +136,7 @@ namespace HpaStarPathfinding.pathfinding
                     if(cost == ushort.MaxValue) continue;
                     nodes.Add(new PortalNode(firstPossiblePortalKeyInChunk + i, cost));
                     //RetrieveConnectedPortalsToStartPos;
-                    int length = portal.ExtIntLength & (int)ExternalInternalLength.InternalLength;
+                    int length = portal.ExtIntCountElements & (int)ExternalInternalLength.InternalLength;
                     for (int j = 0; j < length; j++)
                     {
                         byte portalKey = portal.InternalPortalConnections[j].portalKey;

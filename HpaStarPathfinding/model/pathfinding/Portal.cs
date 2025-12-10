@@ -22,8 +22,8 @@ namespace HpaStarPathfinding.ViewModel
     public class Portal
     {
         public Vector2D CenterPos;
-        public byte PortalOffsetAndLength = 0;
-        public ushort ExtIntLength = 0;
+        public byte PortalOffsetAndLength;
+        public ushort ExtIntCountElements;
         public readonly int[] ExternalPortalConnections = new int[5]; //diagonal can need 5(portals can be above each other in special cases, only diagonal), straight ones 3
         public readonly Connection[] InternalPortalConnections = new Connection[MainWindowViewModel.MaxPortalsInChunk - 1];
 
@@ -58,9 +58,9 @@ namespace HpaStarPathfinding.ViewModel
 
         public void AddExternalConnection(int externalKey)
         {
-            int index = ExtIntLength >> (int)ExternalInternalLength.OffsetExtLength;
+            int index = ExtIntCountElements >> (int)ExternalInternalLength.OffsetExtLength;
             ExternalPortalConnections[index] = externalKey;
-            ExtIntLength = (ushort)(ExtIntLength + (1 << (int)ExternalInternalLength.OffsetExtLength));
+            ExtIntCountElements = (ushort)(ExtIntCountElements + (1 << (int)ExternalInternalLength.OffsetExtLength));
         }
         
         public static Vector2D PortalKeyToWorldPos(int key)

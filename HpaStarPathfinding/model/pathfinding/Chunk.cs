@@ -76,8 +76,8 @@ namespace HpaStarPathfinding.ViewModel
                     if (cost == ushort.MaxValue) continue;
                     int portalKey1 = firstPortalKey + portal1.Key;
                     int portalKey2 = firstPortalKey + portal2.Key;
-                    portals[portalKey1].ExtIntLength++;
-                    portals[portalKey2].ExtIntLength++;
+                    portals[portalKey1].ExtIntCountElements++;
+                    portals[portalKey2].ExtIntCountElements++;
                     ref var intPortalConn1 = ref portals[portalKey1].InternalPortalConnections[portal1.ArrayIndex++];
                     ref var intPortalConn2 = ref portals[portalKey2].InternalPortalConnections[portal2.ArrayIndex++];
                     intPortalConn1.cost = cost;

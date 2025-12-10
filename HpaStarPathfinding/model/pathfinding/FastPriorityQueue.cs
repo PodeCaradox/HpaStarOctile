@@ -54,7 +54,7 @@ namespace HpaStarPathfinding.ViewModel
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Enqueue(PathfindingCell node, int priority) {
-            node.fCost = priority;
+            node.FCost = priority;
             Count++;
             _nodes[Count] = node;
             node.QueueIndex = Count;
@@ -99,7 +99,7 @@ namespace HpaStarPathfinding.ViewModel
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void UpdatePriority(PathfindingCell node, int priority) {
-            node.fCost = priority;
+            node.FCost = priority;
             OnNodeUpdated(node);
         }
 
@@ -296,14 +296,14 @@ namespace HpaStarPathfinding.ViewModel
         ///     Note that calling HasHigherPriority(node, node) (ie. both arguments the same node) will return false
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool HasHigherPriority(PathfindingCell higher, PathfindingCell lower) => higher.fCost < lower.fCost;
+        private bool HasHigherPriority(PathfindingCell higher, PathfindingCell lower) => higher.FCost < lower.FCost;
 
         /// <summary>
         ///     Returns true if 'higher' has higher priority than 'lower', false otherwise.
         ///     Note that calling HasHigherOrEqualPriority(node, node) (ie. both arguments the same node) will return true
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool HasHigherOrEqualPriority(PathfindingCell higher, PathfindingCell lower) => higher.fCost <= lower.fCost;
+        private bool HasHigherOrEqualPriority(PathfindingCell higher, PathfindingCell lower) => higher.FCost <= lower.FCost;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void OnNodeUpdated(PathfindingCell node) {

@@ -83,7 +83,7 @@ namespace HpaStarPathfinding.pathfinding
                         neighbour.Parent = currentCell;
                         open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
                     } 
-                    else if (g + neighbour.HCost < neighbour.fCost) {
+                    else if (g + neighbour.HCost < neighbour.FCost) {
                         neighbour.GCost = g;
                         neighbour.Parent = currentCell;
                         open.UpdatePriority(neighbour, neighbour.GCost + neighbour.HCost);

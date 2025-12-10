@@ -332,6 +332,7 @@ namespace HpaStarPathfinding
             
             MapSizeX = _vm.UIMapX;
             MapSizeY = _vm.UIMapY;
+            ChunkMapSize = MapSizeX / ChunkSize;
             PathCanvas.Height = cellSize * MapSizeY;
             PathCanvas.Width = cellSize * MapSizeX;
             
@@ -520,7 +521,7 @@ namespace HpaStarPathfinding
             if (portal == null) return;
 
             int chunkIndexInPortalArray = key / MaxPortalsInChunk * MaxPortalsInChunk;
-            int lengthInt = portal.ExtIntLength & (int)ExternalInternalLength.InternalLength;
+            int lengthInt = portal.ExtIntCountElements & (int)ExternalInternalLength.InternalLength;
             for (int i = 0; i < lengthInt; i++)
             {
                 ref var connection = ref portal.InternalPortalConnections[i];
@@ -544,7 +545,7 @@ namespace HpaStarPathfinding
                 PathCanvas.Children.Add(line);
             }
 
-            int lengthExt = portal.ExtIntLength >> (int)ExternalInternalLength.OffsetExtLength;
+            int lengthExt = portal.ExtIntCountElements >> (int)ExternalInternalLength.OffsetExtLength;
             for (int i = 0; i < lengthExt; i++)
             {
                 ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
@@ -593,6 +594,9 @@ namespace HpaStarPathfinding
         {
             Vector2D chunkPos = new Vector2D(mapCell.Position.x / ChunkSize,
                 mapCell.Position.y / ChunkSize);
+            //TODO change if only sides will be calculated new
+            //Save chunk changes like following: changes inside chunk or/and on border(Portals?),
+            //calc only internal Connection new if only inside or/and also portal side(border)? If Portal Side new, than also connected chunk/chunks(corner sides need 3)
             _dirtyChunks.Add(chunkPos);
             foreach (var dir in DirectionsVector.AllDirections)
             {
@@ -674,7 +678,8 @@ namespace HpaStarPathfinding
                     _portals.Remove(key);
                 }
             }
-
+            
+            //TODO Rebuild portals only one the side to dirty chunk see other todo
             Chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
             Chunk.ConnectInternalPortals(_vm.Map, ref _vm.chunks[chunkPos.y, chunkPos.x], ref _vm.Portals, chunkPos.x, chunkPos.y);
             CreatePortalsOnCanvas(chunkId);
@@ -800,7 +805,7 @@ namespace HpaStarPathfinding
             {
                 ref var portal = ref _vm.Portals[key];
                 if (portal == null) continue;
-                int lengthExt = portal.ExtIntLength >> (int)ExternalInternalLength.OffsetExtLength;
+                int lengthExt = portal.ExtIntCountElements >> (int)ExternalInternalLength.OffsetExtLength;
                 for (int i = 0; i < lengthExt; i++)
                 {
                     ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
@@ -837,7 +842,7 @@ namespace HpaStarPathfinding
                 ref var portal = ref _vm.Portals[key];
                 if (portal == null) continue;
                 int chunkIndexinPortalArray = key / MaxPortalsInChunk * MaxPortalsInChunk;
-                int lengthInt = portal.ExtIntLength & (int)ExternalInternalLength.InternalLength;
+                int lengthInt = portal.ExtIntCountElements & (int)ExternalInternalLength.InternalLength;
                 for (int i = 0; i < lengthInt; i++)
                 {
                     ref var connection = ref portal.InternalPortalConnections[i];

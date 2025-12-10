@@ -2,7 +2,7 @@
 {
     public class PathfindingCell
     {
-        public int fCost;
+        public int FCost;
         
         public int GCost;
         public int HCost;
