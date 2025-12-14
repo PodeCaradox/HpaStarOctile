@@ -159,6 +159,7 @@ namespace HpaStarPathfinding
             {
                 for (var x = 0; x < _vm.chunks.GetLength(1); x++)
                 {
+                    Chunk.ResetRegions(_vm.Map, x, y);
                     Chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, x, y);
                     Chunk.ConnectInternalPortals(_vm.Map, ref _vm.chunks[y, x], ref _vm.Portals, x, y);
                 }
@@ -257,11 +258,11 @@ namespace HpaStarPathfinding
 
         private void InitializeGridMap()
         {
-            for (int y = 0; y < _vm.Map.GetLength(0); y++)
+            for (int y = 0; y < MapSizeY; y++)
             {
-                for (int x = 0; x < _vm.Map.GetLength(1); x++)
+                for (int x = 0; x < MapSizeX; x++)
                 {
-                    var node = _vm.Map[y, x];
+                    var node = _vm.Map[y * MapSizeX + x];
                     Image rect = new Image
                     {
                         Source = GetCellColor(node),
@@ -582,7 +583,7 @@ namespace HpaStarPathfinding
             ChangeSelection(Visibility.Hidden, null);
 
             mapCell.Connections = newValue;
-            _vm.Map[mapCell.Position.y, mapCell.Position.x] = mapCell;
+            _vm.Map[mapCell.Position.y * MapSizeX + mapCell.Position.x] = mapCell;
 
             _dirtyTiles.Add(mapCell.Position);
 
@@ -595,8 +596,10 @@ namespace HpaStarPathfinding
             Vector2D chunkPos = new Vector2D(mapCell.Position.x / ChunkSize,
                 mapCell.Position.y / ChunkSize);
             //TODO change if only sides will be calculated new
-            //Save chunk changes like following: changes inside chunk or/and on border(Portals?),
-            //calc only internal Connection new if only inside or/and also portal side(border)? If Portal Side new, than also connected chunk/chunks(corner sides need 3)
+            //TODO disconnect portals, add new connections from other portals for one direction building.
+            //Save chunk changes like following: Has changes inside,border, Or No changes(when recalc changes on other chunk side),
+            //reconnect internal (all changes chunk) or recreate portal side and than reconnect internal chunks(border changes chunk)
+            //If Portal Side new but no changes in Chunk, because other chunk changed, than disconnect, reconnect interal portals on specific side
             _dirtyChunks.Add(chunkPos);
             foreach (var dir in DirectionsVector.AllDirections)
             {
@@ -617,7 +620,7 @@ namespace HpaStarPathfinding
             PathCanvas.IsEnabled = false;
             foreach (var mapCellPos in _dirtyTiles)
             {
-                ref Cell mapCell = ref _vm.Map[mapCellPos.y, mapCellPos.x];
+                ref Cell mapCell = ref _vm.Map[mapCellPos.y * MapSizeX + mapCellPos.x];
                 mapCell.UpdateConnection(_vm.Map);
                 UpdateUiCell(mapCellPos);
             }
@@ -631,19 +634,19 @@ namespace HpaStarPathfinding
 
         private void UpdateUiCell(Vector2D mapCellPos)
         {
-            _mapUi[mapCellPos.y, mapCellPos.x].Source = GetCellColor(_vm.Map[mapCellPos.y, mapCellPos.x]);
+            _mapUi[mapCellPos.y, mapCellPos.x].Source = GetCellColor(_vm.Map[mapCellPos.y * MapSizeX + mapCellPos.x]);
             for (byte i = 0; i < DirectionsVector.AllDirections.Length; i++)
             {
                 var dirVec = DirectionsVector.AllDirections[i];
-                if (mapCellPos.y + dirVec.y >= _vm.Map.GetLength(0) ||
-                    mapCellPos.x + dirVec.x >= _vm.Map.GetLength(1) || mapCellPos.x + dirVec.x < 0 ||
+                if (mapCellPos.y + dirVec.y >= MapSizeY ||
+                    mapCellPos.x + dirVec.x >= MapSizeX || mapCellPos.x + dirVec.x < 0 ||
                     mapCellPos.y + dirVec.y < 0)
                 {
                     continue;
                 }
 
                 _mapUi[mapCellPos.y + dirVec.y, mapCellPos.x + dirVec.x].Source =
-                    GetCellColor(_vm.Map[mapCellPos.y + dirVec.y, mapCellPos.x + dirVec.x]);
+                    GetCellColor(_vm.Map[(mapCellPos.y + dirVec.y) * MapSizeX + mapCellPos.x + dirVec.x]);
             }
         }
 
@@ -679,7 +682,7 @@ namespace HpaStarPathfinding
                 }
             }
             
-            //TODO Rebuild portals only one the side to dirty chunk see other todo
+            Chunk.ResetRegions(_vm.Map, chunkPos.x, chunkPos.y);
             Chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
             Chunk.ConnectInternalPortals(_vm.Map, ref _vm.chunks[chunkPos.y, chunkPos.x], ref _vm.Portals, chunkPos.x, chunkPos.y);
             CreatePortalsOnCanvas(chunkId);
@@ -961,7 +964,7 @@ namespace HpaStarPathfinding
                 //If the bit is not set, XOR will set it.
                 _vm.CurrentSelectedCell.Connections = (byte)(_vm.CurrentSelectedCell.Connections ^ direction);
 
-                ref var otherCell = ref _vm.Map[y, x];
+                ref var otherCell = ref _vm.Map[y * MapSizeX + x];
                 otherCell.Connections = (byte)(otherCell.Connections ^ Cell.RotateLeft(direction, 4));
                 _mapUi[otherCell.Position.y, otherCell.Position.x].Source = GetCellColor(otherCell);
 

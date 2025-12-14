@@ -34,11 +34,11 @@ namespace HpaStarPathfinding.pathfinding
             return neighbours;
         }
 
-        public static List<Vector2D> FindPath(Cell[,] grid, Vector2D start, Vector2D end)
+        public static List<Vector2D> FindPath(Cell[] grid, Vector2D start, Vector2D end)
         {
-            FastPriorityQueue open = new FastPriorityQueue(grid.GetLength(0) * grid.GetLength(1));
-            Cell startCell = grid[end.y, end.x];
-            PathfindingCell goalCell  = new PathfindingCell(grid[start.y, start.x]);
+            FastPriorityQueue open = new FastPriorityQueue(MapSizeX * MapSizeY);
+            Cell startCell = grid[end.y * MapSizeX + end.x];
+            PathfindingCell goalCell  = new PathfindingCell(grid[start.y * MapSizeX + start.x]);
             
             HashSet<int> closedSet = new HashSet<int>();
             Dictionary<int, PathfindingCell> getElement = new Dictionary<int, PathfindingCell>();
@@ -66,8 +66,7 @@ namespace HpaStarPathfinding.pathfinding
                     if (getElement.TryGetValue(neighbourKey.CellKey, out var neighbour)){}
                     else
                     {
-                        neighbour = new PathfindingCell(grid[neighbourKey.CellKey / MapSizeX,
-                            neighbourKey.CellKey % MapSizeX]); 
+                        neighbour = new PathfindingCell(grid[neighbourKey.CellKey]); 
                         getElement.Add(neighbourKey.CellKey, neighbour);
                     }
                     int g = currentCell.GCost + neighbourKey.GCost;

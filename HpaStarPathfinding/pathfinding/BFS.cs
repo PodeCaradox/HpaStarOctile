@@ -14,7 +14,7 @@ namespace HpaStarPathfinding.pathfinding
             public ushort GCost;
         }
         
-        public static ushort[] FindAllCostsInChunkFromStartPos(Cell[,] grid, Vector2D start, Vector2D min, Vector2D max)
+        public static ushort[] FindAllCostsInChunkFromStartPos(Cell[] grid, Vector2D start, Vector2D min, Vector2D max)
         {
             ushort[] bfs = new ushort[ChunkSize * ChunkSize];
             for (int i = 0; i < bfs.Length; i++)
@@ -30,7 +30,7 @@ namespace HpaStarPathfinding.pathfinding
                 Vector2D current = openList.Dequeue();
                 key = current.x % ChunkSize + current.y % ChunkSize * ChunkSize;
                 
-                Cell currentCell = grid[current.y, current.x];
+                Cell currentCell = grid[current.y * MapSizeX + current.x];
                 foreach (var neighbourKey in GetNeighbours(currentCell, min, max))
                 {
                     int otherKey = neighbourKey.CellPos.x % ChunkSize + neighbourKey.CellPos.y % ChunkSize * ChunkSize;

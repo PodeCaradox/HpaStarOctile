@@ -11,7 +11,7 @@ namespace HpaStarPathfinding.ViewModel
     {
         //Rendering
         public static int cellSize { get; } = 20;
-        public static int MultipliedCellSize { get; } = cellSize * 5;
+        public static int MultipliedCellSize { get; } = cellSize * 4;
 
         //Map config MapSize/ChunkSize should have no Remains  could be checked with modulo in future to handle the exception
         public const int ChunkSize = 10;
@@ -187,9 +187,9 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
-        private Cell[,] _map;
+        private Cell[] _map;
 
-        public Cell[,] Map
+        public Cell[] Map
         {
             get => _map;
             set
@@ -233,21 +233,21 @@ namespace HpaStarPathfinding.ViewModel
         private void InitMap()
         {
             Portals = new Portal[chunks.Length * MaxPortalsInChunk];
-            Map = new Cell[MapSizeY, MapSizeX];
-            for (int y = 0; y < Map.GetLength(0); y++)
+            Map = new Cell[MapSizeY * MapSizeX];
+            for (int y = 0; y < MapSizeY; y++)
             {
-                for (int x = 0; x < Map.GetLength(1); x++)
+                for (int x = 0; x < MapSizeX; x++)
                 {
                     var node = new Cell(new Vector2D(x, y));
-                    Map[y, x] = node;
+                    Map[y  * MapSizeX + x] = node;
                 }
             }
             
-            for (int y = 0; y < Map.GetLength(0); y++)
+            for (int y = 0; y < MapSizeY; y++)
             {
-                for (int x = 0; x < Map.GetLength(1); x++)
+                for (int x = 0; x < MapSizeX; x++)
                 {
-                    Map[y, x].UpdateConnection(Map);
+                    Map[y  * MapSizeX + x].UpdateConnection(Map);
                 }
             }
         }
@@ -258,7 +258,7 @@ namespace HpaStarPathfinding.ViewModel
 
         public bool PathPointIsWall(Vector2D vector2D)
         {
-            return _map[vector2D.y, vector2D.x].Connections == DirectionsAsByte.NOT_WALKABLE;
+            return _map[vector2D.y  * MapSizeX + vector2D.x].Connections == DirectionsAsByte.NOT_WALKABLE;
         }
 
         public void FindPath()

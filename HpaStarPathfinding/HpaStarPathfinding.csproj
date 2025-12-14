@@ -55,6 +55,7 @@
         <Compile Include="model\PathfindingCache\HighLevelPathFinder.cs" />
         <Compile Include="model\PathfindingCache\LowLevelPathFinder.cs" />
         <Compile Include="model\PathfindingCache\PathFindingManager.cs" />
+        <Compile Include="model\PathfindingCache\RegionPathfinder.cs" />
         <Compile Include="model\PathfindingCache\ShortPathFinder.cs" />
         <Compile Include="model\pathfinding\Chunk.cs" />
         <Compile Include="model\pathfinding\Cell.cs" />
@@ -69,7 +70,6 @@
         <Compile Include="model\ui\Algorithm.cs" />
         <Compile Include="model\ui\CircleUI.cs" />
         <Compile Include="pathfinding\AStar.cs" />
-        <Compile Include="pathfinding\AStarOnlyCost.cs" />
         <Compile Include="pathfinding\BFS.cs" />
         <Compile Include="pathfinding\Heuristic.cs" />
         <Compile Include="pathfinding\HPAStar.cs" />
