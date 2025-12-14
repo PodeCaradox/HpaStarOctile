@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using HpaStarPathfinding.model.pathfinding;
 using HpaStarPathfinding.ViewModel;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
@@ -45,7 +46,7 @@ namespace HpaStarPathfinding.pathfinding
 
             open.Enqueue(new PathfindingCell(startCell), 0);
 
-            PathfindingCell currentCell = null;
+            PathfindingCell? currentCell = null;
             bool finished = false;
             while (open.Count > 0) 
             {

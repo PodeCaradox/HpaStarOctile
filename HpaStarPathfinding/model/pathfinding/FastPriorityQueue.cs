@@ -1,14 +1,13 @@
-﻿using System;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
-namespace HpaStarPathfinding.ViewModel
+namespace HpaStarPathfinding.model.pathfinding
 {
     /// <summary>
     ///     An implementation of a min-Priority Queue using a heap.  Has O(1) .Contains()!
     ///     See https://github.com/BlueRaja/High-Speed-Priority-Queue-for-C-Sharp/wiki/Getting-Started for more information
     /// </summary>
     public sealed class FastPriorityQueue {
-        private readonly PathfindingCell[] _nodes;
+        private readonly PathfindingCell?[] _nodes;
 
         /// <summary>
         ///     Returns the number of nodes in the queue.
@@ -68,7 +67,7 @@ namespace HpaStarPathfinding.ViewModel
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public PathfindingCell Dequeue() {
-            var returnMe = _nodes[1];
+            var returnMe = _nodes[1]!;
 
             //If the node is already the last node, we can remove it immediately
             if (Count == 1) {
@@ -79,7 +78,7 @@ namespace HpaStarPathfinding.ViewModel
             }
 
             //Swap the node with the last node
-            var formerLastNode = _nodes[Count];
+            var formerLastNode = _nodes[Count]!;
             _nodes[1] = formerLastNode;
             formerLastNode.QueueIndex = 1;
             _nodes[Count] = null;
@@ -119,7 +118,7 @@ namespace HpaStarPathfinding.ViewModel
             }
 
             //Swap the node with the last node
-            var formerLastNode = _nodes[Count];
+            var formerLastNode = _nodes[Count]!;
             _nodes[node.QueueIndex] = formerLastNode;
             formerLastNode.QueueIndex = node.QueueIndex;
             _nodes[Count] = null;
@@ -136,7 +135,7 @@ namespace HpaStarPathfinding.ViewModel
 
             if (node.QueueIndex > 1) {
                 parent = node.QueueIndex >> 1;
-                var parentNode = _nodes[parent];
+                var parentNode = _nodes[parent]!;
 
                 if (HasHigherOrEqualPriority(parentNode, node))
                     return;
@@ -152,7 +151,7 @@ namespace HpaStarPathfinding.ViewModel
 
             while (parent > 1) {
                 parent >>= 1;
-                var parentNode = _nodes[parent];
+                var parentNode = _nodes[parent]!;
 
                 if (HasHigherOrEqualPriority(parentNode, node))
                     break;
@@ -178,7 +177,7 @@ namespace HpaStarPathfinding.ViewModel
 
             // Check if the left-child is higher-priority than the current node
             var childRightIndex = childLeftIndex + 1;
-            var childLeft = _nodes[childLeftIndex];
+            var childLeft = _nodes[childLeftIndex]!;
 
             if (HasHigherPriority(childLeft, node)) {
                 // Check if there is a right child. If not, swap and finish.
@@ -192,7 +191,7 @@ namespace HpaStarPathfinding.ViewModel
                 }
 
                 // Check if the left-child is higher-priority than the right-child
-                var childRight = _nodes[childRightIndex];
+                var childRight = _nodes[childRightIndex]!;
 
                 if (HasHigherPriority(childLeft, childRight)) {
                     // left is highest, move it up and continue
@@ -211,7 +210,7 @@ namespace HpaStarPathfinding.ViewModel
                 return;
             } else {
                 // Check if the right-child is higher-priority than the current node
-                var childRight = _nodes[childRightIndex];
+                var childRight = _nodes[childRightIndex]!;
 
                 if (HasHigherPriority(childRight, node)) {
                     childRight.QueueIndex = finalQueueIndex;
@@ -237,7 +236,7 @@ namespace HpaStarPathfinding.ViewModel
 
                 // Check if the left-child is higher-priority than the current node
                 childRightIndex = childLeftIndex + 1;
-                childLeft = _nodes[childLeftIndex];
+                childLeft = _nodes[childLeftIndex]!;
 
                 if (HasHigherPriority(childLeft, node)) {
                     // Check if there is a right child. If not, swap and finish.
@@ -251,7 +250,7 @@ namespace HpaStarPathfinding.ViewModel
                     }
 
                     // Check if the left-child is higher-priority than the right-child
-                    var childRight = _nodes[childRightIndex];
+                    var childRight = _nodes[childRightIndex]!;
 
                     if (HasHigherPriority(childLeft, childRight)) {
                         // left is highest, move it up and continue
@@ -273,7 +272,7 @@ namespace HpaStarPathfinding.ViewModel
                     break;
                 } else {
                     // Check if the right-child is higher-priority than the current node
-                    var childRight = _nodes[childRightIndex];
+                    var childRight = _nodes[childRightIndex]!;
 
                     if (HasHigherPriority(childRight, node)) {
                         childRight.QueueIndex = finalQueueIndex;
@@ -310,7 +309,7 @@ namespace HpaStarPathfinding.ViewModel
             //Bubble the updated node up or down as appropriate
             var parentIndex = node.QueueIndex >> 1;
 
-            if (parentIndex > 0 && HasHigherPriority(node, _nodes[parentIndex]))
+            if (parentIndex > 0 && HasHigherPriority(node, _nodes[parentIndex]!))
                 CascadeUp(node);
             else
                 CascadeDown(node);

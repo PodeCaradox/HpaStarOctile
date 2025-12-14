@@ -1,26 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using HpaStarPathfinding.ViewModel;
+﻿using HpaStarPathfinding.model.pathfinding;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
 namespace HpaStarPathfinding.pathfinding
 {
-    public class BFS
+    public static class BFS
     {
-        private class NeighbourCell
+        private class NeighbourCell(Vector2D cellPos, ushort cost)
         {
-            public Vector2D CellPos;
-            public ushort GCost;
+            public readonly Vector2D CellPos = cellPos;
+            public readonly ushort GCost = cost;
         }
         
         public static ushort[] FindAllCostsInChunkFromStartPos(Cell[] grid, Vector2D start, Vector2D min, Vector2D max)
         {
-            ushort[] bfs = new ushort[ChunkSize * ChunkSize];
-            for (int i = 0; i < bfs.Length; i++)
-            {
-                bfs[i] = ushort.MaxValue;
-            }
+            ushort[] bfs = Enumerable.Repeat(ushort.MaxValue, ChunkSize * ChunkSize).ToArray();
             Queue<Vector2D> openList = new Queue<Vector2D>();
             openList.Enqueue(start); 
             int key = start.x % ChunkSize + start.y % ChunkSize * ChunkSize;
@@ -30,7 +23,7 @@ namespace HpaStarPathfinding.pathfinding
                 Vector2D current = openList.Dequeue();
                 key = current.x % ChunkSize + current.y % ChunkSize * ChunkSize;
                 
-                Cell currentCell = grid[current.y * MapSizeX + current.x];
+                Cell currentCell = grid[current.y * MapSizeX + current.x]!;
                 foreach (var neighbourKey in GetNeighbours(currentCell, min, max))
                 {
                     int otherKey = neighbourKey.CellPos.x % ChunkSize + neighbourKey.CellPos.y % ChunkSize * ChunkSize;
@@ -61,7 +54,7 @@ namespace HpaStarPathfinding.pathfinding
                 int newY = cell.Position.y + direction.y;
                 if (newX >= min.x && newX < max.x && newY >= min.y && newY < max.y && (cell.Connections & DirectionsAsByte.AllDirectionsAsByte[i]) == DirectionsAsByte.WALKABLE)
                 {
-                    neighbours.Add(new NeighbourCell(){CellPos = new Vector2D(newX, newY), GCost = (i % 2 == 0)? Heuristic.StraightCost : Heuristic.DiagonalCost });
+                    neighbours.Add(new NeighbourCell(new Vector2D(newX, newY), (i % 2 == 0)? Heuristic.StraightCost : Heuristic.DiagonalCost));
                 }
                 i++;
             }

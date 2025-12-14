@@ -5,13 +5,13 @@ namespace HpaStarPathfinding.ViewModel
 {
     public static class Algorithm
     {
-    public static AlgorithmSelection AStar = new AlgorithmSelection(){Brush = Brushes.Yellow, Name = "A Star"};
-    public static AlgorithmSelection HPAStar = new AlgorithmSelection(){Brush = Brushes.Red, Name = "HPA Star"};
+    public static AlgorithmSelection AStar = new AlgorithmSelection(Brushes.Yellow, "A Star");
+    public static AlgorithmSelection HPAStar = new AlgorithmSelection(Brushes.Red, "HPA Star");
     }
 
-    public class AlgorithmSelection
+    public class AlgorithmSelection(Brush brush, string name)
     {
-        public Brush Brush { get; set; }
-        public String Name { get; set; }
+        public Brush Brush { get; } = brush;
+        public string Name { get; } = name;
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace HpaStarPathfinding.model.Pathfinding
+﻿namespace HpaStarPathfinding.model.pathfinding
 {
     public class PortalNode
     {

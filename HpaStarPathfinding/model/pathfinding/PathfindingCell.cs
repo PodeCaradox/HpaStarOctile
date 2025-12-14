@@ -1,27 +1,19 @@
-﻿namespace HpaStarPathfinding.ViewModel
+﻿namespace HpaStarPathfinding.model.pathfinding
 {
-    public class PathfindingCell
+    public class PathfindingCell(Cell startCell)
     {
         public int FCost;
         
         public int GCost;
         public int HCost;
         
-        public readonly Vector2D Position;
+        public readonly Vector2D Position = startCell.Position;
         
-        public PathfindingCell Parent;
+        public PathfindingCell Parent = null!;
         
         public int QueueIndex;
         //all sides Connections
-        public byte Connections; 
+        public readonly byte Connections = startCell.Connections; 
         public int PortalKey;
-
-        public PathfindingCell(Cell startCell)
-        {
-           Position = startCell.Position;   
-           Connections = startCell.Connections;
-        }
-        
-        
     }
 }

@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Windows.Media.Imaging;
+﻿using System.Windows.Media.Imaging;
+using HpaStarPathfinding.model.pathfinding;
 using HpaStarPathfinding.pathfinding;
 
 namespace HpaStarPathfinding.ViewModel
@@ -10,8 +7,8 @@ namespace HpaStarPathfinding.ViewModel
     public class MainWindowViewModel: ViewModelBase
     {
         //Rendering
-        public static int cellSize { get; } = 20;
-        public static int MultipliedCellSize { get; } = cellSize * 4;
+        public const int CellSize = 20;
+        public static int multipliedCellSize { get; } = CellSize * 4;
 
         //Map config MapSize/ChunkSize should have no Remains  could be checked with modulo in future to handle the exception
         public const int ChunkSize = 10;
@@ -25,7 +22,7 @@ namespace HpaStarPathfinding.ViewModel
         public static int ChunkMapSizeY = MapSizeY / ChunkSize;
         
         private int _uIMapX = MapSizeX;
-        public int UIMapX
+        public int uiMapX
         {
             get { return _uIMapX; }
             set
@@ -36,7 +33,7 @@ namespace HpaStarPathfinding.ViewModel
         }
         
         private int _uIMapY = MapSizeY;
-        public int UIMapY
+        public int uiMapY
         {
             get { return _uIMapY; }
             set
@@ -46,8 +43,8 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
 
-        private bool _enabledChangeCellBorderImage = false;
-        public bool EnabledChangeCellBorderImage
+        private bool _enabledChangeCellBorderImage;
+        public bool enabledChangeCellBorderImage
         {
             get { return _enabledChangeCellBorderImage; }
             set
@@ -57,8 +54,8 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
-        private Cell _currentSelectedCell;
-        public Cell CurrentSelectedCell
+        private Cell? _currentSelectedCell;
+        public Cell? currentSelectedCell
         {
             get { return _currentSelectedCell; }
             set
@@ -68,8 +65,8 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
-        private WriteableBitmap _currentSelectedCellSource;
-        public WriteableBitmap CurrentSelectedCellSource
+        private WriteableBitmap? _currentSelectedCellSource;
+        public WriteableBitmap? currentSelectedCellSource
         {
             get { return _currentSelectedCellSource; }
             set
@@ -79,8 +76,8 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
-        private WriteableBitmap[] _cellStates = new WriteableBitmap[byte.MaxValue + 1];
-        public WriteableBitmap[] CellStates
+        private WriteableBitmap?[] _cellStates = new WriteableBitmap?[byte.MaxValue + 1];
+        public WriteableBitmap?[] cellStates
         {
             get { return _cellStates; }
             set
@@ -90,7 +87,7 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
-        private bool _changePathfindingNodeEnabled = false;
+        private bool _changePathfindingNodeEnabled;
 
         public bool changePathfindingNodeEnabled
         {
@@ -108,7 +105,7 @@ namespace HpaStarPathfinding.ViewModel
             
         private AlgorithmSelection _selectedAlgorithm = Algorithm.AStar;
 
-        public AlgorithmSelection SelectedAlgorithm
+        public AlgorithmSelection selectedAlgorithm
         {
             get => _selectedAlgorithm;
             set
@@ -121,7 +118,7 @@ namespace HpaStarPathfinding.ViewModel
             
         private List<AlgorithmSelection> _algorithms = new List<AlgorithmSelection>() {Algorithm.AStar, Algorithm.HPAStar};
 
-        public List<AlgorithmSelection> Algorithms
+        public List<AlgorithmSelection> algorithms
         {
             get => _algorithms;
             set
@@ -136,9 +133,9 @@ namespace HpaStarPathfinding.ViewModel
         
         #region Properties
         
-        private Vector2D _pathEnd;
+        private Vector2D? _pathEnd;
 
-        public Vector2D pathEnd
+        public Vector2D? pathEnd
         {
             get => _pathEnd;
             set
@@ -149,9 +146,9 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
-        private Vector2D _pathStart;
+        private Vector2D? _pathStart;
 
-        public Vector2D pathStart
+        public Vector2D? pathStart
         {
             get => _pathStart;
             set
@@ -162,7 +159,7 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
-        private List<Vector2D> _path = new List<Vector2D>();
+        private List<Vector2D> _path = [];
 
         public List<Vector2D> path
         {
@@ -175,22 +172,22 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
-        private List<Vector2D> _oherPath = new List<Vector2D>();
+        private List<Vector2D> _otherPath = new List<Vector2D>();
 
-        public List<Vector2D> OtherPath
+        public List<Vector2D> otherPath
         {
-            get => _oherPath;
+            get => _otherPath;
             set
             {
-                if (value == _oherPath) return;
-                _oherPath = value;
+                if (value == _otherPath) return;
+                _otherPath = value;
                 OnPropertyChanged();
             }
         }
         
-        private Cell[] _map;
+        private Cell[] _map = [];
 
-        public Cell[] Map
+        public Cell[] map
         {
             get => _map;
             set
@@ -201,9 +198,9 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
         
-        public Portal[] Portals;
+        public Portal?[] Portals = [];
         
-        private Chunk[] _chunks;
+        private Chunk[] _chunks = [];
 
         public Chunk[] chunks
         {
@@ -216,7 +213,7 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
 
-        public bool calcPortals { get; set; } = false;
+        public bool calcPortals { get; set; }
 
         #endregion
 
@@ -234,13 +231,13 @@ namespace HpaStarPathfinding.ViewModel
         private void InitMap()
         {
             Portals = new Portal[chunks.Length * MaxPortalsInChunk];
-            Map = new Cell[MapSizeY * MapSizeX];
+            map = new Cell[MapSizeY * MapSizeX];
             for (int y = 0; y < MapSizeY; y++)
             {
                 for (int x = 0; x < MapSizeX; x++)
                 {
                     var node = new Cell(new Vector2D(x, y));
-                    Map[y  * MapSizeX + x] = node;
+                    map[y  * MapSizeX + x] = node;
                 }
             }
             
@@ -248,7 +245,7 @@ namespace HpaStarPathfinding.ViewModel
             {
                 for (int x = 0; x < MapSizeX; x++)
                 {
-                    Map[y  * MapSizeX + x].UpdateConnection(Map);
+                    map[y  * MapSizeX + x].UpdateConnection(map);
                 }
             }
         }
@@ -269,21 +266,21 @@ namespace HpaStarPathfinding.ViewModel
 
             if (_selectedAlgorithm == Algorithm.AStar)
             {
-                path = Astar.FindPath(_map, _pathStart, _pathEnd);
-                OtherPath = HpaStarFindPath();
+                path = Astar.FindPath(_map, _pathStart!, _pathEnd!);
+                otherPath = HpaStarFindPath(_pathStart!, _pathEnd!);
             }
             else if (_selectedAlgorithm == Algorithm.HPAStar)
             {
-                path = HpaStarFindPath();
-                OtherPath = Astar.FindPath(_map, _pathStart, _pathEnd);
+                path = HpaStarFindPath(_pathStart!, _pathEnd!);
+                otherPath = Astar.FindPath(_map, _pathStart!, _pathEnd!);
             }
         }
 
-        private List<Vector2D> HpaStarFindPath()
+        private List<Vector2D> HpaStarFindPath(Vector2D start, Vector2D end)
         {
-            var pathAsPortals = HPAStar.FindPath(_map, _chunks, Portals, _pathStart, _pathEnd);
-            if (pathAsPortals.Count == 0) return new List<Vector2D>();
-            return HPAStar.PortalsToPath(_map, Portals, _pathStart, _pathEnd, pathAsPortals);
+            var pathAsPortals = HpaStar.FindPath(_map, Portals, start, end);
+            if (pathAsPortals.Count == 0) return [];
+            return HpaStar.PortalsToPath(_map, Portals, start, end, pathAsPortals);
         }
 
         #endregion

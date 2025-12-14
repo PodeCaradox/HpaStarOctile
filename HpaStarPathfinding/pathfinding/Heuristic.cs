@@ -1,4 +1,5 @@
 ﻿using System;
+using HpaStarPathfinding.model.pathfinding;
 using HpaStarPathfinding.ViewModel;
 
 namespace HpaStarPathfinding.pathfinding

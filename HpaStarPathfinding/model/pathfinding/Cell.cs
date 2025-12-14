@@ -1,20 +1,14 @@
-﻿using System;
-using static HpaStarPathfinding.ViewModel.DirectionsAsByte;
+﻿using static HpaStarPathfinding.model.pathfinding.DirectionsAsByte;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
-namespace HpaStarPathfinding.ViewModel
+namespace HpaStarPathfinding.model.pathfinding
 {
-    public class Cell
+    public class Cell(Vector2D pos)
     {
-        public readonly Vector2D Position;
+        public readonly Vector2D Position = pos;
         public byte Connections; 
-        public byte Region; 
-    
+        public byte Region;
 
-        public Cell(Vector2D pos)
-        {
-            Position = pos;
-        }
 
         public void UpdateConnection(Cell[] map)
         {

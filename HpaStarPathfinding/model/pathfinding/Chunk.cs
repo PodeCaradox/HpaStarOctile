@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using HpaStarPathfinding.pathfinding;
-using static HpaStarPathfinding.ViewModel.DirectionsAsByte;
+﻿using HpaStarPathfinding.pathfinding;
+using static HpaStarPathfinding.model.pathfinding.DirectionsAsByte;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
-namespace HpaStarPathfinding.ViewModel
+namespace HpaStarPathfinding.model.pathfinding
 {
     public class Chunk
     {
@@ -18,101 +15,124 @@ namespace HpaStarPathfinding.ViewModel
         private const byte NW_W_SW = NW | W | SW;
         private const byte S_SW = S | SW;
 
+        public static void InitChunkValues()
+        {
+            OffsetChunkByY = MaxPortalsInChunk * ChunkMapSizeX;
+            OffsetChunkByX = MaxPortalsInChunk;
+            OppositePortalKeyOffsets =
+            [
+                -OffsetChunkByY + ChunkSize * 2, //North
+                OffsetChunkByX + ChunkSize * 2, //EAST
+                OffsetChunkByY - ChunkSize * 2, //SOUTH
+                -OffsetChunkByX - ChunkSize * 2 //WEST
+            ];
+            
+            DiagonalSpecialPortalKeyOffsets =
+            [
+                -OffsetChunkByY + ChunkSize * 4 - 1, //North
+                OffsetChunkByX - ChunkSize, //EAST
+                OffsetChunkByY - (ChunkSize * 2 - 1), //SOUTH
+                -OffsetChunkByX - ChunkSize //WEST
+            ];
+            
+            DiagonalPortalKeyOffsets =
+            [
+                -OffsetChunkByY - OffsetChunkByX + ChunkSize * 3 -
+                1, //North //offset inside the chunk from top left 0 -> 29 to right bottom 
+                -OffsetChunkByY + OffsetChunkByX + ChunkSize * 3 -
+                1, //EAST //offset inside the chunk from top right is 10 -> 39 to bottom left
+                OffsetChunkByY + OffsetChunkByX -
+                (ChunkSize * 3 -
+                 1), //SOUTH //offset inside the chunk from bottom right is 29 -> 0 to top left
+                OffsetChunkByY - OffsetChunkByX -
+                (ChunkSize * 3 -
+                 1) //WEST //offset inside the chunk from bottom left is 39 -> 10 to top right
+            ];
+        }
+
         private static int OffsetChunkByY = MaxPortalsInChunk * ChunkMapSizeX;
         private static int OffsetChunkByX = MaxPortalsInChunk;
 
-        public byte FirstPortalKey;
-        public byte ClearChunk;// all tiles are connected flood fill.
+        //public byte ClearChunk;// all tiles are connected flood fill.
+
+
+        private static int[] OppositePortalKeyOffsets = []; 
+
+        private static int[] DiagonalPortalKeyOffsets = []; 
+
+        private static int[] DiagonalSpecialPortalKeyOffsets = []; 
         
+        private static readonly Vector2D[] DirectionsVectorArray = [DirectionsVector.N, DirectionsVector.E, DirectionsVector.S, DirectionsVector.W];
 
-        private static readonly int[] OppositePortalKeyOffsets =
+        public static void CreateRegionsAndConnectInternalPortals(Cell[] cells, ref Chunk chunk, ref Portal?[] portals, int chunkKey)
         {
-            -OffsetChunkByY + ChunkSize * 2, //North
-            OffsetChunkByX + ChunkSize * 2, //EAST
-            OffsetChunkByY - ChunkSize * 2, //SOUTH
-            -OffsetChunkByX - ChunkSize * 2 //WEST
-        };
-
-        private static readonly int[] DiagonalPortalKeyOffsets =
-        {
-            -OffsetChunkByY - OffsetChunkByX + ChunkSize * 3 -
-            1, //North //offset inside the chunk the from top left 0 -> 29 to right bottom 
-            -OffsetChunkByY + OffsetChunkByX + ChunkSize * 3 -
-            1, //EAST //offset inside the chunk the from top right is 10 -> 39 to bottom left
-            OffsetChunkByY + OffsetChunkByX -
-            (ChunkSize * 3 -
-             1), //SOUTH //offset inside the chunk the from bottom right is 29 -> 0 to top left
-            OffsetChunkByY - OffsetChunkByX -
-            (ChunkSize * 3 -
-             1) //WEST //offset inside the chunk the from bottom left is 39 -> 10 to top right
-        };
-
-        private static readonly int[] DiagonalSpecialPortalKeyOffsets =
-        {
-            -OffsetChunkByY + ChunkSize * 4 - 1, //North
-            OffsetChunkByX - ChunkSize, //EAST
-            OffsetChunkByY - (ChunkSize * 2 - 1), //SOUTH
-            -OffsetChunkByX - ChunkSize //WEST
-        };
-        
-        private static readonly Vector2D[] DirectionsVectorArray =
-            { DirectionsVector.N, DirectionsVector.E, DirectionsVector.S, DirectionsVector.W };
-
-        public static void ConnectInternalPortals(Cell[] cells, ref Chunk chunk, ref Portal[] portals, int chunkKey)
-        {
+            ResetRegions(cells, chunkKey);
+            HashSet<byte> portalsFromRegionFillAdded = new HashSet<byte>();
             int chunkIdX = chunkKey % ChunkMapSizeX;
             int chunkIdY = chunkKey / ChunkMapSizeX;
             List<PortalHolder> portalsHolder = new List<PortalHolder>();
-            int firstPortalKey = GetAllPortalsInChunkAndFirstPortalKey(portals, chunkIdX, chunkIdY, portalsHolder);
+            int firstPortalKey = GetAllPortalsInChunkAndFirstPortalKey(portals, chunkKey, portalsHolder);
             Vector2D min = new Vector2D(chunkIdX * ChunkSize, chunkIdY * ChunkSize);
             Vector2D max = new Vector2D(min.x + ChunkSize, min.y + ChunkSize);
-            chunk.FirstPortalKey = portalsHolder[0].Key;
             for (int i = 0; i < portalsHolder.Count - 1; i++)
             {
                 var portal1 = portalsHolder[i];
-                ushort[] costFields = BFS.FindAllCostsInChunkFromStartPos(cells, portal1.Pos, min, max);
+                var costFields = GetCostFieldsAndUpdateRegions(cells, portal1, min, max, portalsFromRegionFillAdded);
+                int portalKey1 = firstPortalKey + portal1.Key;
                 for (int j = i + 1; j < portalsHolder.Count; j++)
                 {
                     var portal2 = portalsHolder[j];
                     ushort cost = BFS.GetCostForPath(costFields, portal2.Pos);
                     if (cost == ushort.MaxValue) continue;
-                    int portalKey1 = firstPortalKey + portal1.Key;
+                    portalsFromRegionFillAdded.Add(portal2.Key);
                     int portalKey2 = firstPortalKey + portal2.Key;
-                    portals[portalKey1].ExtIntCountElements++;
-                    portals[portalKey2].ExtIntCountElements++;
-                    ref var intPortalConn1 = ref portals[portalKey1].InternalPortalConnections[portal1.ArrayIndex++];
-                    ref var intPortalConn2 = ref portals[portalKey2].InternalPortalConnections[portal2.ArrayIndex++];
+                    portals[portalKey1]!.ExtIntPortalCount++;
+                    portals[portalKey2]!.ExtIntPortalCount++;
+                    ref var intPortalConn1 = ref portals[portalKey1]!.InternalPortalConnections[portal1.ArrayIndex++];
+                    ref var intPortalConn2 = ref portals[portalKey2]!.InternalPortalConnections[portal2.ArrayIndex++];
                     intPortalConn1.cost = cost;
                     intPortalConn1.portalKey = portal2.Key;
                     intPortalConn2.cost = cost;
                     intPortalConn2.portalKey = portal1.Key;
                 }
             }
+            var lastPortal = portalsHolder[^1];
+            if(!portalsFromRegionFillAdded.Contains(lastPortal.Key)) GetCostFieldsAndUpdateRegions(cells, lastPortal, min, max, portalsFromRegionFillAdded);
         }
 
-        private static int GetAllPortalsInChunkAndFirstPortalKey(Portal[] portals, int chunkIdX, int chunkIdY,
+        private static ushort[] GetCostFieldsAndUpdateRegions(Cell[] cells, PortalHolder portal, Vector2D min, Vector2D max,
+            HashSet<byte> portalsFromRegionFillAdded)
+        {
+            ushort[] costFields = BFS.FindAllCostsInChunkFromStartPos(cells, portal.Pos, min, max);
+            if (portalsFromRegionFillAdded.Add(portal.Key))
+            {
+                //FillRegionsFromPortal(cells, costFields, portal.Pos, portal.Key);
+            }
+
+            return costFields;
+        }
+
+        // private static void FillRegionsFromPortal(Cell[] cells, ushort[] costFields, Vector2D? portalPos, int portalKey)
+        // {
+        // }
+
+        private static int GetAllPortalsInChunkAndFirstPortalKey(Portal?[] portals, int chunkId,
             List<PortalHolder> portalsHolder)
         {
-            int chunkId = chunkIdY * ChunkMapSizeX + chunkIdX;
             int key = Portal.GeneratePortalKey(chunkId, 0, 0);
             for (byte i = 0; i < MaxPortalsInChunk; i++)
             {
                 int portalKey = key + i;
                 if (portals[portalKey] == null)
                     continue;
-                var portalHolder = new PortalHolder
-                {
-                    Key = i,
-                    ArrayIndex = 0,
-                    Pos = portals[portalKey].CenterPos
-                };
+                var portalHolder = new PortalHolder(portals[portalKey]!.CenterPos, i, 0);
                 portalsHolder.Add(portalHolder);
             }
 
             return key;
         }
 
-        public static void RebuildAllPortals(Cell[] cells, ref Portal[] portals, int chunkKey)
+        public static void RebuildAllPortals(Cell[] cells, ref Portal?[] portals, int chunkKey)
         {
             
             int chunkIdX = chunkKey % ChunkMapSizeX;
@@ -123,7 +143,7 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
 
-        private static void RebuildPortalsInDirection(Directions dir, Cell[] cells, ref Portal[] portals, int chunkIdX,
+        private static void RebuildPortalsInDirection(Directions dir, Cell[] cells, ref Portal?[] portals, int chunkIdX,
             int chunkIdY, int chunkId)
         {
             int startX;
@@ -138,32 +158,32 @@ namespace HpaStarPathfinding.ViewModel
                     startX = chunkIdX * ChunkSize;
                     startY = chunkIdY * ChunkSize;
                     steppingInDirVector = new Vector2D(1, 0);
-                    dirToCheck = new[] { NW_N_NE, N, E_NE, NW, W, NE, E_SE, E, S };
-                    checkDiagonalChunk = new[] { NW, N, SW, W, NE };
+                    dirToCheck = [NW_N_NE, N, E_NE, NW, W, NE, E_SE, E, S];
+                    checkDiagonalChunk = [NW, N, SW, W, NE];
                     portalDiagonalPosOffset = 0;
                     break;
                 case Directions.E:
                     startX = chunkIdX * ChunkSize + ChunkSize - 1;
                     startY = chunkIdY * ChunkSize;
                     steppingInDirVector = new Vector2D(0, 1);
-                    dirToCheck = new[] { NE_E_SE, E, S_SE, NE, N, SE, S_SW, S, W };
-                    checkDiagonalChunk = new[] { NE, E, NW, N, SE };
+                    dirToCheck = [NE_E_SE, E, S_SE, NE, N, SE, S_SW, S, W];
+                    checkDiagonalChunk = [NE, E, NW, N, SE];
                     portalDiagonalPosOffset = 0;
                     break;
                 case Directions.S:
                     startX = chunkIdX * ChunkSize;
                     startY = chunkIdY * ChunkSize + ChunkSize - 1;
                     steppingInDirVector = new Vector2D(1, 0);
-                    dirToCheck = new[] { SW_S_SE, S, E_SE, SW, W, SE, E_NE, E, N };
-                    checkDiagonalChunk = new[] { SE, S, NE, E, SW };
+                    dirToCheck = [SW_S_SE, S, E_SE, SW, W, SE, E_NE, E, N];
+                    checkDiagonalChunk = [SE, S, NE, E, SW];
                     portalDiagonalPosOffset = ChunkSize - 1;
                     break;
                 case Directions.W:
                     startX = chunkIdX * ChunkSize;
                     startY = chunkIdY * ChunkSize;
                     steppingInDirVector = new Vector2D(0, 1);
-                    dirToCheck = new[] { NW_W_SW, W, S_SW, NW, N, SW, S_SE, S, E };
-                    checkDiagonalChunk = new[] { SW, W, SE, S, NW };
+                    dirToCheck = [NW_W_SW, W, S_SW, NW, N, SW, S_SE, S, E];
+                    checkDiagonalChunk = [SW, W, SE, S, NW];
                     portalDiagonalPosOffset = ChunkSize - 1;
                     break;
                 default:
@@ -176,7 +196,7 @@ namespace HpaStarPathfinding.ViewModel
                   portalDiagonalPosOffset, checkDiagonalChunk);
         }
 
-        private static void TryCreatePortalForDiagonalChunk(Cell[] cells, ref Portal[] portals, int chunkId, int startX,
+        private static void TryCreatePortalForDiagonalChunk(Cell[] cells, ref Portal?[] portals, int chunkId, int startX,
             int startY, Directions dir,
             Vector2D steppingInDirVector, int portalPos, byte[] checkDiagonalConnection)
         {
@@ -215,7 +235,7 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
 
-        private static void TryCreatePortalsInChunkDirection(Cell[] cells, ref Portal[] portals, int chunkId, int startX,
+        private static void TryCreatePortalsInChunkDirection(Cell[] cells, ref Portal?[] portals, int chunkId, int startX,
             int startY, Directions direction, Vector2D steppingInDirVector,
             byte[] checkDir)
         {
@@ -226,7 +246,7 @@ namespace HpaStarPathfinding.ViewModel
             bool closePortal = false;
             int portalSize = 0;
             int portalPos = 0;
-            Vector2D startPos = null;
+            Vector2D? startPos = null;
             int offsetStart = 0;
             int otherPortalOffset = 0;
             int offsetEnd = 0;
@@ -280,7 +300,7 @@ namespace HpaStarPathfinding.ViewModel
                     {
                         //OppositeDiagonalCell NORTH-EAST
                         var oppositeDiagonalCell = cells[(yCell + otherCellToCheck.y + steppingInDirVector.y) * MapSizeX +
-                            xCell + otherCellToCheck.x + steppingInDirVector.x];
+                                                         xCell + otherCellToCheck.x + steppingInDirVector.x];
                         //Check in direction South Not Walkable:
                         if ((oppositeDiagonalCell.Connections & checkDir[8]) != WALKABLE)
                         {
@@ -331,7 +351,7 @@ namespace HpaStarPathfinding.ViewModel
                     ref offsetStart, ref otherPortalOffset, ref offsetEnd, steppingInDirVector);
         }
 
-        private static void RemoveDirtyPortals(Portal[] portals, int chunkId, Directions direction)
+        private static void RemoveDirtyPortals(Portal?[] portals, int chunkId, Directions direction)
         {
             for (int i = 0; i < ChunkSize; i++)
             {
@@ -340,7 +360,7 @@ namespace HpaStarPathfinding.ViewModel
             }
         }
 
-        private static void CloseSinglePortal(ref Portal[] portals, int chunkId, Directions direction, Cell cell, int i,
+        private static void CloseSinglePortal(ref Portal?[] portals, int chunkId, Directions direction, Cell cell, int i,
             int otherPortalOffset, Vector2D steppingInDirVector)
         {
             var tempPortalPos = i;
@@ -362,7 +382,7 @@ namespace HpaStarPathfinding.ViewModel
             return chunkPosition == outsidePosition;
         }
 
-        private static Vector2D SetStartPos(Vector2D startPos, Cell cell, int i, ref int portalSize, ref int portalPos)
+        private static Vector2D SetStartPos(Vector2D? startPos, Cell cell, int i, ref int portalSize, ref int portalPos)
         {
             if (startPos != null) return startPos;
 
@@ -372,7 +392,7 @@ namespace HpaStarPathfinding.ViewModel
             return startPos;
         }
 
-        private static bool TryCreateOrUpdatePortal(ref Portal[] portals, int chunkId, bool closePortal, ref Vector2D startPos,
+        private static bool TryCreateOrUpdatePortal(ref Portal?[] portals, int chunkId, bool closePortal, ref Vector2D? startPos,
             ref int portalSize, Directions dir, int portalPos
             , ref int offsetStart, ref int otherPortalOffset, ref int offsetEnd, Vector2D steppingInDirVector)
         {
@@ -381,7 +401,7 @@ namespace HpaStarPathfinding.ViewModel
             var key = TryCreatePortal(ref portals, chunkId, portalSize, dir, offsetStart, offsetEnd,
                 portalPos);
             int externalKey = key + OppositePortalKeyOffsets[(int)dir] + otherPortalOffset;
-            AddExternalPortalConnection(portals, startPos, portalSize, offsetStart, offsetEnd, key, externalKey, steppingInDirVector);
+            AddExternalPortalConnection(portals, startPos!, portalSize, offsetStart, offsetEnd, key, externalKey, steppingInDirVector);
 
             startPos = null;
             portalSize = 0;
@@ -392,29 +412,26 @@ namespace HpaStarPathfinding.ViewModel
             return false;
         }
 
-        private static int TryCreatePortal(ref Portal[] portals, int chunkId, int portalSize,
+        private static int TryCreatePortal(ref Portal?[] portals, int chunkId, int portalSize,
             Directions dir,
             int offsetStart, int offsetEnd, int portalPos)
         {
             int centerPos = portalPos + offsetStart + (portalSize - offsetEnd - offsetStart) / 2;
             int key = Portal.GeneratePortalKey(chunkId, centerPos, dir);
-            if (portals[key] == null)
-            {
-                portals[key] = new Portal();
-            }
+            portals[key] ??= new Portal();
 
             return key;
         }
 
-        private static void AddExternalPortalConnection(Portal[] portals, Vector2D startPos, int portalSize,
+        private static void AddExternalPortalConnection(Portal?[] portals, Vector2D startPos, int portalSize,
             int offsetStart,
             int offsetEnd, int key, int externalKey, Vector2D steppingInDirVector)
         {
-            portals[key].ChangeLength(startPos, (byte)portalSize, offsetStart, offsetEnd, steppingInDirVector);
-            portals[key].AddExternalConnection(externalKey);
+            portals[key]!.ChangeLength(startPos, (byte)portalSize, offsetStart, offsetEnd, steppingInDirVector);
+            portals[key]!.AddExternalConnection(externalKey);
         }
 
-        public static void ResetRegions(Cell[] vmMap, int chunkKey)
+        private static void ResetRegions(Cell[] vmMap, int chunkKey)
         {
             for (int y = 0; y < ChunkSize; y++)
             {

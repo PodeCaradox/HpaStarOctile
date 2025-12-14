@@ -1,4 +1,4 @@
-﻿namespace HpaStarPathfinding.ViewModel
+﻿namespace HpaStarPathfinding.model.pathfinding
 {
     
     public enum Directions

@@ -59,9 +59,9 @@
                         <ComboBox
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left"
-                            ItemsSource="{Binding Algorithms}"
+                            ItemsSource="{Binding algorithms}"
                             MinWidth="100px"
-                            SelectedItem="{Binding SelectedAlgorithm}"
+                            SelectedItem="{Binding selectedAlgorithm}"
                             SelectionChanged="Selector_OnSelectionChanged"
                             x:Name="PathfindingAlgorithmComboBox">
                             <ComboBox.ItemTemplate>
@@ -98,17 +98,17 @@
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center">
                         <Image
-                            Height="{Binding .MultipliedCellSize}"
-                            MaxHeight="{Binding .MultipliedCellSize}"
-                            MaxWidth="{Binding .MultipliedCellSize}"
-                            MinHeight="{Binding .MultipliedCellSize}"
-                            MinWidth="{Binding .MultipliedCellSize}"
+                            Height="{Binding .multipliedCellSize}"
+                            MaxHeight="{Binding .multipliedCellSize}"
+                            MaxWidth="{Binding .multipliedCellSize}"
+                            MinHeight="{Binding .multipliedCellSize}"
+                            MinWidth="{Binding .multipliedCellSize}"
                             MouseLeftButtonDown="ChangeCellBorderClicked"
                             RenderOptions.BitmapScalingMode="NearestNeighbor"
                             RenderOptions.EdgeMode="Aliased"
                             SnapsToDevicePixels="True"
-                            Source="{Binding CurrentSelectedCellSource}"
-                            Width="{Binding .MultipliedCellSize}"
+                            Source="{Binding currentSelectedCellSource}"
+                            Width="{Binding .multipliedCellSize}"
                             x:Name="ChangeCellBorderClickedImage" />
                     </Border>
                 </StackPanel>
@@ -141,12 +141,12 @@
                     <TextBox
                         Grid.Column="1"
                         PreviewTextInput="Integer"
-                        Text="{Binding UIMapX, Mode=TwoWay}"
+                        Text="{Binding uiMapX, Mode=TwoWay}"
                         VerticalContentAlignment="Center" />
                     <TextBox
                         Grid.Column="2"
                         PreviewTextInput="Integer"
-                        Text="{Binding UIMapY, Mode=TwoWay}"
+                        Text="{Binding uiMapY, Mode=TwoWay}"
                         VerticalContentAlignment="Center" />
                     <Button
                         Click="ClearClicked"

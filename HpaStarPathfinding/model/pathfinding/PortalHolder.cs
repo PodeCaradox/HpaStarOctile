@@ -1,9 +1,10 @@
-﻿namespace HpaStarPathfinding.ViewModel
+﻿namespace HpaStarPathfinding.model.pathfinding
 {
-    public class PortalHolder
+    public class PortalHolder(Vector2D pos, byte key, int arrayIndex)
     {
-        public byte Key;
-        public int ArrayIndex;
-        public Vector2D Pos;
+        public byte Key = key;
+        public int ArrayIndex = arrayIndex;
+        public Vector2D Pos = pos;
+
     }
 }
