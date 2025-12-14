@@ -10,7 +10,7 @@ namespace HpaStarPathfinding.pathfinding
     public class HPAStar
     {
         
-        public static List<int> FindPath(Cell[] grid, Chunk[,] chunks, Portal[] portals, Vector2D start, Vector2D end)
+        public static List<int> FindPath(Cell[] grid, Chunk[] chunks, Portal[] portals, Vector2D start, Vector2D end)
         {
             var startNodes  = FindPortalNodes(portals, grid, chunks, end);
             if (startNodes.Count == 0) return new List<int>();
@@ -18,7 +18,7 @@ namespace HpaStarPathfinding.pathfinding
             HashSet<int> goalNodes  = new HashSet<int>(FindPortalNodes(portals, grid, chunks, start).Select(x => x.PortalKey));
             if (goalNodes.Count == 0) return new List<int>();
             
-            FastPriorityQueue open = new FastPriorityQueue(MaxPortalsInChunk * ChunkMapSize * ChunkMapSize);
+            FastPriorityQueue open = new FastPriorityQueue(MaxPortalsInChunk * ChunkMapSizeX * ChunkMapSizeX);
             HashSet<int> closedSet = new HashSet<int>();
             Dictionary<int, PathfindingCell> getElement = new Dictionary<int, PathfindingCell>();
             PathfindingCell endCell = new PathfindingCell(grid[start.y * MapSizeX + start.x]);
@@ -111,13 +111,13 @@ namespace HpaStarPathfinding.pathfinding
             }
         }
     
-        private static List<PortalNode> FindPortalNodes(Portal[] portals, Cell[] grid, Chunk[,] chunks, Vector2D start)
+        private static List<PortalNode> FindPortalNodes(Portal[] portals, Cell[] grid, Chunk[] chunks, Vector2D start)
         {                  
             Vector2D chunkPos = new Vector2D(start.x / ChunkSize,
                 start.y / ChunkSize);      
-            int chunkId = chunkPos.x + ChunkMapSize * chunkPos.y;
+            int chunkId = chunkPos.x + ChunkMapSizeX * chunkPos.y;
 
-            byte firstPortalPos = chunks[chunkPos.y, chunkPos.x].FirstPortalKey;
+            byte firstPortalPos = chunks[chunkId].FirstPortalKey;
             
             Vector2D min = new Vector2D(chunkPos.x * ChunkSize, chunkPos.y * ChunkSize);
             Vector2D max = min + new Vector2D(ChunkSize, ChunkSize);
@@ -152,7 +152,6 @@ namespace HpaStarPathfinding.pathfinding
 
         public static List<Vector2D> PortalsToPath(Cell[] grid, Portal[] portals, Vector2D pathStart, Vector2D pathEnd, List<int> pathAsPortals)
         {
-            //Todo use cached paths
             List<Vector2D> path = Astar.FindPath(grid, pathStart, portals[pathAsPortals[0]].CenterPos);
             for (int i = 0; i < pathAsPortals.Count - 1; i++)
             {

@@ -25,7 +25,7 @@ namespace HpaStarPathfinding
         private bool drawPortalsInternalConnections;
         private bool drawPortalsExternalConnections;
 
-        private Rectangle[,] _chunks;
+        private Rectangle[] _chunks;
 
         private Dictionary<int, (Rectangle, Rectangle)> _portals;
 
@@ -155,14 +155,11 @@ namespace HpaStarPathfinding
         private void InitializePortals()
         {
             _portals = new Dictionary<int, (Rectangle, Rectangle)>();
-            Parallel.For(0, _vm.chunks.GetLength(0), y =>
+            Parallel.For(0, _vm.chunks.Length, key =>
             {
-                for (var x = 0; x < _vm.chunks.GetLength(1); x++)
-                {
-                    Chunk.ResetRegions(_vm.Map, x, y);
-                    Chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, x, y);
-                    Chunk.ConnectInternalPortals(_vm.Map, ref _vm.chunks[y, x], ref _vm.Portals, x, y);
-                }
+                Chunk.ResetRegions(_vm.Map, key);
+                Chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, key);
+                Chunk.ConnectInternalPortals(_vm.Map, ref _vm.chunks[key], ref _vm.Portals, key);
             });
 
             UpdatePortalsOnCanvas();
@@ -170,13 +167,9 @@ namespace HpaStarPathfinding
 
         private void UpdatePortalsOnCanvas()
         {
-            for (var y = 0; y < _vm.chunks.GetLength(0); y++)
+            for (var key = 0; key < _vm.chunks.Length; key++)
             {
-                for (var x = 0; x < _vm.chunks.GetLength(1); x++)
-                {
-                    var chunkId = x + y * ChunkMapSize;
-                    CreatePortalsOnCanvas(chunkId);
-                }
+                    CreatePortalsOnCanvas(key);
             }
         }
 
@@ -284,30 +277,29 @@ namespace HpaStarPathfinding
 
         private void InitializeGridChunks()
         {
-            _chunks = new Rectangle[MapSizeY / ChunkSize,
-                MapSizeX / ChunkSize];
-            for (int y = 0; y < MapSizeY / ChunkSize; y++)
+            _chunks = new Rectangle[ChunkMapSizeY * ChunkMapSizeX];
+            for (int key = 0; key < _chunks.Length; key++)
             {
-                for (int x = 0; x < MapSizeX / ChunkSize; x++)
+                _vm.chunks[key] = new Chunk();
+                var rect = new Rectangle
                 {
-                    _vm.chunks[y, x] = new Chunk();
-                    var rect = new Rectangle
-                    {
-                        Width = cellSize * ChunkSize - 4,
-                        Height = cellSize * ChunkSize - 4,
-                        Stroke = Brushes.Yellow,
-                        Fill = Brushes.Transparent,
-                        Opacity = 0.0,
-                        IsHitTestVisible = false,
-                        IsManipulationEnabled = false,
-                        IsEnabled = false,
-                        Tag = _vm.chunks[y, x]
-                    };
-                    Canvas.SetLeft(rect, x * cellSize * ChunkSize + 2);
-                    Canvas.SetTop(rect, y * cellSize * ChunkSize + 2);
-                    _chunks[y, x] = rect;
-                    PathCanvas.Children.Add(rect);
-                }
+                    Width = cellSize * ChunkSize - 4,
+                    Height = cellSize * ChunkSize - 4,
+                    Stroke = Brushes.Yellow,
+                    Fill = Brushes.Transparent,
+                    Opacity = 0.0,
+                    IsHitTestVisible = false,
+                    IsManipulationEnabled = false,
+                    IsEnabled = false,
+                    Tag = _vm.chunks[key]
+                };
+                int x = key % ChunkMapSizeX;
+                int y = key / ChunkMapSizeX;
+                Canvas.SetLeft(rect, x * cellSize * ChunkSize + 2);
+                Canvas.SetTop(rect, y * cellSize * ChunkSize + 2);
+                _chunks[key] = rect;
+                PathCanvas.Children.Add(rect);
+                
             }
         }
 
@@ -333,7 +325,8 @@ namespace HpaStarPathfinding
             
             MapSizeX = _vm.UIMapX;
             MapSizeY = _vm.UIMapY;
-            ChunkMapSize = MapSizeX / ChunkSize;
+            ChunkMapSizeX = MapSizeX / ChunkSize;
+            ChunkMapSizeY = MapSizeY / ChunkSize;
             PathCanvas.Height = cellSize * MapSizeY;
             PathCanvas.Width = cellSize * MapSizeX;
             
@@ -466,7 +459,7 @@ namespace HpaStarPathfinding
             int startX = mapCell.Position.x % ChunkSize;
             int startY = mapCell.Position.y % ChunkSize;
             int xOffset = mapCell.Position.x / ChunkSize * MaxPortalsInChunk;
-            int yOffset = mapCell.Position.y / ChunkSize * MaxPortalsInChunk * ChunkMapSize;
+            int yOffset = mapCell.Position.y / ChunkSize * MaxPortalsInChunk * ChunkMapSizeX;
             if (startX == 0)
             {
                 var portalKey = startY + xOffset + yOffset + ChunkSize * 3;
@@ -604,8 +597,8 @@ namespace HpaStarPathfinding
             foreach (var dir in DirectionsVector.AllDirections)
             {
                 var pos = chunkPos + dir;
-                if (pos.x >= _vm.chunks.GetLength(1)
-                    || pos.y >= _vm.chunks.GetLength(0)
+                if (pos.x >= ChunkMapSizeX
+                    || pos.y >= ChunkMapSizeY
                     || pos.x < 0
                     || pos.y < 0) continue;
                 _dirtyChunks.Add(pos);
@@ -669,7 +662,7 @@ namespace HpaStarPathfinding
 
         private void RebuildPortalsInChunk(Vector2D chunkPos)
         {
-            int chunkId = chunkPos.x + chunkPos.y * ChunkMapSize;
+            int chunkId = chunkPos.x + chunkPos.y * ChunkMapSizeX;
             foreach (Directions dirVec in Enum.GetValues(typeof(Directions)))
             {
                 for (int j = 0; j < ChunkSize; j++)
@@ -681,10 +674,9 @@ namespace HpaStarPathfinding
                     _portals.Remove(key);
                 }
             }
-            
-            Chunk.ResetRegions(_vm.Map, chunkPos.x, chunkPos.y);
-            Chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, chunkPos.x, chunkPos.y);
-            Chunk.ConnectInternalPortals(_vm.Map, ref _vm.chunks[chunkPos.y, chunkPos.x], ref _vm.Portals, chunkPos.x, chunkPos.y);
+            Chunk.ResetRegions(_vm.Map, chunkId);
+            Chunk.RebuildAllPortals(_vm.Map, ref _vm.Portals, chunkId);
+            Chunk.ConnectInternalPortals(_vm.Map, ref _vm.chunks[chunkId], ref _vm.Portals, chunkId);
             CreatePortalsOnCanvas(chunkId);
         }
 

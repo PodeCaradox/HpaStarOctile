@@ -69,8 +69,8 @@ namespace HpaStarPathfinding.ViewModel
             var dirAndPos = key % MainWindowViewModel.MaxPortalsInChunk;
             var dir = (Directions)(dirAndPos / MainWindowViewModel.ChunkSize);
             var pos = dirAndPos % MainWindowViewModel.ChunkSize;
-            var worldPos = new Vector2D(chunkId % MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkSize,
-                chunkId / MainWindowViewModel.ChunkMapSize * MainWindowViewModel.ChunkSize);
+            var worldPos = new Vector2D(chunkId % MainWindowViewModel.ChunkMapSizeX * MainWindowViewModel.ChunkSize,
+                chunkId / MainWindowViewModel.ChunkMapSizeX * MainWindowViewModel.ChunkSize);
             switch (dir)
             {
                 case Directions.N:

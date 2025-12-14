@@ -20,8 +20,9 @@ namespace HpaStarPathfinding.ViewModel
         #region Propertys UI
         
         public static int MapSizeX = 50;
-        public static int ChunkMapSize = MapSizeX / ChunkSize;
         public static int MapSizeY = 40;
+        public static int ChunkMapSizeX = MapSizeX / ChunkSize;
+        public static int ChunkMapSizeY = MapSizeY / ChunkSize;
         
         private int _uIMapX = MapSizeX;
         public int UIMapX
@@ -202,9 +203,9 @@ namespace HpaStarPathfinding.ViewModel
         
         public Portal[] Portals;
         
-        private Chunk[,] _chunks;
+        private Chunk[] _chunks;
 
-        public Chunk[,] chunks
+        public Chunk[] chunks
         {
             get => _chunks;
             set
@@ -223,7 +224,7 @@ namespace HpaStarPathfinding.ViewModel
 
         public void Init()
         {
-            chunks = new Chunk[MapSizeY / ChunkSize, MapSizeX / ChunkSize];
+            chunks = new Chunk[ChunkMapSizeY * ChunkMapSizeX];
             InitMap();
             pathStart = null;
             pathEnd = null;
