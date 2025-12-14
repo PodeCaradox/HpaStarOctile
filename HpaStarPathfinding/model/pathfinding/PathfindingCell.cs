@@ -9,7 +9,7 @@
         
         public readonly Vector2D Position = startCell.Position;
         
-        public PathfindingCell Parent = null!;
+        public PathfindingCell? Parent;
         
         public int QueueIndex;
         //all sides Connections

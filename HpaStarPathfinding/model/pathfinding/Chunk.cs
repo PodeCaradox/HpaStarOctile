@@ -1,4 +1,6 @@
-﻿using HpaStarPathfinding.pathfinding;
+﻿using System.Diagnostics;
+using System.Text;
+using HpaStarPathfinding.pathfinding;
 using static HpaStarPathfinding.model.pathfinding.DirectionsAsByte;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
@@ -64,20 +66,16 @@ namespace HpaStarPathfinding.model.pathfinding
         
         private static readonly Vector2D[] DirectionsVectorArray = [DirectionsVector.N, DirectionsVector.E, DirectionsVector.S, DirectionsVector.W];
 
-        public static void CreateRegionsAndConnectInternalPortals(Cell[] cells, ref Chunk chunk, ref Portal?[] portals, int chunkKey)
+        public static void CreateRegionsAndConnectInternalPortals(Cell[] cells, ref Portal?[] portals, int chunkKey)
         {
             ResetRegions(cells, chunkKey);
             HashSet<byte> portalsFromRegionFillAdded = [];
-            int chunkIdX = chunkKey % ChunkMapSizeX;
-            int chunkIdY = chunkKey / ChunkMapSizeX;
             List<PortalHolder> portalsHolder = [];
             int firstPortalKey = GetAllPortalsInChunkAndFirstPortalKey(portals, chunkKey, portalsHolder);
-            Vector2D min = new Vector2D(chunkIdX * ChunkSize, chunkIdY * ChunkSize);
-            Vector2D max = new Vector2D(min.x + ChunkSize, min.y + ChunkSize);
             for (int i = 0; i < portalsHolder.Count - 1; i++)
             {
                 var portal1 = portalsHolder[i];
-                var costFields = GetCostFieldsAndUpdateRegions(cells, portal1, min, max, portalsFromRegionFillAdded);
+                var costFields = GetCostFieldsAndUpdateRegions(cells, portal1, portalsFromRegionFillAdded);
                 int portalKey1 = firstPortalKey + portal1.Key;
                 for (int j = i + 1; j < portalsHolder.Count; j++)
                 {
@@ -97,20 +95,19 @@ namespace HpaStarPathfinding.model.pathfinding
                 }
             }
             var lastPortal = portalsHolder[^1];
-            if(!portalsFromRegionFillAdded.Contains(lastPortal.Key)) GetCostFieldsAndUpdateRegions(cells, lastPortal, min, max, portalsFromRegionFillAdded);
+            if(!portalsFromRegionFillAdded.Contains(lastPortal.Key)) GetCostFieldsAndUpdateRegions(cells, lastPortal, portalsFromRegionFillAdded);
         }
 
-        private static ushort[] GetCostFieldsAndUpdateRegions(Cell[] cells, PortalHolder portal, Vector2D min, Vector2D max,
-            HashSet<byte> portalsFromRegionFillAdded)
+        private static ushort[] GetCostFieldsAndUpdateRegions(Cell[] cells, PortalHolder portal, HashSet<byte> portalsFromRegionFillAdded)
         {
             ushort[] costFields;
             if (portalsFromRegionFillAdded.Add(portal.Key))
             {
-                costFields = BFS.BfsFromStartPosWithRegionFill(cells, portal.Pos, min, max, portal.Key);
+                costFields = BFS.BfsFromStartPosWithRegionFill(cells, portal.Pos, portal.Key);
             }
             else
             {
-                costFields = BFS.BfsFromStartPos(cells, portal.Pos, min, max);
+                costFields = BFS.BfsFromStartPos(cells, portal.Pos);
             }
 
             return costFields;
@@ -428,14 +425,17 @@ namespace HpaStarPathfinding.model.pathfinding
 
         private static void ResetRegions(Cell[] vmMap, int chunkKey)
         {
+            int chunkX = chunkKey % ChunkMapSizeX;
+            int chunkY = chunkKey / ChunkMapSizeX;
+            
+            int tileKey =  chunkX * ChunkSize + chunkY * CellsInChunk * ChunkMapSizeX;
             for (int y = 0; y < ChunkSize; y++)
             {
                 for (int x = 0; x < ChunkSize; x++)
                 {
-                    vmMap[chunkKey + x].Region = byte.MaxValue;
+                    vmMap[tileKey + x].Region = byte.MaxValue;
                 }
-                
-                chunkKey += MapSizeX;
+                tileKey += MapSizeX;
             }
         }
     }

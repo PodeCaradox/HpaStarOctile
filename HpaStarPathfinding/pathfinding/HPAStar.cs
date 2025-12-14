@@ -8,13 +8,15 @@ namespace HpaStarPathfinding.pathfinding
         
         public static List<int> FindPath(Cell[] grid, Portal?[] portals, Vector2D start, Vector2D end)
         {
-            var startNodes  = FindPortalNodes(portals, grid, end);
-            if (startNodes.Count == 0) return [];
+            byte regionPortalEnd = grid[end.y * MapSizeX + end.x].Region;
+            if(regionPortalEnd == byte.MaxValue) return [];
+            byte regionPortalStart = grid[start.y * MapSizeX + start.x].Region;
+            if(regionPortalStart == byte.MaxValue) return [];
             
-            HashSet<int> goalNodes  = new HashSet<int>(FindPortalNodes(portals, grid, start).Select(x => x.PortalKey));
-            if (goalNodes.Count == 0) return [];
-            
-            FastPriorityQueue open = new FastPriorityQueue(MaxPortalsInChunk * ChunkMapSizeX * ChunkMapSizeX);
+            var startNodes  = FindPortalNodes(portals, grid, end, regionPortalEnd);
+            HashSet<int> goalNodes  = new HashSet<int>(FindPortalNodes(portals, grid, start, regionPortalStart).Select(x => x.PortalKey));
+            //TODO maybe calc how many portals are currently on the Map
+            FastPriorityQueue open = new FastPriorityQueue(MaxPortalsInChunk * ChunkMapSizeX * ChunkMapSizeY);
             HashSet<int> closedSet = [];
             Dictionary<int, PathfindingCell> getElement = new Dictionary<int, PathfindingCell>();
             PathfindingCell endCell = new PathfindingCell(grid[start.y * MapSizeX + start.x]);
@@ -32,8 +34,8 @@ namespace HpaStarPathfinding.pathfinding
                 getElement.Add(startCell.PortalKey, startCell);
             }
 
-            PathfindingCell? currentCell = null;
             bool finished = false;
+            PathfindingCell? currentCell = null;
             while (open.Count > 0)
             {
                 currentCell = open.Dequeue();
@@ -64,9 +66,10 @@ namespace HpaStarPathfinding.pathfinding
                 }
             }
     
-            var path = new List<int>();
-            if(!finished) return path;
             
+            if(!finished) return [];
+            
+            var path = new List<int>();
             while (currentCell != null) {
                 path.Add(currentCell.PortalKey);
                 currentCell = currentCell.Parent;
@@ -107,20 +110,14 @@ namespace HpaStarPathfinding.pathfinding
             }
         }
     
-        private static List<PortalNode> FindPortalNodes(Portal?[] portals, Cell[] grid, Vector2D start)
+        private static List<PortalNode> FindPortalNodes(Portal?[] portals, Cell[] grid, Vector2D start, byte region)
         {              
-            List<PortalNode> nodes = new List<PortalNode>();
-            byte regionPortal = grid[start.y * MapSizeX + start.x].Region;
-            if(regionPortal == byte.MaxValue) return nodes;
-            
-            Vector2D min = new Vector2D(start.x, start.y);
-            Vector2D max = min + new Vector2D(ChunkSize, ChunkSize);
-            ushort[] costFields = BFS.BfsFromStartPos(grid, start, min, max);
-            
             int chunkId = start.x / ChunkSize + ChunkMapSizeX * (start.y / ChunkSize);
+            ushort[] costFields = BFS.BfsFromStartPos(grid, start);
             int firstPossiblePortal = Portal.GeneratePortalKey(chunkId, 0, 0);
-
-            var portal = AddPortal(portals, firstPossiblePortal, regionPortal, costFields, nodes);
+            
+            List<PortalNode> nodes = new List<PortalNode>();
+            var portal = AddPortal(portals, firstPossiblePortal, region, costFields, nodes);
             int length = portal.ExtIntPortalCount & (int)ExternalInternalLength.InternalLength;
             for (int j = 0; j < length; j++)
             {

@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -26,19 +27,19 @@ namespace HpaStarPathfinding
 
         private Dictionary<int, (Rectangle, Rectangle)> _portals = null!;
 
-        private readonly List<Line> _lines = new List<Line>();
+        private readonly List<Line> _lines = [];
 
-        private readonly CircleUi[] _pathStartEnd = { new CircleUi(Brushes.Green), new CircleUi(Brushes.Red) };
+        private readonly CircleUi[] _pathStartEnd = [new(Brushes.Green), new(Brushes.Red)];
 
         private MainWindowViewModel _vm = null!;
 
         private HashSet<Vector2D> _dirtyChunks = null!;
         private HashSet<Vector2D> _dirtyTiles = null!;
 
-        private readonly List<Line> _portalInternalConnections = new List<Line>();
-        private readonly List<Line> _portalExternalConnections = new List<Line>();
-        private readonly List<Line> _hoverPortalConnections = new List<Line>();
-        private readonly List<Rect> _bordersInCell = new List<Rect>();
+        private readonly List<Line> _portalInternalConnections = [];
+        private readonly List<Line> _portalExternalConnections = [];
+        private readonly List<Line> _hoverPortalConnections = [];
+        private readonly List<Rect> _bordersInCell = [];
 
         private Rectangle _selectionRectangle = null!;
 
@@ -143,7 +144,7 @@ namespace HpaStarPathfinding
             {
                 StrokeThickness = 2,
                 SnapsToDevicePixels = true,
-                StrokeDashArray = new DoubleCollection(new[] { 1.0, 1.0 }),
+                StrokeDashArray = new DoubleCollection([1.0, 1.0]),
                 Width = CellSize,
                 Height = CellSize,
                 Stroke = Brushes.Gold,
@@ -167,7 +168,7 @@ namespace HpaStarPathfinding
             Parallel.For(0, _vm.chunks.Length, key =>
             {
                 Chunk.RebuildAllPortals(_vm.map, ref _vm.Portals, key);
-                Chunk.CreateRegionsAndConnectInternalPortals(_vm.map, ref _vm.chunks[key], ref _vm.Portals, key);
+                Chunk.CreateRegionsAndConnectInternalPortals(_vm.map, ref _vm.Portals, key);
             });
 
             UpdatePortalsOnCanvas();
@@ -356,6 +357,7 @@ namespace HpaStarPathfinding
             {
                 _vm.enabledChangeCellBorderImage = true;
                 _vm.currentSelectedCell = mapCell;
+                Debug.WriteLine(mapCell.Connections);
                 _vm.currentSelectedCellSource = _vm.cellStates[mapCell.Connections];
             }
         }
@@ -414,17 +416,16 @@ namespace HpaStarPathfinding
         private bool GetCell(object sender, out Cell? cell)
         {
             cell = null;
-            if (!(sender is Image image))
+            if (sender is not Image image)
                 return false;
 
-            if (!(image.Tag is Cell mapCell))
+            if (image.Tag is not Cell mapCell)
                 return false;
 
             if (mapCell.Position.Equals(_vm.pathStart) || mapCell.Position.Equals(_vm.pathEnd))
                 return false;
 
             cell = mapCell;
-            
             return true;
         }
 
@@ -442,7 +443,9 @@ namespace HpaStarPathfinding
             if (e.LeftButton != MouseButtonState.Pressed || _vm.changePathfindingNodeEnabled)
                 return;
 
-            if (!GetCell(sender, out Cell? cell) && _currentChangedCell == cell) return;
+            if (!GetCell(sender, out Cell? cell)) return;
+            if(_currentChangedCell == cell) return;
+ 
             _currentChangedCell = cell;
             byte newValue = (cell!.Connections == Blocked) ? Walkable : Blocked;
 
@@ -592,9 +595,9 @@ namespace HpaStarPathfinding
                 mapCell.Position.y / ChunkSize);
             //TODO change if only sides will be calculated new
             //TODO disconnect portals, add new connections from other portals for one direction building.
-            //Save chunk changes like following: Has changes inside,border, Or No changes(when recalc changes on other chunk side),
+            //Save chunk changes like following: Has changes inside,border, Or No changes(when re calc changes on other chunk side),
             //reconnect internal (all changes chunk) or recreate portal side and than reconnect internal chunks(border changes chunk)
-            //If Portal Side new but no changes in Chunk, because other chunk changed, than disconnect, reconnect interal portals on specific side
+            //If Portal Side new but no changes in Chunk, because other chunk changed, than disconnect, reconnect internal portals on specific side
             _dirtyChunks.Add(chunkPos);
             foreach (var dir in DirectionsVector.AllDirections)
             {
@@ -650,7 +653,20 @@ namespace HpaStarPathfinding
         {
             foreach (var chunk in _dirtyChunks)
             {
-                RebuildPortalsInChunk(chunk);
+                DeletePortalsOnCanvas(chunk);
+            }
+            
+            foreach (var chunk in _dirtyChunks)
+            {
+                int chunkId = chunk.y * ChunkMapSizeX + chunk.x;
+                Chunk.RebuildAllPortals(_vm.map, ref _vm.Portals, chunkId);
+                Chunk.CreateRegionsAndConnectInternalPortals(_vm.map, ref _vm.Portals, chunkId);
+            }
+            
+            foreach (var chunk in _dirtyChunks)
+            {
+                int chunkId = chunk.x + chunk.y * ChunkMapSizeX;
+                CreatePortalsOnCanvas(chunkId);
             }
 
             DeletePortalInternalConnectionsDrawn();
@@ -662,7 +678,7 @@ namespace HpaStarPathfinding
             CalcPath();
         }
 
-        private void RebuildPortalsInChunk(Vector2D chunkPos)
+        private void DeletePortalsOnCanvas(Vector2D chunkPos)
         {
             int chunkId = chunkPos.x + chunkPos.y * ChunkMapSizeX;
             foreach (Directions dirVec in Enum.GetValues(typeof(Directions)))
@@ -676,9 +692,6 @@ namespace HpaStarPathfinding
                     _portals.Remove(key);
                 }
             }
-            Chunk.RebuildAllPortals(_vm.map, ref _vm.Portals, chunkId);
-            Chunk.CreateRegionsAndConnectInternalPortals(_vm.map, ref _vm.chunks[chunkId], ref _vm.Portals, chunkId);
-            CreatePortalsOnCanvas(chunkId);
         }
 
         private WriteableBitmap? GetCellColor(Cell mapCell)
@@ -972,7 +985,7 @@ namespace HpaStarPathfinding
 
         private void Integer(object sender, TextCompositionEventArgs e)
         {
-            e.Handled = !e.Text.All(cc => Char.IsNumber(cc));
+            e.Handled = !e.Text.All(Char.IsNumber);
             base.OnPreviewTextInput(e);
         }
     }
