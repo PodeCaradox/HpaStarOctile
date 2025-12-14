@@ -6,6 +6,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using HpaStarPathfinding.Model;
+using HpaStarPathfinding.model.map;
+using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
 using HpaStarPathfinding.ViewModel;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;

@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using HpaStarPathfinding.model.map;
+using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 

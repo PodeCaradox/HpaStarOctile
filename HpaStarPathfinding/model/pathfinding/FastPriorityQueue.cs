@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using HpaStarPathfinding.model.pathfinding.PathfindingCellTypes;
 
 namespace HpaStarPathfinding.model.pathfinding
 {
@@ -6,8 +7,9 @@ namespace HpaStarPathfinding.model.pathfinding
     ///     An implementation of a min-Priority Queue using a heap.  Has O(1) .Contains()!
     ///     See https://github.com/BlueRaja/High-Speed-Priority-Queue-for-C-Sharp/wiki/Getting-Started for more information
     /// </summary>
-    public sealed class FastPriorityQueue {
-        private readonly PathfindingCell?[] _nodes;
+    public sealed class FastPriorityQueue<T>
+        where T : PathfindingCell {
+        private readonly T?[] _nodes;
 
         /// <summary>
         ///     Returns the number of nodes in the queue.
@@ -21,7 +23,7 @@ namespace HpaStarPathfinding.model.pathfinding
         /// <param name="maxNodes">The max nodes ever allowed to be enqueued (going over this will cause undefined behavior)</param>
         public FastPriorityQueue(int maxNodes) {
             Count = 0;
-            _nodes = new PathfindingCell[maxNodes + 1];
+            _nodes = new T[maxNodes + 1];
         }
 
         /// <summary>
@@ -52,7 +54,7 @@ namespace HpaStarPathfinding.model.pathfinding
         ///     O(log n)
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Enqueue(PathfindingCell node, int priority) {
+        public void Enqueue(T node, int priority) {
             node.FCost = priority;
             Count++;
             _nodes[Count] = node;
@@ -66,7 +68,7 @@ namespace HpaStarPathfinding.model.pathfinding
         ///     O(log n)
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public PathfindingCell Dequeue() {
+        public T Dequeue() {
             var returnMe = _nodes[1]!;
 
             //If the node is already the last node, we can remove it immediately
@@ -97,7 +99,7 @@ namespace HpaStarPathfinding.model.pathfinding
         ///     O(log n)
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void UpdatePriority(PathfindingCell node, int priority) {
+        public void UpdatePriority(T node, int priority) {
             node.FCost = priority;
             OnNodeUpdated(node);
         }
@@ -129,7 +131,7 @@ namespace HpaStarPathfinding.model.pathfinding
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CascadeUp(PathfindingCell node) {
+        private void CascadeUp(T node) {
             //aka Heapify-up
             int parent;
 
@@ -167,7 +169,7 @@ namespace HpaStarPathfinding.model.pathfinding
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CascadeDown(PathfindingCell node) {
+        private void CascadeDown(T node) {
             //aka Heapify-down
             var finalQueueIndex = node.QueueIndex;
             var childLeftIndex = 2 * finalQueueIndex;
@@ -305,7 +307,7 @@ namespace HpaStarPathfinding.model.pathfinding
         private bool HasHigherOrEqualPriority(PathfindingCell higher, PathfindingCell lower) => higher.FCost <= lower.FCost;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void OnNodeUpdated(PathfindingCell node) {
+        private void OnNodeUpdated(T node) {
             //Bubble the updated node up or down as appropriate
             var parentIndex = node.QueueIndex >> 1;
 

@@ -1,4 +1,6 @@
 ﻿using System.Windows.Media.Imaging;
+using HpaStarPathfinding.model.map;
+using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
 using HpaStarPathfinding.pathfinding;
 
@@ -267,13 +269,13 @@ namespace HpaStarPathfinding.ViewModel
 
             if (_selectedAlgorithm == Algorithm.AStar)
             {
-                path = Astar.FindPath(_map, _pathStart!, _pathEnd!);
+                path = AStar.FindPath(_map, _pathStart!, _pathEnd!);
                 otherPath = HpaStarFindPath(_pathStart!, _pathEnd!);
             }
             else if (_selectedAlgorithm == Algorithm.HPAStar)
             {
                 path = HpaStarFindPath(_pathStart!, _pathEnd!);
-                otherPath = Astar.FindPath(_map, _pathStart!, _pathEnd!);
+                otherPath = AStar.FindPath(_map, _pathStart!, _pathEnd!);
             }
         }
 

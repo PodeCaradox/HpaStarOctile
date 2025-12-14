@@ -1,6 +1,7 @@
 ﻿using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
 using HpaStarPathfinding.ViewModel;
 

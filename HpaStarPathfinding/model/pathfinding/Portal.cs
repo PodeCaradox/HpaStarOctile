@@ -1,4 +1,5 @@
-﻿using HpaStarPathfinding.ViewModel;
+﻿using HpaStarPathfinding.model.math;
+using HpaStarPathfinding.ViewModel;
 
 namespace HpaStarPathfinding.model.pathfinding
 {
@@ -50,9 +51,9 @@ namespace HpaStarPathfinding.model.pathfinding
             return key;
         }
 
-        public static int GetPortalKeyFromInternalConnection(int portalKey, byte connectionPortal)
+        public static int GetPortalKeyFromInternalConnection(int portalKey)
         {
-            var key = portalKey - portalKey % MainWindowViewModel.MaxPortalsInChunk + connectionPortal;
+            var key = portalKey - portalKey % MainWindowViewModel.MaxPortalsInChunk;
             return key;
         }
 

@@ -1,14 +1,8 @@
 ﻿namespace HpaStarPathfinding.model.pathfinding
 {
-    public class PortalNode
+    public class PortalNode(int portalKey, int cost)
     {
-        public int PortalKey;
-        public int Cost;
-
-        public PortalNode(int portalKey, int cost)
-        {
-            PortalKey = portalKey;
-            Cost = cost;
-        }
+        public readonly int PortalKey = portalKey;
+        public readonly int Cost = cost;
     }
 }

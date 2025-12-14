@@ -1,7 +1,9 @@
-﻿using static HpaStarPathfinding.model.pathfinding.DirectionsAsByte;
+﻿using HpaStarPathfinding.model.math;
+using HpaStarPathfinding.model.pathfinding;
+using static HpaStarPathfinding.model.pathfinding.DirectionsAsByte;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
-namespace HpaStarPathfinding.model.pathfinding
+namespace HpaStarPathfinding.model.map
 {
     public class Cell(Vector2D pos)
     {

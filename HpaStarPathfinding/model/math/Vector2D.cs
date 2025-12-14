@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using HpaStarPathfinding.ViewModel;
 
-namespace HpaStarPathfinding.model.pathfinding
+namespace HpaStarPathfinding.model.math
 {
     public class Vector2D(int x, int y)
     {

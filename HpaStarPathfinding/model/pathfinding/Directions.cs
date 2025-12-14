@@ -1,4 +1,6 @@
-﻿namespace HpaStarPathfinding.model.pathfinding
+﻿using HpaStarPathfinding.model.math;
+
+namespace HpaStarPathfinding.model.pathfinding
 {
     
     public enum Directions
@@ -23,25 +25,25 @@
         public const byte WALKABLE = 0b_0;
         
         public static readonly byte[] AllDirectionsAsByte =
-        {
+        [
             N, NE, E, SE, S, SW, W, NW
-        };
+        ];
     }
     
     public static class DirectionsVector
     {
-        public static readonly Vector2D N = new Vector2D(0, -1);
-        public static readonly Vector2D NE = new Vector2D(1, -1);
-        public static readonly Vector2D E = new Vector2D(1, 0);
-        public static readonly Vector2D SE = new Vector2D(1, 1);
-        public static readonly Vector2D S = new Vector2D(0, 1);
-        public static readonly Vector2D SW = new Vector2D(-1, 1);        
-        public static readonly Vector2D W = new Vector2D(-1, 0);
-        public static readonly Vector2D NW = new Vector2D(-1, -1);
+        public static readonly Vector2D N = new(0, -1);
+        private static readonly Vector2D NE = new (1, -1);
+        public static readonly Vector2D E = new (1, 0);
+        private static readonly Vector2D SE = new (1, 1);
+        public static readonly Vector2D S = new (0, 1);
+        private static readonly Vector2D SW = new (-1, 1);        
+        public static readonly Vector2D W = new (-1, 0);
+        private static readonly Vector2D NW = new (-1, -1);
 
         public static readonly Vector2D[] AllDirections =
-        {
+        [
             N, NE, E, SE, S, SW, W, NW
-        };
+        ];
     }
 }

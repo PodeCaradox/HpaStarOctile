@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using HpaStarPathfinding.model.map;
+using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
+using HpaStarPathfinding.model.pathfinding.PathfindingCellTypes;
 using HpaStarPathfinding.ViewModel;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
 namespace HpaStarPathfinding.pathfinding
 {
-    public class Astar
+    public static class AStar
     {
 
         private class NeighbourCell
@@ -16,7 +19,7 @@ namespace HpaStarPathfinding.pathfinding
             public int GCost;
         }
 
-        private static List<NeighbourCell> GetNeighbours(PathfindingCell cell)
+        private static List<NeighbourCell> GetNeighbours(PathfindingCellAStar cell)
         {
             List<NeighbourCell> neighbours = new List<NeighbourCell>();
             int i = 0;
@@ -37,16 +40,16 @@ namespace HpaStarPathfinding.pathfinding
 
         public static List<Vector2D> FindPath(Cell[] grid, Vector2D start, Vector2D end)
         {
-            FastPriorityQueue open = new FastPriorityQueue(MapSizeX * MapSizeY);
+            FastPriorityQueue<PathfindingCellAStar> open = new FastPriorityQueue<PathfindingCellAStar>(MapSizeX * MapSizeY);
             Cell startCell = grid[end.y * MapSizeX + end.x];
-            PathfindingCell goalCell  = new PathfindingCell(grid[start.y * MapSizeX + start.x]);
+            PathfindingCellAStar goalCell  = new PathfindingCellAStar(grid[start.y * MapSizeX + start.x]);
             
             HashSet<int> closedSet = new HashSet<int>();
-            Dictionary<int, PathfindingCell> getElement = new Dictionary<int, PathfindingCell>();
+            Dictionary<int, PathfindingCellAStar> getElement = new Dictionary<int, PathfindingCellAStar>();
 
-            open.Enqueue(new PathfindingCell(startCell), 0);
+            open.Enqueue(new PathfindingCellAStar(startCell), 0);
 
-            PathfindingCell? currentCell = null;
+            PathfindingCellAStar? currentCell = null;
             bool finished = false;
             while (open.Count > 0) 
             {
@@ -59,27 +62,24 @@ namespace HpaStarPathfinding.pathfinding
                 }
 
                 closedSet.Add(currentCell.Position.x + currentCell.Position.y * MapSizeX);
-
-                
                 
                 foreach (var neighbourKey in GetNeighbours(currentCell))
                 {
                     if (getElement.TryGetValue(neighbourKey.CellKey, out var neighbour)){}
                     else
                     {
-                        neighbour = new PathfindingCell(grid[neighbourKey.CellKey]); 
+                        neighbour = new PathfindingCellAStar(grid[neighbourKey.CellKey]); 
                         getElement.Add(neighbourKey.CellKey, neighbour);
                     }
                     int g = currentCell.GCost + neighbourKey.GCost;
                     
                     if (closedSet.Contains(neighbour.Position.x + neighbour.Position.y * MapSizeX))
                         continue;
-
                    
                     if (!open.Contains(neighbour))
                     {
                         neighbour.GCost = g;
-                        neighbour.HCost = Heuristic.GetHeuristic(neighbour, goalCell);
+                        neighbour.HCost = Heuristic.GetHeuristic(neighbour.Position, goalCell.Position);
                         neighbour.Parent = currentCell;
                         open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
                     } 

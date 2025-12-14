@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
+using HpaStarPathfinding.model.map;
+using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.pathfinding;
 using static HpaStarPathfinding.model.pathfinding.DirectionsAsByte;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
