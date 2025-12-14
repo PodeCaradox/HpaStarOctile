@@ -115,7 +115,7 @@ namespace HpaStarPathfinding.pathfinding
             
             Vector2D min = new Vector2D(start.x, start.y);
             Vector2D max = min + new Vector2D(ChunkSize, ChunkSize);
-            ushort[] costFields = BFS.FindAllCostsInChunkFromStartPos(grid, start, min, max);
+            ushort[] costFields = BFS.BfsFromStartPos(grid, start, min, max);
             
             int chunkId = start.x / ChunkSize + ChunkMapSizeX * (start.y / ChunkSize);
             int firstPossiblePortal = Portal.GeneratePortalKey(chunkId, 0, 0);

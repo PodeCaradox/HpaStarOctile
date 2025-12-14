@@ -11,7 +11,7 @@ namespace HpaStarPathfinding.pathfinding
             public readonly ushort GCost = cost;
         }
         
-        public static ushort[] FindAllCostsInChunkFromStartPos(Cell[] grid, Vector2D start, Vector2D min, Vector2D max)
+        public static ushort[] BfsFromStartPos(Cell[] grid, Vector2D start, Vector2D min, Vector2D max)
         {
             ushort[] bfs = Enumerable.Repeat(ushort.MaxValue, ChunkSize * ChunkSize).ToArray();
             Queue<Vector2D> openList = new Queue<Vector2D>();
@@ -23,7 +23,41 @@ namespace HpaStarPathfinding.pathfinding
                 Vector2D current = openList.Dequeue();
                 key = current.x % ChunkSize + current.y % ChunkSize * ChunkSize;
                 
-                Cell currentCell = grid[current.y * MapSizeX + current.x]!;
+                Cell currentCell = grid[current.y * MapSizeX + current.x];
+                foreach (var neighbourKey in GetNeighbours(currentCell, min, max))
+                {
+                    int otherKey = neighbourKey.CellPos.x % ChunkSize + neighbourKey.CellPos.y % ChunkSize * ChunkSize;
+                    if (bfs[otherKey] != ushort.MaxValue)
+                    {
+                        if(bfs[otherKey] > bfs[key] + neighbourKey.GCost) 
+                            bfs[otherKey] = (ushort)(bfs[key] + neighbourKey.GCost);
+                        
+                        continue;
+                    }
+                    
+                    openList.Enqueue(neighbourKey.CellPos);
+                    bfs[otherKey] = (ushort)(bfs[key] + neighbourKey.GCost);
+                }
+
+            }
+
+            return bfs;
+        }
+        
+        public static ushort[] BfsFromStartPosWithRegionFill(Cell[] grid, Vector2D start, Vector2D min, Vector2D max, byte portalKey)
+        {
+            ushort[] bfs = Enumerable.Repeat(ushort.MaxValue, ChunkSize * ChunkSize).ToArray();
+            Queue<Vector2D> openList = new Queue<Vector2D>();
+            openList.Enqueue(start); 
+            int key = start.x % ChunkSize + start.y % ChunkSize * ChunkSize;
+            bfs[key] = 0;
+            while (openList.Count > 0)
+            {
+                Vector2D current = openList.Dequeue();
+                key = current.x % ChunkSize + current.y % ChunkSize * ChunkSize;
+                
+                Cell currentCell = grid[current.y * MapSizeX + current.x];
+                currentCell.Region = portalKey;
                 foreach (var neighbourKey in GetNeighbours(currentCell, min, max))
                 {
                     int otherKey = neighbourKey.CellPos.x % ChunkSize + neighbourKey.CellPos.y % ChunkSize * ChunkSize;

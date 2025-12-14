@@ -67,10 +67,10 @@ namespace HpaStarPathfinding.model.pathfinding
         public static void CreateRegionsAndConnectInternalPortals(Cell[] cells, ref Chunk chunk, ref Portal?[] portals, int chunkKey)
         {
             ResetRegions(cells, chunkKey);
-            HashSet<byte> portalsFromRegionFillAdded = new HashSet<byte>();
+            HashSet<byte> portalsFromRegionFillAdded = [];
             int chunkIdX = chunkKey % ChunkMapSizeX;
             int chunkIdY = chunkKey / ChunkMapSizeX;
-            List<PortalHolder> portalsHolder = new List<PortalHolder>();
+            List<PortalHolder> portalsHolder = [];
             int firstPortalKey = GetAllPortalsInChunkAndFirstPortalKey(portals, chunkKey, portalsHolder);
             Vector2D min = new Vector2D(chunkIdX * ChunkSize, chunkIdY * ChunkSize);
             Vector2D max = new Vector2D(min.x + ChunkSize, min.y + ChunkSize);
@@ -103,18 +103,18 @@ namespace HpaStarPathfinding.model.pathfinding
         private static ushort[] GetCostFieldsAndUpdateRegions(Cell[] cells, PortalHolder portal, Vector2D min, Vector2D max,
             HashSet<byte> portalsFromRegionFillAdded)
         {
-            ushort[] costFields = BFS.FindAllCostsInChunkFromStartPos(cells, portal.Pos, min, max);
+            ushort[] costFields;
             if (portalsFromRegionFillAdded.Add(portal.Key))
             {
-                //FillRegionsFromPortal(cells, costFields, portal.Pos, portal.Key);
+                costFields = BFS.BfsFromStartPosWithRegionFill(cells, portal.Pos, min, max, portal.Key);
+            }
+            else
+            {
+                costFields = BFS.BfsFromStartPos(cells, portal.Pos, min, max);
             }
 
             return costFields;
         }
-
-        // private static void FillRegionsFromPortal(Cell[] cells, ushort[] costFields, Vector2D? portalPos, int portalKey)
-        // {
-        // }
 
         private static int GetAllPortalsInChunkAndFirstPortalKey(Portal?[] portals, int chunkId,
             List<PortalHolder> portalsHolder)
@@ -159,7 +159,7 @@ namespace HpaStarPathfinding.model.pathfinding
                     startY = chunkIdY * ChunkSize;
                     steppingInDirVector = new Vector2D(1, 0);
                     dirToCheck = [NW_N_NE, N, E_NE, NW, W, NE, E_SE, E, S];
-                    checkDiagonalChunk = [NW, N, SW, W, NE];
+                    checkDiagonalChunk = [NW, N, W];
                     portalDiagonalPosOffset = 0;
                     break;
                 case Directions.E:
@@ -167,7 +167,7 @@ namespace HpaStarPathfinding.model.pathfinding
                     startY = chunkIdY * ChunkSize;
                     steppingInDirVector = new Vector2D(0, 1);
                     dirToCheck = [NE_E_SE, E, S_SE, NE, N, SE, S_SW, S, W];
-                    checkDiagonalChunk = [NE, E, NW, N, SE];
+                    checkDiagonalChunk = [NE, E, N];
                     portalDiagonalPosOffset = 0;
                     break;
                 case Directions.S:
@@ -175,7 +175,7 @@ namespace HpaStarPathfinding.model.pathfinding
                     startY = chunkIdY * ChunkSize + ChunkSize - 1;
                     steppingInDirVector = new Vector2D(1, 0);
                     dirToCheck = [SW_S_SE, S, E_SE, SW, W, SE, E_NE, E, N];
-                    checkDiagonalChunk = [SE, S, NE, E, SW];
+                    checkDiagonalChunk = [SE, S, E];
                     portalDiagonalPosOffset = ChunkSize - 1;
                     break;
                 case Directions.W:
@@ -183,7 +183,7 @@ namespace HpaStarPathfinding.model.pathfinding
                     startY = chunkIdY * ChunkSize;
                     steppingInDirVector = new Vector2D(0, 1);
                     dirToCheck = [NW_W_SW, W, S_SW, NW, N, SW, S_SE, S, E];
-                    checkDiagonalChunk = [SW, W, SE, S, NW];
+                    checkDiagonalChunk = [SW, W, S];
                     portalDiagonalPosOffset = ChunkSize - 1;
                     break;
                 default:
@@ -204,34 +204,29 @@ namespace HpaStarPathfinding.model.pathfinding
             startY += steppingInDirVector.y * portalPos;
             ref Cell cell = ref cells[startY * MapSizeX + startX];
             Vector2D startPos = new Vector2D(startX, startY);
-            int portalSize = 1;
+            int key = Portal.GeneratePortalKey(chunkId, portalPos, dir);
             //Diagonal Portal Direction NW
             if ((cell.Connections & checkDiagonalConnection[0]) == WALKABLE)
             {
-                int key = TryCreatePortal(ref portals, chunkId, portalSize, dir, 0,
-                    0, portalPos);
+                portals[key] ??= new Portal();
                 int externalKey = key + DiagonalPortalKeyOffsets[(int)dir];
-                AddExternalPortalConnection(portals, startPos, portalSize, 0, 0, key, externalKey, steppingInDirVector);
-
-                //Connect Diagonal Portal in Direction N if there is one that has a diagonal connection to SW
-                Vector2D oppositeCell = DirectionsVectorArray[(int)dir];
-                if ((cell.Connections & checkDiagonalConnection[1]) == WALKABLE &&
-                    (cells[(startY + oppositeCell.y) * MapSizeX + startX + oppositeCell.x].Connections &
-                     checkDiagonalConnection[2]) == WALKABLE)
-                {
-                    externalKey = key + DiagonalSpecialPortalKeyOffsets[(int)dir];
-                    AddExternalPortalConnection(portals, startPos, portalSize, 0, 0, key, externalKey, steppingInDirVector);
-                }
+                AddExternalPortalConnection(portals, startPos, 1, 0, 0, key, externalKey, steppingInDirVector);
+            }
+            
+            //Connect Diagonal Portal in Direction N if there is one that has a diagonal connection to SW
+            if ((cell.Connections & checkDiagonalConnection[1]) == WALKABLE)
+            {
+                portals[key] ??= new Portal();
+                int externalKey = key + DiagonalSpecialPortalKeyOffsets[(int)dir];
+                AddExternalPortalConnection(portals, startPos, 1, 0, 0, key, externalKey, steppingInDirVector);
+            }
                 
-                //Connect Diagonal Portal in Direction W if there is one that has a diagonal connection to NE
-                oppositeCell = DirectionsVectorArray[((int)dir + 3) % 4];
-                if ((cell.Connections & checkDiagonalConnection[3]) == WALKABLE &&
-                    (cells[(startY + oppositeCell.y) * MapSizeX + startX + oppositeCell.x].Connections &
-                     checkDiagonalConnection[4]) == WALKABLE)
-                {
-                    externalKey = key - DiagonalSpecialPortalKeyOffsets[((int)dir + 1) % 4];
-                    AddExternalPortalConnection(portals, startPos, portalSize, 0, 0, key, externalKey, steppingInDirVector);
-                }
+            //Connect Diagonal Portal in Direction W if there is one that has a diagonal connection to NE
+            if ((cell.Connections & checkDiagonalConnection[2]) == WALKABLE)
+            {
+                portals[key] ??= new Portal();
+                int externalKey = key - DiagonalSpecialPortalKeyOffsets[((int)dir + 1) % 4];
+                AddExternalPortalConnection(portals, startPos, 1, 0, 0, key, externalKey, steppingInDirVector);
             }
         }
 
