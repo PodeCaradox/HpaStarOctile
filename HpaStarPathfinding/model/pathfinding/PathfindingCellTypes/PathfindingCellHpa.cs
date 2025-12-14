@@ -1,6 +1,4 @@
-﻿using HpaStarPathfinding.model.map;
-
-namespace HpaStarPathfinding.model.pathfinding.PathfindingCellTypes;
+﻿namespace HpaStarPathfinding.model.pathfinding.PathfindingCellTypes;
 
 public class PathfindingCellHpa(int portalKey) : PathfindingCell
 {

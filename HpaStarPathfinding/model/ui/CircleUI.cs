@@ -2,35 +2,32 @@
 using System.Windows.Media;
 using System.Windows.Shapes;
 using HpaStarPathfinding.model.math;
-using HpaStarPathfinding.model.pathfinding;
-using HpaStarPathfinding.ViewModel;
 
-namespace HpaStarPathfinding.Model
+namespace HpaStarPathfinding.model.ui;
+
+public class CircleUi
 {
-    public class CircleUi
+    private const int CircleRadius = 10;
+    private Ellipse ellipse { get; }
+
+    public CircleUi(Brush color)
     {
-        private const int CircleRadius = 10;
-        private Ellipse ellipse { get; }
-
-        public CircleUi(Brush color)
+        ellipse = new Ellipse
         {
-            ellipse = new Ellipse
-            {
-                Width = CircleRadius * 2,
-                Height = CircleRadius * 2,
-                Fill = color,
-                IsHitTestVisible = false,
-                IsManipulationEnabled = false,
-                IsEnabled = false
-            };
-        }
+            Width = CircleRadius * 2,
+            Height = CircleRadius * 2,
+            Fill = color,
+            IsHitTestVisible = false,
+            IsManipulationEnabled = false,
+            IsEnabled = false
+        };
+    }
 
-        public void ChangePosition(Canvas canvas, Vector2D pos)
-        {
-            canvas.Children.Remove(ellipse);
-            Canvas.SetLeft(ellipse, pos.x - CircleRadius);
-            Canvas.SetTop(ellipse, pos.y - CircleRadius);
-            canvas.Children.Add(ellipse);
-        }
+    public void ChangePosition(Canvas canvas, Vector2D pos)
+    {
+        canvas.Children.Remove(ellipse);
+        Canvas.SetLeft(ellipse, pos.x - CircleRadius);
+        Canvas.SetTop(ellipse, pos.y - CircleRadius);
+        canvas.Children.Add(ellipse);
     }
 }
