@@ -17,8 +17,13 @@ public class Chunk
     private const byte NW_W_SW = NW | W | SW;
     private const byte S_SW = S | SW;
 
-    public static void InitChunkValues()
+    public static void InitChunkValues(int mapX, int mapY)
     {
+        MapSizeX = mapX;
+        MapSizeY = mapY;
+        ChunkMapSizeX = MapSizeX / ChunkSize;
+        ChunkMapSizeY = MapSizeY / ChunkSize;
+        TotalChunks = ChunkMapSizeX * ChunkMapSizeY;
         OffsetChunkByY = MaxPortalsInChunk * ChunkMapSizeX;
         OffsetChunkByX = MaxPortalsInChunk;
         OppositePortalKeyOffsets =
@@ -193,7 +198,7 @@ public class Chunk
     {
         startX += steppingInDirVector.x * portalPos;
         startY += steppingInDirVector.y * portalPos;
-        ref Cell cell = ref cells[startY * mapSizeX + startX];
+        ref Cell cell = ref cells[startY * MapSizeX + startX];
         Vector2D startPos = new Vector2D(startX, startY);
         int key = Portal.GeneratePortalKey(chunkId, portalPos, dir);
         //Diagonal Portal Direction NW
@@ -240,7 +245,7 @@ public class Chunk
         {
             int yCell = startY + steppingInDirVector.y * i;
             int xCell = startX + steppingInDirVector.x * i;
-            ref Cell cell = ref cells[yCell * mapSizeX + xCell];
+            ref Cell cell = ref cells[yCell * MapSizeX + xCell];
             //Is there no Connection in NORTH-WEST and NORTH and NORTH-EAST Direction, do nothing
             if ((cell.Connections & checkDir[0]) == checkDir[0])
             {
@@ -259,7 +264,7 @@ public class Chunk
                 otherPortalOffset = 0;
 
                 //Opposite Cell in North
-                var oppositeCell = cells[(yCell + otherCellToCheck.y) * mapSizeX + xCell + otherCellToCheck.x];
+                var oppositeCell = cells[(yCell + otherCellToCheck.y) * MapSizeX + xCell + otherCellToCheck.x];
                 //Am I at the end of my Portal in Direction
                 if ((cell.Connections & checkDir[2]) != WALKABLE || //Connection to EAST or NORTH-EAST not Walkable 
                     (oppositeCell.Connections & checkDir[6]) !=
@@ -272,7 +277,7 @@ public class Chunk
                 if ((cell.Connections & checkDir[3]) == WALKABLE)
                 {
                     //OppositeDiagonalCell NORTH-WEST
-                    var oppositeDiagonalCell = cells[(yCell + otherCellToCheck.y - steppingInDirVector.y) * mapSizeX +
+                    var oppositeDiagonalCell = cells[(yCell + otherCellToCheck.y - steppingInDirVector.y) * MapSizeX +
                         xCell + otherCellToCheck.x - steppingInDirVector.x];
                     //Check in direction South Not Walkable:
                     if ((oppositeDiagonalCell.Connections & checkDir[8]) != WALKABLE)
@@ -285,7 +290,7 @@ public class Chunk
                 if ((cell.Connections & checkDir[5]) == WALKABLE)
                 {
                     //OppositeDiagonalCell NORTH-EAST
-                    var oppositeDiagonalCell = cells[(yCell + otherCellToCheck.y + steppingInDirVector.y) * mapSizeX +
+                    var oppositeDiagonalCell = cells[(yCell + otherCellToCheck.y + steppingInDirVector.y) * MapSizeX +
                                                      xCell + otherCellToCheck.x + steppingInDirVector.x];
                     //Check in direction South Not Walkable:
                     if ((oppositeDiagonalCell.Connections & checkDir[8]) != WALKABLE)
@@ -428,7 +433,19 @@ public class Chunk
             {
                 vmMap[tileKey + x].Region = byte.MaxValue;
             }
-            tileKey += mapSizeX;
+            tileKey += MapSizeX;
         }
+    }
+
+    public static int CellPositionToChunkKey(Vector2D pos)
+    {
+        Vector2D chunkPos = CellPositionToChunkPos(pos);
+        return chunkPos.x + chunkPos.y * ChunkMapSizeX;
+    }
+    
+    public static Vector2D CellPositionToChunkPos(Vector2D pos)
+    {
+        Vector2D chunkPos = new Vector2D(pos.x / ChunkSize, pos.y / ChunkSize);
+        return chunkPos;
     }
 }

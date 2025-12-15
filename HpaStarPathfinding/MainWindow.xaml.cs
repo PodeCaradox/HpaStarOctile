@@ -79,13 +79,10 @@ public partial class MainWindow
     {
         _vm.uiMapX -= _vm.uiMapX % ChunkSize;
         _vm.uiMapY -= _vm.uiMapY % ChunkSize;
-        mapSizeX = _vm.uiMapX;
-        MapSizeY = _vm.uiMapY;
-        ChunkMapSizeX = mapSizeX / ChunkSize;
-        ChunkMapSizeY = MapSizeY / ChunkSize;
-        PathCanvas.Height = CellSize * MapSizeY;
-        PathCanvas.Width = CellSize * mapSizeX;
-        Chunk.InitChunkValues();
+        PathCanvas.Height = CellSize * _vm.uiMapY;
+        PathCanvas.Width = CellSize * _vm.uiMapX;
+        
+        Chunk.InitChunkValues(_vm.uiMapX, _vm.uiMapY);
     }
 
     private void InitBitmaps()
@@ -137,7 +134,7 @@ public partial class MainWindow
         PathCanvas.IsEnabled = false;
         _vm.Init();
 
-        _mapUi = new Image[MapSizeY, mapSizeX];
+        _mapUi = new Image[MapSizeY, MapSizeX];
         InitializeGridMap();
         InitializeGridChunks();
         InitializePortals();
@@ -263,9 +260,9 @@ public partial class MainWindow
     {
         for (int y = 0; y < MapSizeY; y++)
         {
-            for (int x = 0; x < mapSizeX; x++)
+            for (int x = 0; x < MapSizeX; x++)
             {
-                var node = _vm.map[y * mapSizeX + x];
+                var node = _vm.map[y * MapSizeX + x];
                 Image rect = new Image
                 {
                     Source = GetCellColor(node),
@@ -577,7 +574,7 @@ public partial class MainWindow
         ChangeSelection(Visibility.Hidden, null);
 
         mapCell.Connections = newValue;
-        _vm.map[mapCell.Position.y * mapSizeX + mapCell.Position.x] = mapCell;
+        _vm.map[mapCell.Position.y * MapSizeX + mapCell.Position.x] = mapCell;
 
         _dirtyTiles.Add(mapCell.Position);
 
@@ -587,14 +584,13 @@ public partial class MainWindow
 
     private void CalculateChunksToUpdate(Cell mapCell)
     {
-        Vector2D chunkPos = new Vector2D(mapCell.Position.x / ChunkSize,
-            mapCell.Position.y / ChunkSize);
+        Vector2D chunkPos = Chunk.CellPositionToChunkPos(mapCell.Position);
         //TODO change if only sides will be calculated new
         //TODO disconnect portals, add new connections from other portals for one direction building.
         //Save chunk changes like following: Has changes inside,border, Or No changes(when re calc changes on other chunk side),
         //reconnect internal (all changes chunk) or recreate portal side and than reconnect internal chunks(border changes chunk)
         //If Portal Side new but no changes in Chunk, because other chunk changed, than disconnect, reconnect internal portals on specific side
-        _dirtyChunks.Add(chunkPos.x + chunkPos.y * ChunkMapSizeX);
+        _dirtyChunks.Add(Chunk.CellPositionToChunkKey(mapCell.Position));
         foreach (var dir in DirectionsVector.AllDirections)
         {
             var pos = chunkPos + dir;
@@ -614,7 +610,7 @@ public partial class MainWindow
         PathCanvas.IsEnabled = false;
         foreach (var mapCellPos in _dirtyTiles)
         {
-            ref Cell mapCell = ref _vm.map[mapCellPos.y * mapSizeX + mapCellPos.x];
+            ref Cell mapCell = ref _vm.map[mapCellPos.y * MapSizeX + mapCellPos.x];
             mapCell.UpdateConnection(_vm.map);
             UpdateUiCell(mapCellPos);
         }
@@ -628,19 +624,19 @@ public partial class MainWindow
 
     private void UpdateUiCell(Vector2D mapCellPos)
     {
-        _mapUi[mapCellPos.y, mapCellPos.x].Source = GetCellColor(_vm.map[mapCellPos.y * mapSizeX + mapCellPos.x]);
+        _mapUi[mapCellPos.y, mapCellPos.x].Source = GetCellColor(_vm.map[mapCellPos.y * MapSizeX + mapCellPos.x]);
         for (byte i = 0; i < DirectionsVector.AllDirections.Length; i++)
         {
             var dirVec = DirectionsVector.AllDirections[i];
             if (mapCellPos.y + dirVec.y >= MapSizeY ||
-                mapCellPos.x + dirVec.x >= mapSizeX || mapCellPos.x + dirVec.x < 0 ||
+                mapCellPos.x + dirVec.x >= MapSizeX || mapCellPos.x + dirVec.x < 0 ||
                 mapCellPos.y + dirVec.y < 0)
             {
                 continue;
             }
 
             _mapUi[mapCellPos.y + dirVec.y, mapCellPos.x + dirVec.x].Source =
-                GetCellColor(_vm.map[(mapCellPos.y + dirVec.y) * mapSizeX + mapCellPos.x + dirVec.x]);
+                GetCellColor(_vm.map[(mapCellPos.y + dirVec.y) * MapSizeX + mapCellPos.x + dirVec.x]);
         }
     }
 
@@ -651,7 +647,8 @@ public partial class MainWindow
         {
             DeletePortalsOnCanvas(chunk);
         }
-            
+        
+        //TODO parallel?
         foreach (var chunkId in _dirtyChunks)
         {
             Chunk.RebuildAllPortals(_vm.map, ref _vm.Portals, chunkId);
@@ -954,14 +951,14 @@ public partial class MainWindow
             var dir = DirectionsVector.AllDirections[i];
             int y = _vm.currentSelectedCell!.Position.y + dir.y;
             int x = _vm.currentSelectedCell!.Position.x + dir.x;
-            if (x < 0 || x >= mapSizeX || y < 0 || y >= MapSizeY) break;
+            if (x < 0 || x >= MapSizeX || y < 0 || y >= MapSizeY) break;
 
             byte direction = (byte)(1 << i);
             //If the bit is set (equal to direction), XOR will clear it.
             //If the bit is not set, XOR will set it.
             _vm.currentSelectedCell.Connections = (byte)(_vm.currentSelectedCell.Connections ^ direction);
 
-            ref var otherCell = ref _vm.map[y * mapSizeX + x];
+            ref var otherCell = ref _vm.map[y * MapSizeX + x];
             otherCell.Connections = (byte)(otherCell.Connections ^ Cell.RotateLeft(direction, 4));
             _mapUi[otherCell.Position.y, otherCell.Position.x].Source = GetCellColor(otherCell);
 

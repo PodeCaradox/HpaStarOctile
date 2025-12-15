@@ -9,20 +9,15 @@ namespace HpaStarPathfinding.pathfinding;
 public static class HpaStar
 {
         
-    public static List<int> FindPath(Cell[] grid, Portal?[] portals, Vector2D start, Vector2D end)
+    public static List<int> FindPath(Cell[] grid, Portal?[] portals, Vector2D start, Vector2D end, byte regionPortalStart, byte regionPortalEnd)
     {
-        byte regionPortalEnd = grid[end.y * mapSizeX + end.x].Region;
-        if(regionPortalEnd == byte.MaxValue) return [];
-        byte regionPortalStart = grid[start.y * mapSizeX + start.x].Region;
-        if(regionPortalStart == byte.MaxValue) return [];
-            
         var startNodes  = FindPortalNodes(portals, grid, end, regionPortalEnd);
         HashSet<int> goalNodes  = new HashSet<int>(FindPortalNodes(portals, grid, start, regionPortalStart).Select(x => x.PortalKey));
         //TODO maybe calc how many portals are currently on the Map less memory but more processing?
         FastPriorityQueue<PathfindingCellHpa> open = new FastPriorityQueue<PathfindingCellHpa>(MaxPortalsInChunk * ChunkMapSizeX * ChunkMapSizeY);
         HashSet<int> closedSet = [];
         Dictionary<int, PathfindingCellHpa> getElement = new Dictionary<int, PathfindingCellHpa>();
-        Vector2D goalPos = grid[start.y * mapSizeX + start.x].Position;
+        Vector2D goalPos = grid[start.y * MapSizeX + start.x].Position;
             
         foreach (var node in startNodes)
         {

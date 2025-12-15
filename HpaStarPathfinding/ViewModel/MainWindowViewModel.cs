@@ -2,6 +2,7 @@
 using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
+using HpaStarPathfinding.model.PathfindingCache;
 using HpaStarPathfinding.model.ui;
 using HpaStarPathfinding.pathfinding;
 
@@ -20,12 +21,13 @@ public class MainWindowViewModel: ViewModelBase
 
     #region Propertys UI
 
-    public static int mapSizeX { get; set; } = 50;
+    public static int MapSizeX { get; set; } = 50;
     public static int MapSizeY { get; set; } = 40;
-    public static int ChunkMapSizeX { get; set; } = mapSizeX / ChunkSize;
+    public static int ChunkMapSizeX { get; set; } = MapSizeX / ChunkSize;
     public static int ChunkMapSizeY { get; set; } = MapSizeY / ChunkSize;
+    public static int TotalChunks { get; set; } = ChunkMapSizeX * ChunkMapSizeY;
         
-    private int _uIMapX = mapSizeX;
+    private int _uIMapX = MapSizeX;
     public int uiMapX
     {
         get => _uIMapX;
@@ -211,21 +213,21 @@ public class MainWindowViewModel: ViewModelBase
     private void InitMap()
     {
         Portals = new Portal[chunks.Length * MaxPortalsInChunk];
-        map = new Cell[MapSizeY * mapSizeX];
+        map = new Cell[MapSizeY * MapSizeX];
         for (int y = 0; y < MapSizeY; y++)
         {
-            for (int x = 0; x < mapSizeX; x++)
+            for (int x = 0; x < MapSizeX; x++)
             {
                 var node = new Cell(new Vector2D(x, y));
-                map[y  * mapSizeX + x] = node;
+                map[y  * MapSizeX + x] = node;
             }
         }
             
         for (int y = 0; y < MapSizeY; y++)
         {
-            for (int x = 0; x < mapSizeX; x++)
+            for (int x = 0; x < MapSizeX; x++)
             {
-                map[y  * mapSizeX + x].UpdateConnection(map);
+                map[y  * MapSizeX + x].UpdateConnection(map);
             }
         }
     }
@@ -236,7 +238,7 @@ public class MainWindowViewModel: ViewModelBase
 
     public bool PathPointIsWall(Vector2D vector2D)
     {
-        return _map[vector2D.y  * mapSizeX + vector2D.x].Connections == DirectionsAsByte.NOT_WALKABLE;
+        return _map[vector2D.y  * MapSizeX + vector2D.x].Connections == DirectionsAsByte.NOT_WALKABLE;
     }
 
     public void FindPath()
@@ -258,7 +260,8 @@ public class MainWindowViewModel: ViewModelBase
 
     private List<Vector2D> HpaStarFindPath(Vector2D start, Vector2D end)
     {
-        var pathAsPortals = HpaStar.FindPath(_map, Portals, start, end);
+        int pathId = PathFindingManager.GetPathId(_map, Portals, start, end);
+        var pathAsPortals = PathFindingManager.GetNextPath(pathId);
         return pathAsPortals.Count == 0 ? [] : HpaStar.PortalsToPath(_map, Portals, start, end, pathAsPortals);
     }
 
