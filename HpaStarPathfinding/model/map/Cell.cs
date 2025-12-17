@@ -19,15 +19,15 @@ public class Cell(Vector2D pos)
             byte dirToCheck = (byte)(0b_0000_0001 << i);
             var dirVec = DirectionsVector.AllDirections[i];
             if (Position.y + dirVec.y >= MapSizeY ||
-                Position.x + dirVec.x >= mapSizeX || Position.x + dirVec.x < 0 ||
+                Position.x + dirVec.x >= MapSizeX || Position.x + dirVec.x < 0 ||
                 Position.y + dirVec.y < 0)
             {
-                map[Position.y * mapSizeX + Position.x].Connections |= dirToCheck;
+                map[Position.y * CorrectedMapSizeX + Position.x].Connections |= dirToCheck;
                 continue;
             }
                 
-            ref var otherCell = ref map[(Position.y + dirVec.y) * mapSizeX +  Position.x + dirVec.x];
-            byte connection = (byte)(map[Position.y * mapSizeX + Position.x].Connections & dirToCheck);
+            ref var otherCell = ref map[(Position.y + dirVec.y) * CorrectedMapSizeX +  Position.x + dirVec.x];
+            byte connection = (byte)(map[Position.y * CorrectedMapSizeX + Position.x].Connections & dirToCheck);
                 
             if (connection == WALKABLE)
             {

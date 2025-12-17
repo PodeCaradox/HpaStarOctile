@@ -2,6 +2,8 @@
 using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
+using HpaStarPathfinding.model.PathfindingCache;
+using HpaStarPathfinding.model.PathfindingCache.PathfindingResultTypes;
 using HpaStarPathfinding.model.ui;
 using HpaStarPathfinding.pathfinding;
 
@@ -14,18 +16,20 @@ public class MainWindowViewModel: ViewModelBase
     public static int multipliedCellSize => CellSize * 4;
 
     //Map config MapSize/ChunkSize should have no Remains  could be checked with modulo in future to handle the exception
-    public const int ChunkSize = 10;
+    public const int ChunkSize = 16;
     public const int CellsInChunk = ChunkSize * ChunkSize;
     public const int MaxPortalsInChunk = ChunkSize * 4;//for each direction: 4 = Enum.GetValues(typeof(Directions)).Length
 
     #region Propertys UI
 
-    public static int mapSizeX { get; set; } = 50;
+    public static int MapSizeX { get; set; } = 50;
     public static int MapSizeY { get; set; } = 40;
-    public static int ChunkMapSizeX { get; set; } = mapSizeX / ChunkSize;
-    public static int ChunkMapSizeY { get; set; } = MapSizeY / ChunkSize;
+    public static int CorrectedMapSizeX { get; set; } = MapSizeX + ChunkSize - MapSizeX % ChunkSize;
+    public static int CorrectedMapSizeY { get; set; } = MapSizeY +  ChunkSize - MapSizeY % ChunkSize;
+    public static int ChunkMapSizeX { get; set; } = CorrectedMapSizeX / ChunkSize;
+    public static int ChunkMapSizeY { get; set; } = CorrectedMapSizeY / ChunkSize;
         
-    private int _uIMapX = mapSizeX;
+    private int _uIMapX = MapSizeX;
     public int uiMapX
     {
         get => _uIMapX;
@@ -202,32 +206,35 @@ public class MainWindowViewModel: ViewModelBase
     public void Init()
     {
         chunks = new Chunk[ChunkMapSizeY * ChunkMapSizeX];
-        InitMap();
         pathStart = null;
         pathEnd = null;
         path = [];
+        InitMap();
     }
         
     private void InitMap()
     {
         Portals = new Portal[chunks.Length * MaxPortalsInChunk];
-        map = new Cell[MapSizeY * mapSizeX];
-        for (int y = 0; y < MapSizeY; y++)
+        map = new Cell[CorrectedMapSizeY * CorrectedMapSizeX];
+        for (int y = 0; y < CorrectedMapSizeY; y++)
         {
-            for (int x = 0; x < mapSizeX; x++)
+            for (int x = 0; x < CorrectedMapSizeX; x++)
             {
                 var node = new Cell(new Vector2D(x, y));
-                map[y  * mapSizeX + x] = node;
+                map[y * CorrectedMapSizeX + x] = node;
             }
         }
             
-        for (int y = 0; y < MapSizeY; y++)
+        for (int y = 0; y < CorrectedMapSizeY; y++)
         {
-            for (int x = 0; x < mapSizeX; x++)
+            for (int x = 0; x < CorrectedMapSizeX; x++)
             {
-                map[y  * mapSizeX + x].UpdateConnection(map);
+                if(x >= MapSizeX || y >= MapSizeY) map[y  * CorrectedMapSizeX + x].Connections = 0b_1111_1111;
+                else map[y  * CorrectedMapSizeX + x].UpdateConnection(map);
             }
         }
+        
+
     }
 
     #endregion
@@ -236,12 +243,12 @@ public class MainWindowViewModel: ViewModelBase
 
     public bool PathPointIsWall(Vector2D vector2D)
     {
-        return _map[vector2D.y  * mapSizeX + vector2D.x].Connections == DirectionsAsByte.NOT_WALKABLE;
+        return _map[vector2D.y  * CorrectedMapSizeX + vector2D.x].Connections == DirectionsAsByte.NOT_WALKABLE;
     }
 
     public void FindPath()
     {
-        if (pathStart == null || pathEnd == null)
+        if (pathStart is null || pathEnd is null)
             return;
 
         if (_selectedAlgorithm == Algorithm.AStar)
@@ -258,8 +265,22 @@ public class MainWindowViewModel: ViewModelBase
 
     private List<Vector2D> HpaStarFindPath(Vector2D start, Vector2D end)
     {
-        var pathAsPortals = HpaStar.FindPath(_map, Portals, start, end);
-        return pathAsPortals.Count == 0 ? [] : HpaStar.PortalsToPath(_map, Portals, start, end, pathAsPortals);
+        PathfindingResult pathfindingResult = PathFindingManager.GetPath(_map, Portals, start, end);
+        switch (pathfindingResult.Type)
+        {
+            case PathfindingType.NoPath: return [];
+            case PathfindingType.HighLevelPath:
+            {
+                var pathAsPortals = PathFindingManager.GetNextPath((pathfindingResult as HighLevelPathResult)!);
+                return PathFindingManager.PortalsToPath(_map, Portals, start, end, pathAsPortals);
+            }
+            case PathfindingType.ShortPath:
+            {
+                var shortPath = PathFindingManager.GetNextPath((pathfindingResult as ShortPathResult)!);
+                return shortPath;
+            }
+            default: return [];
+        }
     }
 
     #endregion

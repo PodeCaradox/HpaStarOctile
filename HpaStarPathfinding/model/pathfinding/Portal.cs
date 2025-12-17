@@ -6,24 +6,18 @@ namespace HpaStarPathfinding.model.pathfinding;
 [Flags]
 public enum PortalLength : byte
 {
-    //Offset = 0b_1111_0000,
-    TotalLength = 0b_0000_1111,
+    //Offset = 0b_1111_1111_0000_0000,
+    TotalLength = 0b0000_1111,
     OffsetShift = 4
-}
-    
-[Flags]
-public enum ExternalInternalLength : ushort
-{
-    //ExternalLength = 0b_1111_1111_0000_0000,
-    InternalLength = 0b_0000_0000_1111_1111,
-    OffsetExtLength = 8
 }
     
 public class Portal
 {
     public Vector2D CenterPos = null!;
-    public byte PortalOffsetAndLength;
-    public ushort ExtIntPortalCount;
+    public byte Offset;
+    public byte Length;
+    public byte ExternalPortalCount;
+    public byte InternalPortalCount;
     public readonly int[] ExternalPortalConnections = new int[5]; //diagonal can need 5(portals can be above each other in special cases, only diagonal), straight ones 3
     public readonly Connection[] InternalPortalConnections = new Connection[MainWindowViewModel.MaxPortalsInChunk - 1];
 
@@ -31,16 +25,16 @@ public class Portal
         int offsetEnd, Vector2D steppingInDirVector)
     {
         var offset = offsetStart + (length - offsetEnd - offsetStart) / 2;
-        PortalOffsetAndLength |= (byte)(offset << (int)PortalLength.OffsetShift);
+        Offset = (byte)offset;
         CenterPos = new Vector2D(startPos.x + offset * steppingInDirVector.x, startPos.y + offset * steppingInDirVector.y);
     }
         
     public void ChangeLength(Vector2D portalPos, byte portalSize, int offsetStart, int offsetEnd, Vector2D steppingInDirVector)
     {
-        if (portalSize <= (PortalOffsetAndLength & (int)PortalLength.TotalLength)) return;
+        if (portalSize <= Length) return;
             
-        PortalOffsetAndLength = portalSize;
-        CalcCenterPos(portalPos, PortalOffsetAndLength, offsetStart, offsetEnd, steppingInDirVector);
+        Length = portalSize;
+        CalcCenterPos(portalPos, Length, offsetStart, offsetEnd, steppingInDirVector);
     }
 
     public static int GeneratePortalKey(int chunkIndex, int position, Directions direction)
@@ -58,9 +52,8 @@ public class Portal
 
     public void AddExternalConnection(int externalKey)
     {
-        int index = ExtIntPortalCount >> (int)ExternalInternalLength.OffsetExtLength;
-        ExternalPortalConnections[index] = externalKey;
-        ExtIntPortalCount = (ushort)(ExtIntPortalCount + (1 << (int)ExternalInternalLength.OffsetExtLength));
+        ExternalPortalConnections[ExternalPortalCount] = externalKey;
+        ExternalPortalCount++;
     }
         
     // public static Vector2D PortalKeyToWorldPos(int key)
