@@ -25,7 +25,7 @@ public static class AStar
             {
                 int newX = cell.Position.x + direction.x;
                 int newY = cell.Position.y + direction.y;
-                neighbours.Add(new NeighbourCell(newY * MapSizeX + newX, i % 2 == 0? Heuristic.StraightCost : Heuristic.DiagonalCost));
+                neighbours.Add(new NeighbourCell(newY * CorrectedMapSizeX + newX, i % 2 == 0? Heuristic.StraightCost : Heuristic.DiagonalCost));
             }
 
             i++;
@@ -36,9 +36,9 @@ public static class AStar
 
     public static List<Vector2D> FindPath(Cell[] grid, Vector2D start, Vector2D end)
     {
-        FastPriorityQueue<PathfindingCellAStar> open = new FastPriorityQueue<PathfindingCellAStar>(MapSizeX * MapSizeY);
-        Cell startCell = grid[end.y * MapSizeX + end.x];
-        PathfindingCellAStar goalCell  = new PathfindingCellAStar(grid[start.y * MapSizeX + start.x]);
+        FastPriorityQueue<PathfindingCellAStar> open = new FastPriorityQueue<PathfindingCellAStar>(CorrectedMapSizeX * CorrectedMapSizeY);
+        Cell startCell = grid[end.y * CorrectedMapSizeX + end.x];
+        PathfindingCellAStar goalCell  = new PathfindingCellAStar(grid[start.y * CorrectedMapSizeX + start.x]);
             
         HashSet<int> closedSet = [];
         Dictionary<int, PathfindingCellAStar> getElement = new Dictionary<int, PathfindingCellAStar>();
@@ -51,13 +51,13 @@ public static class AStar
         {
             currentCell = open.Dequeue();
 
-            if (goalCell.Position.x == currentCell.Position.x && goalCell.Position.y == currentCell.Position.y)
+            if (currentCell.Position == goalCell.Position)
             {
                 finished = true;
                 break;
             }
 
-            closedSet.Add(currentCell.Position.x + currentCell.Position.y * MapSizeX);
+            closedSet.Add(currentCell.Position.x + currentCell.Position.y * CorrectedMapSizeX);
                 
             foreach (var neighbourKey in GetNeighbours(currentCell))
             {
@@ -69,7 +69,7 @@ public static class AStar
                 }
                 int g = currentCell.GCost + neighbourKey.GCost;
                     
-                if (closedSet.Contains(neighbour.Position.x + neighbour.Position.y * MapSizeX))
+                if (closedSet.Contains(neighbour.Position.x + neighbour.Position.y * CorrectedMapSizeX))
                     continue;
                    
                 if (!open.Contains(neighbour))
@@ -87,9 +87,9 @@ public static class AStar
             }
         }
 
-        var path = new List<Vector2D>();
-        if(!finished) return path;
+        if(!finished) return [];
             
+        var path = new List<Vector2D>();
         while (currentCell != null) {
             path.Add(currentCell.Position);
             currentCell = currentCell.Parent;

@@ -17,7 +17,7 @@ public static class HpaStar
         FastPriorityQueue<PathfindingCellHpa> open = new FastPriorityQueue<PathfindingCellHpa>(MaxPortalsInChunk * ChunkMapSizeX * ChunkMapSizeY);
         HashSet<int> closedSet = [];
         Dictionary<int, PathfindingCellHpa> getElement = new Dictionary<int, PathfindingCellHpa>();
-        Vector2D goalPos = grid[start.y * MapSizeX + start.x].Position;
+        Vector2D goalPos = grid[start.y * CorrectedMapSizeX + start.x].Position;
             
         foreach (var node in startNodes)
         {
@@ -46,16 +46,14 @@ public static class HpaStar
             closedSet.Add(currentCell.PortalKey);
     
             //Check external Connections
-            int extLength = currentPortal.ExtIntPortalCount >> (int)ExternalInternalLength.OffsetExtLength;
-            for (int i = 0; i < extLength; i++)
+            for (int i = 0; i < currentPortal.ExternalPortalCount; i++)
             {
                 CheckConnection(portals, getElement, currentPortal.ExternalPortalConnections[i], closedSet, currentCell, open, goalPos, currentCell.GCost + Heuristic.StraightCost);
             }
                 
             //Check internal Connections
-            int intLength = currentPortal.ExtIntPortalCount & (int)ExternalInternalLength.InternalLength;
             int firstPortalKey = Portal.GetPortalKeyFromInternalConnection(currentCell.PortalKey);
-            for (int i = 0; i < intLength; i++)
+            for (int i = 0; i < currentPortal.InternalPortalCount; i++)
             {
                 ref var con = ref currentPortal.InternalPortalConnections[i];
                 CheckConnection(portals, getElement, firstPortalKey + con.portalKey, closedSet, currentCell, open, goalPos, currentCell.GCost + con.cost);
@@ -107,8 +105,7 @@ public static class HpaStar
             
         List<PortalNode> nodes = [];
         var portal = AddPortal(portals, firstPossiblePortal, region, costFields, nodes);
-        int length = portal.ExtIntPortalCount & (int)ExternalInternalLength.InternalLength;
-        for (int j = 0; j < length; j++)
+        for (int j = 0; j < portal.InternalPortalCount; j++)
         {
             AddPortal(portals, firstPossiblePortal, portal.InternalPortalConnections[j].portalKey, costFields, nodes);
         }
@@ -124,18 +121,4 @@ public static class HpaStar
         nodes.Add(new PortalNode(firstPossiblePortal + portalKey, cost));
         return portal;
     }
-
-    public static List<Vector2D> PortalsToPath(Cell[] grid, Portal?[] portals, Vector2D pathStart, Vector2D pathEnd, List<int> pathAsPortals)
-    {
-        List<Vector2D> path = AStar.FindPath(grid, pathStart, portals[pathAsPortals[0]]!.CenterPos);
-        for (int i = 0; i < pathAsPortals.Count - 1; i++)
-        {
-            path.AddRange(AStar.FindPath(grid, portals[pathAsPortals[i]]!.CenterPos, portals[pathAsPortals[i + 1]]!.CenterPos));
-        }
-    
-        path.AddRange(AStar.FindPath(grid, portals[pathAsPortals.Last()]!.CenterPos, pathEnd));
-        return path;
-    }
-    
-        
 }

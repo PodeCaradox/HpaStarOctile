@@ -215,7 +215,7 @@
         </Grid>
         <StackPanel />
         <Viewbox Stretch="UniformToFill">
-            <Canvas Background="White" Name="PathCanvas">
+            <Canvas Background="Black" Name="PathCanvas">
                 <!--  Content will be added dynamically  -->
             </Canvas>
         </Viewbox>

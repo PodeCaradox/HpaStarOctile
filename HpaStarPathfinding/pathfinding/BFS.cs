@@ -25,7 +25,7 @@ public static class BFS
         while (openList.Count > 0)
         {
             Vector2D current = openList.Dequeue();
-            Cell currentCell = grid[current.y * MapSizeX + current.x];
+            Cell currentCell = grid[current.y * CorrectedMapSizeX + current.x];
                 
             keyX = current.x % ChunkSize;
             keyY = current.y % ChunkSize;
@@ -60,7 +60,7 @@ public static class BFS
         while (openList.Count > 0)
         {
             Vector2D current = openList.Dequeue();
-            Cell currentCell = grid[current.y * MapSizeX + current.x];
+            Cell currentCell = grid[current.y * CorrectedMapSizeX + current.x];
             currentCell.Region = portalKey;
                 
             keyX = current.x % ChunkSize;

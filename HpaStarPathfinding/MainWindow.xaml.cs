@@ -77,12 +77,11 @@ public partial class MainWindow
         
     private void InitValues()
     {
-        _vm.uiMapX -= _vm.uiMapX % ChunkSize;
-        _vm.uiMapY -= _vm.uiMapY % ChunkSize;
+        Chunk.InitChunkValues(_vm.uiMapX, _vm.uiMapY);
+        _vm.uiMapX = MapSizeX;
+        _vm.uiMapY = MapSizeY;
         PathCanvas.Height = CellSize * _vm.uiMapY;
         PathCanvas.Width = CellSize * _vm.uiMapX;
-        
-        Chunk.InitChunkValues(_vm.uiMapX, _vm.uiMapY);
     }
 
     private void InitBitmaps()
@@ -202,13 +201,13 @@ public partial class MainWindow
                 if (portal == null) continue;
                 var dir = steppingVector[(int)dirVec];
                 var startPos = portal.CenterPos;
-                var offset = _vm.Portals[key]!.PortalOffsetAndLength >> (int)PortalLength.OffsetShift;
+                var offset = _vm.Portals[key]!.Offset;
                 int startPosX = startPos.x - offset * dir.x;
                 int startPosY = startPos.y - offset * dir.y;
                 int centerPosX = portal.CenterPos.x;
                 int centerPosY = portal.CenterPos.y;
-                int width = dir.x * (portal.PortalOffsetAndLength & (int)PortalLength.TotalLength);
-                int height = dir.y * (portal.PortalOffsetAndLength & (int)PortalLength.TotalLength);
+                int width = dir.x * portal.Length;
+                int height = dir.y * portal.Length;
 
                 Rectangle rect = new Rectangle
                 {
@@ -262,7 +261,7 @@ public partial class MainWindow
         {
             for (int x = 0; x < MapSizeX; x++)
             {
-                var node = _vm.map[y * MapSizeX + x];
+                var node = _vm.map[y * CorrectedMapSizeX + x];
                 Image rect = new Image
                 {
                     Source = GetCellColor(node),
@@ -350,7 +349,6 @@ public partial class MainWindow
         else
         {
             _vm.currentSelectedCell = mapCell;
-            Debug.WriteLine(mapCell.Connections);
             _vm.currentSelectedCellSource = _vm.cellStates[mapCell.Connections];
         }
     }
@@ -389,17 +387,18 @@ public partial class MainWindow
         if (_vm.changePathfindingNodeEnabled)
             return;
 
+        if (!GetCell(sender, out Cell? cell)) return;
+
+        if (cell!.Position.x >= MapSizeX || cell.Position.y >= MapSizeY || cell.Position.x < 0 || cell.Position.y < 0) return;
+        
         if (e.LeftButton == MouseButtonState.Pressed)
         {
-            if (!GetCell(sender, out Cell? cell) && _currentChangedCell == cell) return;
             _currentChangedCell = cell;
-            byte newValue = cell!.Connections == Blocked ? Walkable : Blocked;
+            byte newValue = cell.Connections == Blocked ? Walkable : Blocked;
             ChangeMapCell(cell, newValue);
         }
         else if (e.RightButton == MouseButtonState.Pressed)
         {
-            if (!GetCell(sender, out Cell? cell)) return;
-
             SelectCell(cell!);
         }
 
@@ -470,13 +469,13 @@ public partial class MainWindow
             keys.Add(portalKey);
         }
 
-        if (startX == 9)
+        if (startX == ChunkSize - 1)
         {
             var portalKey = startY + xOffset + yOffset + ChunkSize * 1;
             keys.Add(portalKey);
         }
 
-        if (startY == 9)
+        if (startY == ChunkSize - 1)
         {
             var portalKey = startX + xOffset + yOffset + ChunkSize * 2;
             keys.Add(portalKey);
@@ -513,8 +512,7 @@ public partial class MainWindow
         if (portal == null) return;
 
         int chunkIndexInPortalArray = key / MaxPortalsInChunk * MaxPortalsInChunk;
-        int lengthInt = portal.ExtIntPortalCount & (int)ExternalInternalLength.InternalLength;
-        for (int i = 0; i < lengthInt; i++)
+        for (int i = 0; i < portal.InternalPortalCount; i++)
         {
             ref var connection = ref portal.InternalPortalConnections[i];
             int keyOtherPortal = chunkIndexInPortalArray + connection.portalKey;
@@ -537,8 +535,7 @@ public partial class MainWindow
             PathCanvas.Children.Add(line);
         }
 
-        int lengthExt = portal.ExtIntPortalCount >> (int)ExternalInternalLength.OffsetExtLength;
-        for (int i = 0; i < lengthExt; i++)
+        for (int i = 0; i < portal.ExternalPortalCount; i++)
         {
             ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
             if (keyOtherPortal == -1) break;
@@ -574,7 +571,7 @@ public partial class MainWindow
         ChangeSelection(Visibility.Hidden, null);
 
         mapCell.Connections = newValue;
-        _vm.map[mapCell.Position.y * MapSizeX + mapCell.Position.x] = mapCell;
+        _vm.map[mapCell.Position.y * CorrectedMapSizeX + mapCell.Position.x] = mapCell;
 
         _dirtyTiles.Add(mapCell.Position);
 
@@ -610,7 +607,7 @@ public partial class MainWindow
         PathCanvas.IsEnabled = false;
         foreach (var mapCellPos in _dirtyTiles)
         {
-            ref Cell mapCell = ref _vm.map[mapCellPos.y * MapSizeX + mapCellPos.x];
+            ref Cell mapCell = ref _vm.map[mapCellPos.y * CorrectedMapSizeX + mapCellPos.x];
             mapCell.UpdateConnection(_vm.map);
             UpdateUiCell(mapCellPos);
         }
@@ -624,7 +621,7 @@ public partial class MainWindow
 
     private void UpdateUiCell(Vector2D mapCellPos)
     {
-        _mapUi[mapCellPos.y, mapCellPos.x].Source = GetCellColor(_vm.map[mapCellPos.y * MapSizeX + mapCellPos.x]);
+        _mapUi[mapCellPos.y, mapCellPos.x].Source = GetCellColor(_vm.map[mapCellPos.y * CorrectedMapSizeX + mapCellPos.x]);
         for (byte i = 0; i < DirectionsVector.AllDirections.Length; i++)
         {
             var dirVec = DirectionsVector.AllDirections[i];
@@ -636,7 +633,7 @@ public partial class MainWindow
             }
 
             _mapUi[mapCellPos.y + dirVec.y, mapCellPos.x + dirVec.x].Source =
-                GetCellColor(_vm.map[(mapCellPos.y + dirVec.y) * MapSizeX + mapCellPos.x + dirVec.x]);
+                GetCellColor(_vm.map[(mapCellPos.y + dirVec.y) * CorrectedMapSizeX + mapCellPos.x + dirVec.x]);
         }
     }
 
@@ -702,6 +699,7 @@ public partial class MainWindow
 
 
         DrawPathUi(path, _vm.selectedAlgorithm.Brush);
+
         DrawPathUi(_vm.otherPath.ToArray(), Brushes.Gray, 0.4);
     }
 
@@ -804,8 +802,7 @@ public partial class MainWindow
         {
             ref var portal = ref _vm.Portals[key];
             if (portal == null) continue;
-            int lengthExt = portal.ExtIntPortalCount >> (int)ExternalInternalLength.OffsetExtLength;
-            for (int i = 0; i < lengthExt; i++)
+            for (int i = 0; i < portal.ExternalPortalCount; i++)
             {
                 ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
 
@@ -841,8 +838,7 @@ public partial class MainWindow
             ref var portal = ref _vm.Portals[key];
             if (portal == null) continue;
             int chunkIndexInPortalArray = key / MaxPortalsInChunk * MaxPortalsInChunk;
-            int lengthInt = portal.ExtIntPortalCount & (int)ExternalInternalLength.InternalLength;
-            for (int i = 0; i < lengthInt; i++)
+            for (int i = 0; i < portal.InternalPortalCount; i++)
             {
                 ref var connection = ref portal.InternalPortalConnections[i];
                     
@@ -958,7 +954,7 @@ public partial class MainWindow
             //If the bit is not set, XOR will set it.
             _vm.currentSelectedCell.Connections = (byte)(_vm.currentSelectedCell.Connections ^ direction);
 
-            ref var otherCell = ref _vm.map[y * MapSizeX + x];
+            ref var otherCell = ref _vm.map[y * CorrectedMapSizeX + x];
             otherCell.Connections = (byte)(otherCell.Connections ^ Cell.RotateLeft(direction, 4));
             _mapUi[otherCell.Position.y, otherCell.Position.x].Source = GetCellColor(otherCell);
 

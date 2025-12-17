@@ -27,6 +27,16 @@ public class Vector2D(int x, int y)
     {
         return new Vector2D(a.x + b.x, a.y + b.y);
     }
+    
+    public static bool operator ==(Vector2D a, Vector2D b)
+    {
+        return a.x == b.x && a.y == b.y;
+    }
+    
+    public static bool operator !=(Vector2D a, Vector2D b)
+    {
+        return a.x != b.x || a.y != b.y;
+    }
 
     public override bool Equals(object? obj)
     {
