@@ -1,9 +1,9 @@
 ﻿namespace HpaStarPathfinding.model.pathfinding;
 
-public struct Connection : IEquatable<Connection>
+public struct Connection(byte portalKey, ushort cost) : IEquatable<Connection>
 {
-    public byte portalKey;
-    public ushort cost;
+    public byte portalKey = portalKey;
+    public ushort cost = cost;
 
     public bool Equals(Connection other)
     {

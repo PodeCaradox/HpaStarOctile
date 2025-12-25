@@ -164,8 +164,7 @@ public partial class MainWindow
         _portals = new Dictionary<int, (Rectangle, Rectangle)>();
         Parallel.For(0, _vm.chunks.Length, key =>
         {
-            Chunk.RebuildAllPortals(_vm.map, ref _vm.Portals, key);
-            Chunk.CreateRegionsAndConnectInternalPortals(_vm.map, ref _vm.Portals, key);
+            Chunk.RebuildAllPortalsInChunk(_vm.map, ref _vm.Portals, key);
         });
 
         UpdatePortalsOnCanvas();
@@ -587,6 +586,10 @@ public partial class MainWindow
         //Save chunk changes like following: Has changes inside,border, Or No changes(when re calc changes on other chunk side),
         //reconnect internal (all changes chunk) or recreate portal side and than reconnect internal chunks(border changes chunk)
         //If Portal Side new but no changes in Chunk, because other chunk changed, than disconnect, reconnect internal portals on specific side
+       
+        //check inside or border for chunk:
+        //if border add other chunk
+        //if chunk was before only side change 
         _dirtyChunks.Add(Chunk.CellPositionToChunkKey(mapCell.Position));
         foreach (var dir in DirectionsVector.AllDirections)
         {
@@ -595,6 +598,8 @@ public partial class MainWindow
                 || pos.y >= ChunkMapSizeY
                 || pos.x < 0
                 || pos.y < 0) continue;
+            
+            //check for tile here
             _dirtyChunks.Add(pos.x + pos.y * ChunkMapSizeX);
         }
 
@@ -648,8 +653,7 @@ public partial class MainWindow
         //TODO parallel?
         foreach (var chunkId in _dirtyChunks)
         {
-            Chunk.RebuildAllPortals(_vm.map, ref _vm.Portals, chunkId);
-            Chunk.CreateRegionsAndConnectInternalPortals(_vm.map, ref _vm.Portals, chunkId);
+            Chunk.RebuildAllPortalsInChunk(_vm.map, ref _vm.Portals, chunkId);
         }
             
         foreach (var chunkId in _dirtyChunks)

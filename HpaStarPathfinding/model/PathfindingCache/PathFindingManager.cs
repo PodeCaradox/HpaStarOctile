@@ -9,8 +9,11 @@ namespace HpaStarPathfinding.model.PathfindingCache;
 
 public static class PathFindingManager
 {
-    private static readonly Dictionary<long, List<int>> HighLevelPaths = new (1000);
-    //private static readonly Dictionary<int, List<Vector2D>> LowLevelPaths = new (1000);
+    private static readonly Dictionary<int, List<int>> ShortPathsIsDirty = new (1000); //int => chunkID        List<int> = short Paths going throw this chunk
+    private static readonly Dictionary<long, List<Vector2D>> LowLevelPaths = new (1000);
+    private static readonly Dictionary<long, List<int>> HighLevelPaths = new (1000);//=> max as how many dynamic Entities are there
+    
+    
     private static readonly Dictionary<int, List<Vector2D>> ShortPaths = new (1000);
     private static int CounterShortPaths;
     

@@ -83,6 +83,42 @@ public static class BFS
 
         return bfs;
     }
+    
+    public static void ResetRegionsForPortal(Cell[] cells, Vector2D start, int regionKey)
+    {
+        Queue<Vector2D> openList = new Queue<Vector2D>();
+        openList.Enqueue(start); 
+        
+        while (openList.Count > 0)
+        {
+            Vector2D current = openList.Dequeue();
+            Cell currentCell = cells[current.y * CorrectedMapSizeX + current.x];
+            currentCell.Region = byte.MaxValue;
+                
+            int keyX = current.x % ChunkSize;
+            int keyY = current.y % ChunkSize;
+            foreach (var neighbourPos in GetNeighboursWithRegionKey(currentCell, keyX, keyY, regionKey))
+            {  
+                openList.Enqueue(neighbourPos);
+            }
+
+        }
+    }
+
+    private static List<Vector2D> GetNeighboursWithRegionKey(Cell cell, int posX, int posY, int regionKey)
+    {
+        List<Vector2D> neighbours = [];
+        foreach (var dir in DirectionsVector.AllDirections)
+        {
+            int newX = posX + dir.x;
+            int newY = posY + dir.y;
+            if (newX is < 0 or >= ChunkSize || newY is < 0 or >= ChunkSize || cell.Region != regionKey) continue;
+            var pos = cell.Position + dir;;
+            neighbours.Add(pos);
+        }
+
+        return neighbours;
+    }
         
     private static List<NeighbourCell> GetNeighbours(Cell cell, int posX, int posY)
     {
