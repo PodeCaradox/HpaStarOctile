@@ -34,8 +34,8 @@ public partial class MainWindow
 
     private MainWindowViewModel _vm = null!;
 
-    private HashSet<int> _dirtyChunks = null!;
-    private HashSet<Vector2D> _dirtyTiles = null!;
+    private Dictionary<int, ChunkDirty> _dirtyChunks = [];
+    private HashSet<Vector2D> _dirtyTiles = [];
 
     private readonly List<Line> _portalInternalConnections = [];
     private readonly List<Line> _portalExternalConnections = [];
@@ -76,7 +76,7 @@ public partial class MainWindow
         
     private void InitValues()
     {
-        Chunk.InitChunkValues(_vm.uiMapX, _vm.uiMapY);
+        PortalUtils.InitChunkValues(_vm.uiMapX, _vm.uiMapY);
         _vm.uiMapX = MapSizeX;
         _vm.uiMapY = MapSizeY;
         PathCanvas.Height = CellSize * _vm.uiMapY;
@@ -157,7 +157,6 @@ public partial class MainWindow
         PathCanvas.IsEnabled = true;
     }
 
-
     private void InitializePortals()
     {
         _portals = new Dictionary<int, (Rectangle, Rectangle)>();
@@ -168,91 +167,7 @@ public partial class MainWindow
 
         UpdatePortalsOnCanvas();
     }
-
-    private void UpdatePortalsOnCanvas()
-    {
-        for (var key = 0; key < _vm.chunks.Length; key++)
-        {
-            CreatePortalsOnCanvas(key);
-        }
-    }
-
-    private void CreatePortalsOnCanvas(int chunkId)
-    {
-        double opacity = 0.0;
-        if (_drawPortals)
-        {
-            opacity = 1.0;
-        }
-
-        var brushes = new Brush[] { Brushes.Red, Brushes.Green, Brushes.Blue, Brushes.Violet };
-        int i = 0; //Looking in Directions.N        Directions.E        Directions.S        Directions.W
-        var steppingVector = new[]
-            { DirectionsVector.E, DirectionsVector.S, DirectionsVector.E, DirectionsVector.S };
-
-        foreach (Directions dirVec in Enum.GetValues<Directions>())
-        {
-            for (int j = 0; j < ChunkSize; j++)
-            {
-                int key = Portal.GeneratePortalKey(chunkId, j, dirVec);
-                var portal = _vm.Portals[key];
-                if (portal == null) continue;
-                var dir = steppingVector[(int)dirVec];
-                var startPos = portal.CenterPos;
-                var offset = _vm.Portals[key]!.Offset;
-                int startPosX = startPos.x - offset * dir.x;
-                int startPosY = startPos.y - offset * dir.y;
-                int centerPosX = portal.CenterPos.x;
-                int centerPosY = portal.CenterPos.y;
-                int width = dir.x * portal.Length;
-                int height = dir.y * portal.Length;
-
-                Rectangle rect = new Rectangle
-                {
-                    Width = Math.Max(CellSize * width - 8,
-                        CellSize - 8),
-                    Height = Math.Max(CellSize * height - 8,
-                        CellSize - 8),
-                    Stroke = brushes[i],
-                    Fill = Brushes.Transparent,
-                    Opacity = opacity,
-                    IsHitTestVisible = false,
-                    IsManipulationEnabled = false,
-                    IsEnabled = false
-                };
-                i++;
-                if (i >= brushes.Length)
-                {
-                    i = 0;
-                }
-
-                Canvas.SetLeft(rect, startPosX * CellSize + 4);
-                Canvas.SetTop(rect, startPosY * CellSize + 4);
-
-                Brush color = Brushes.Green;
-
-                Rectangle center = new Rectangle
-                {
-                    Width = CellSize - 10,
-                    Height = CellSize - 10,
-                    Stroke = Brushes.Transparent,
-                    Fill = color,
-                    Opacity = opacity,
-                    IsHitTestVisible = false,
-                    IsManipulationEnabled = false,
-                    IsEnabled = false
-                };
-
-                Canvas.SetLeft(center, centerPosX * CellSize + 5);
-                Canvas.SetTop(center, centerPosY * CellSize + 5);
-
-                _portals.Add(key, (rect, center));
-                PathCanvas.Children.Add(rect);
-                PathCanvas.Children.Add(center);
-            }
-        }
-    }
-
+    
     private void InitializeGridMap()
     {
         for (int y = 0; y < MapSizeY; y++)
@@ -334,7 +249,47 @@ public partial class MainWindow
         Init();
     }
 
+    private void DrawChunksButtonChecked(object sender, RoutedEventArgs e)
+    {
+        foreach (var chunk in _chunks)
+        {
+            chunk.Opacity = 1.0;
+        }
+    }
 
+    private void DrawPortalsButtonChecked(object sender, RoutedEventArgs e)
+    {
+        _drawPortals = true;
+        foreach (var portal in _portals)
+        {
+            portal.Value.Item1.Opacity = 1.0;
+            portal.Value.Item2.Opacity = 1.0;
+        }
+    }
+
+    private void DrawChunksButtonUnchecked(object sender, RoutedEventArgs e)
+    {
+        foreach (var chunk in _chunks)
+        {
+            chunk.Opacity = 0.0;
+        }
+    }
+
+    private void DrawPortalsButtonUnchecked(object sender, RoutedEventArgs e)
+    {
+        _drawPortals = false;
+        foreach (var portal in _portals)
+        {
+            portal.Value.Item1.Opacity = 0.0;
+            portal.Value.Item2.Opacity = 0.0;
+        }
+    }
+
+    private void DrawPortalsInternalConnectionsChecked(object sender, RoutedEventArgs e)
+    {
+        _drawPortalsInternalConnections = true;
+        DrawPortalInternalConnections();
+    }
 
     private void ChangeSelection(Visibility visibility, Cell? mapCell)
     {
@@ -538,7 +493,7 @@ public partial class MainWindow
             ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
             if (keyOtherPortal == -1) break;
 
-            var otherPortal = _vm.Portals[keyOtherPortal];
+            var otherPortal = _vm.Portals[keyOtherPortal]!;
             var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
             var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
             Line line = new Line
@@ -558,9 +513,177 @@ public partial class MainWindow
         }
     }
 
+    private void DrawPortalsInternalConnectionsUnchecked(object sender, RoutedEventArgs e)
+    {
+        _drawPortalsInternalConnections = false;
+        DeletePortalInternalConnectionsDrawn();
+    }
+
+    private void DrawPortalsExternalConnectionsChecked(object sender, RoutedEventArgs e)
+    {
+        _drawPortalsExternalConnections = true;
+        DrawPortalExternalConnections();
+    }
+
+    private void DrawPortalsExternalConnectionsUnchecked(object sender, RoutedEventArgs e)
+    {
+        _drawPortalsExternalConnections = false;
+        DeletePortalExternalConnectionsDrawn();
+    }
+
+    private void Selector_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        ResetPathUi();
+
+        _vm.FindPath();
+
+        DrawPathUi(_vm.path.ToArray(), _vm.selectedAlgorithm.Brush);
+        DrawPathUi(_vm.otherPath.ToArray(), Brushes.Gray, 0.4);
+    }
+
+    private void ChangePathToggleButton_OnChecked(object sender, RoutedEventArgs e)
+    {
+        ChangeSelection(Visibility.Hidden, null);
+    }
+
+    private void ChangeCellBorderClicked(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not Image image || image.Source == null || _vm.currentSelectedCell == null) return;
+
+        Point clickPosition = e.GetPosition(image);
+
+        if (image.Source is not BitmapSource bitmapSource) return;
+
+        if (_vm.calcPortals) return;
+        _vm.calcPortals = true;
+
+        double xRatio = bitmapSource.PixelWidth / image.ActualWidth;
+        double yRatio = bitmapSource.PixelHeight / image.ActualHeight;
+
+        int pixelX = (int)(clickPosition.X * xRatio);
+        int pixelY = (int)(clickPosition.Y * yRatio);
+
+        for (int i = 0; i < _bordersInCell.Count; i++)
+        {
+            if (!_bordersInCell[i].Contains(new Point(pixelX, pixelY))) continue;
+            var dir = DirectionsVector.AllDirections[i];
+            int y = _vm.currentSelectedCell!.Position.y + dir.y;
+            int x = _vm.currentSelectedCell!.Position.x + dir.x;
+            if (x < 0 || x >= MapSizeX || y < 0 || y >= MapSizeY) break;
+
+            byte direction = (byte)(1 << i);
+            //If the bit is set (equal to direction), XOR will clear it.
+            //If the bit is not set, XOR will set it.
+            _vm.currentSelectedCell.Connections = (byte)(_vm.currentSelectedCell.Connections ^ direction);
+
+            ref var otherCell = ref _vm.map[y * CorrectedMapSizeX + x];
+            otherCell.Connections = (byte)(otherCell.Connections ^ Cell.RotateLeft(direction, 4));
+            _mapUi[otherCell.Position.y, otherCell.Position.x].Source = GetCellColor(otherCell);
+
+
+            _vm.currentSelectedCellSource = GetCellColor(_vm.currentSelectedCell);
+            _mapUi[_vm.currentSelectedCell.Position.y, _vm.currentSelectedCell.Position.x].Source =
+                GetCellColor(_vm.currentSelectedCell);
+            CalculateChunksToUpdate(_vm.currentSelectedCell);
+            break;
+        }
+
+        _vm.calcPortals = false;
+    }
+
+    private void Integer(object sender, TextCompositionEventArgs e)
+    {
+        e.Handled = !e.Text.All(char.IsNumber);
+        base.OnPreviewTextInput(e);
+    }
+
     #endregion
 
     #region Methods
+    
+    private void UpdatePortalsOnCanvas()
+    {
+        for (var key = 0; key < _vm.chunks.Length; key++)
+        {
+            CreatePortalsOnCanvas(key);
+        }
+    }
+    
+    private void CreatePortalsOnCanvas(int chunkId)
+    {
+        double opacity = 0.0;
+        if (_drawPortals)
+        {
+            opacity = 1.0;
+        }
+
+        var brushes = new Brush[] { Brushes.Red, Brushes.Green, Brushes.Blue, Brushes.Violet };
+        int i = 0; //Looking in Directions.N        Directions.E        Directions.S        Directions.W
+        var steppingVector = new[]
+            { DirectionsVector.E, DirectionsVector.S, DirectionsVector.E, DirectionsVector.S };
+
+        foreach (Directions dirVec in Enum.GetValues<Directions>())
+        {
+            for (int j = 0; j < ChunkSize; j++)
+            {
+                int key = Portal.GeneratePortalKey(chunkId, j, dirVec);
+                var portal = _vm.Portals[key];
+                if (portal == null) continue;
+                var dir = steppingVector[(int)dirVec];
+                var startPos = portal.CenterPos;
+                var offset = _vm.Portals[key]!.Offset;
+                int startPosX = startPos.x - offset * dir.x;
+                int startPosY = startPos.y - offset * dir.y;
+                int centerPosX = portal.CenterPos.x;
+                int centerPosY = portal.CenterPos.y;
+                int width = dir.x * portal.Length;
+                int height = dir.y * portal.Length;
+
+                Rectangle rect = new Rectangle
+                {
+                    Width = Math.Max(CellSize * width - 8,
+                        CellSize - 8),
+                    Height = Math.Max(CellSize * height - 8,
+                        CellSize - 8),
+                    Stroke = brushes[i],
+                    Fill = Brushes.Transparent,
+                    Opacity = opacity,
+                    IsHitTestVisible = false,
+                    IsManipulationEnabled = false,
+                    IsEnabled = false
+                };
+                i++;
+                if (i >= brushes.Length)
+                {
+                    i = 0;
+                }
+
+                Canvas.SetLeft(rect, startPosX * CellSize + 4);
+                Canvas.SetTop(rect, startPosY * CellSize + 4);
+
+                Brush color = Brushes.Green;
+
+                Rectangle center = new Rectangle
+                {
+                    Width = CellSize - 10,
+                    Height = CellSize - 10,
+                    Stroke = Brushes.Transparent,
+                    Fill = color,
+                    Opacity = opacity,
+                    IsHitTestVisible = false,
+                    IsManipulationEnabled = false,
+                    IsEnabled = false
+                };
+
+                Canvas.SetLeft(center, centerPosX * CellSize + 5);
+                Canvas.SetTop(center, centerPosY * CellSize + 5);
+
+                _portals.Add(key, (rect, center));
+                PathCanvas.Children.Add(rect);
+                PathCanvas.Children.Add(center);
+            }
+        }
+    }
 
     private void ChangeMapCell(Cell mapCell, byte newValue)
     {
@@ -579,30 +702,8 @@ public partial class MainWindow
 
     private void CalculateChunksToUpdate(Cell mapCell)
     {
-        Vector2D chunkPos = Chunk.CellPositionToChunkPos(mapCell.Position);
-        //TODO change if only sides will be calculated new
-        //TODO disconnect portals, add new connections from other portals for one direction building.
-        //Save chunk changes like following: Has changes inside,border, Or No changes(when re calc changes on other chunk side),
-        //reconnect internal (all changes chunk) or recreate portal side and than reconnect internal chunks(border changes chunk)
-        //If Portal Side new but no changes in Chunk, because other chunk changed, than disconnect, reconnect internal portals on specific side
+        Chunk.AddDirtyChunk(ref _dirtyChunks, mapCell.Position);
        
-        //check inside or border for chunk:
-        //if border add other chunk
-        //if chunk was before only side change 
-        _dirtyChunks.Add(Chunk.CellPositionToChunkKey(mapCell.Position));
-        foreach (var dir in DirectionsVector.AllDirections)
-        {
-            var pos = chunkPos + dir;
-            if (pos.x >= ChunkMapSizeX
-                || pos.y >= ChunkMapSizeY
-                || pos.x < 0
-                || pos.y < 0) continue;
-            //TODO diagonal need one side more from a chunk changes
-            //check for tile here
-            _dirtyChunks.Add(pos.x + pos.y * ChunkMapSizeX);
-        }
-
-
         RebuildTiles();
     }
 
@@ -640,23 +741,23 @@ public partial class MainWindow
                 GetCellColor(_vm.map[(mapCellPos.y + dirVec.y) * CorrectedMapSizeX + mapCellPos.x + dirVec.x]);
         }
     }
-
-
+    
     private void RebuildPortals()
     {
         foreach (var chunk in _dirtyChunks)
         {
-            DeletePortalsOnCanvas(chunk);
+            DeletePortalsOnCanvas(chunk.Key);
         }
 
-        Parallel.ForEach(_dirtyChunks, chunkId =>
+        Parallel.ForEach(_dirtyChunks, chunk =>
         {
-            Chunk.InitPortalsInChunk(ref _vm.map, ref _vm.Portals, chunkId);
+            var dirtyChunk = chunk.Value;
+            Chunk.UpdateDirtyChunk(ref _vm.map, ref _vm.Portals, dirtyChunk, chunk.Key);
         });
        
-        foreach (var chunkId in _dirtyChunks)
+        foreach (var chunk in _dirtyChunks)
         {
-            CreatePortalsOnCanvas(chunkId);
+            CreatePortalsOnCanvas(chunk.Key);
         }
         
         DeletePortalInternalConnectionsDrawn();
@@ -751,52 +852,7 @@ public partial class MainWindow
         _vm.pathStart = mapPoint;
         _pathStartEnd[0].ChangePosition(PathCanvas, screenPoint);
     }
-
-    #endregion
-
-    private void DrawChunksButtonChecked(object sender, RoutedEventArgs e)
-    {
-        foreach (var chunk in _chunks)
-        {
-            chunk.Opacity = 1.0;
-        }
-    }
-
-
-    private void DrawPortalsButtonChecked(object sender, RoutedEventArgs e)
-    {
-        _drawPortals = true;
-        foreach (var portal in _portals)
-        {
-            portal.Value.Item1.Opacity = 1.0;
-            portal.Value.Item2.Opacity = 1.0;
-        }
-    }
-
-    private void DrawChunksButtonUnchecked(object sender, RoutedEventArgs e)
-    {
-        foreach (var chunk in _chunks)
-        {
-            chunk.Opacity = 0.0;
-        }
-    }
-
-    private void DrawPortalsButtonUnchecked(object sender, RoutedEventArgs e)
-    {
-        _drawPortals = false;
-        foreach (var portal in _portals)
-        {
-            portal.Value.Item1.Opacity = 0.0;
-            portal.Value.Item2.Opacity = 0.0;
-        }
-    }
-
-    private void DrawPortalsInternalConnectionsChecked(object sender, RoutedEventArgs e)
-    {
-        _drawPortalsInternalConnections = true;
-        DrawPortalInternalConnections();
-    }
-
+    
     private void DrawPortalExternalConnections()
     {
         if (!_drawPortalsExternalConnections) return;
@@ -808,7 +864,7 @@ public partial class MainWindow
             {
                 ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
 
-                var otherPortal = _vm.Portals[keyOtherPortal];
+                var otherPortal = _vm.Portals[keyOtherPortal]!;
                 var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
                 Vector2D point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
 
@@ -872,25 +928,6 @@ public partial class MainWindow
         }
     }
 
-
-    private void DrawPortalsInternalConnectionsUnchecked(object sender, RoutedEventArgs e)
-    {
-        _drawPortalsInternalConnections = false;
-        DeletePortalInternalConnectionsDrawn();
-    }
-
-    private void DrawPortalsExternalConnectionsChecked(object sender, RoutedEventArgs e)
-    {
-        _drawPortalsExternalConnections = true;
-        DrawPortalExternalConnections();
-    }
-
-    private void DrawPortalsExternalConnectionsUnchecked(object sender, RoutedEventArgs e)
-    {
-        _drawPortalsExternalConnections = false;
-        DeletePortalExternalConnectionsDrawn();
-    }
-
     private void DeletePortalExternalConnectionsDrawn()
     {
         foreach (var portalConnection in _portalExternalConnections)
@@ -911,69 +948,6 @@ public partial class MainWindow
         _portalInternalConnections.Clear();
     }
 
-    private void Selector_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        ResetPathUi();
+    #endregion
 
-        _vm.FindPath();
-
-        DrawPathUi(_vm.path.ToArray(), _vm.selectedAlgorithm.Brush);
-        DrawPathUi(_vm.otherPath.ToArray(), Brushes.Gray, 0.4);
-    }
-
-    private void ChangePathToggleButton_OnChecked(object sender, RoutedEventArgs e)
-    {
-        ChangeSelection(Visibility.Hidden, null);
-    }
-
-    private void ChangeCellBorderClicked(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is not Image image || image.Source == null || _vm.currentSelectedCell == null) return;
-
-        Point clickPosition = e.GetPosition(image);
-
-        if (image.Source is not BitmapSource bitmapSource) return;
-
-        if (_vm.calcPortals) return;
-        _vm.calcPortals = true;
-
-        double xRatio = bitmapSource.PixelWidth / image.ActualWidth;
-        double yRatio = bitmapSource.PixelHeight / image.ActualHeight;
-
-        int pixelX = (int)(clickPosition.X * xRatio);
-        int pixelY = (int)(clickPosition.Y * yRatio);
-
-        for (int i = 0; i < _bordersInCell.Count; i++)
-        {
-            if (!_bordersInCell[i].Contains(new Point(pixelX, pixelY))) continue;
-            var dir = DirectionsVector.AllDirections[i];
-            int y = _vm.currentSelectedCell!.Position.y + dir.y;
-            int x = _vm.currentSelectedCell!.Position.x + dir.x;
-            if (x < 0 || x >= MapSizeX || y < 0 || y >= MapSizeY) break;
-
-            byte direction = (byte)(1 << i);
-            //If the bit is set (equal to direction), XOR will clear it.
-            //If the bit is not set, XOR will set it.
-            _vm.currentSelectedCell.Connections = (byte)(_vm.currentSelectedCell.Connections ^ direction);
-
-            ref var otherCell = ref _vm.map[y * CorrectedMapSizeX + x];
-            otherCell.Connections = (byte)(otherCell.Connections ^ Cell.RotateLeft(direction, 4));
-            _mapUi[otherCell.Position.y, otherCell.Position.x].Source = GetCellColor(otherCell);
-
-
-            _vm.currentSelectedCellSource = GetCellColor(_vm.currentSelectedCell);
-            _mapUi[_vm.currentSelectedCell.Position.y, _vm.currentSelectedCell.Position.x].Source =
-                GetCellColor(_vm.currentSelectedCell);
-            CalculateChunksToUpdate(_vm.currentSelectedCell);
-            break;
-        }
-
-        _vm.calcPortals = false;
-    }
-
-    private void Integer(object sender, TextCompositionEventArgs e)
-    {
-        e.Handled = !e.Text.All(char.IsNumber);
-        base.OnPreviewTextInput(e);
-    }
 }

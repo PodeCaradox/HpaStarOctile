@@ -1,9 +1,7 @@
-﻿using HpaStarPathfinding.model.map;
+﻿namespace HpaStarPathfinding.model.pathfinding;
 
-namespace HpaStarPathfinding.model.pathfinding;
-
-public class ChunkDirty(List<Directions> directionsDirty, bool changed)
+public class ChunkDirty(bool changed)
 {
-    private readonly List<Directions> DirectionsDirty = directionsDirty;
-    private readonly bool ChunkHasCellChanges = changed;
+    public readonly bool[] DirectionDirty= [false, false, false, false];
+    public bool ChunkHasCellChanges = changed;
 }
