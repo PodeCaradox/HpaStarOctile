@@ -16,14 +16,14 @@ public class MainWindowViewModel: ViewModelBase
     public static int multipliedCellSize => CellSize * 4;
 
     //Map config MapSize/ChunkSize should have no Remains  could be checked with modulo in future to handle the exception
-    public const int ChunkSize = 16;
+    public const int ChunkSize = 10;
     public const int CellsInChunk = ChunkSize * ChunkSize;
     public const int MaxPortalsInChunk = ChunkSize * 4;//for each direction: 4 = Enum.GetValues(typeof(Directions)).Length
 
     #region Propertys UI
 
-    public static int MapSizeX { get; set; } = 50;
-    public static int MapSizeY { get; set; } = 40;
+    public static int MapSizeX { get; set; } = 30;
+    public static int MapSizeY { get; set; } = 30;
     public static int CorrectedMapSizeX { get; set; } = MapSizeX + ChunkSize - MapSizeX % ChunkSize;
     public static int CorrectedMapSizeY { get; set; } = MapSizeY +  ChunkSize - MapSizeY % ChunkSize;
     public static int ChunkMapSizeX { get; set; } = CorrectedMapSizeX / ChunkSize;

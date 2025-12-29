@@ -538,7 +538,7 @@ public partial class MainWindow
             ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
             if (keyOtherPortal == -1) break;
 
-            var otherPortal = _vm.Portals[keyOtherPortal]!;
+            var otherPortal = _vm.Portals[keyOtherPortal];
             var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
             var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
             Line line = new Line
@@ -649,26 +649,16 @@ public partial class MainWindow
             DeletePortalsOnCanvas(chunk);
         }
 
-        foreach (var key in _dirtyChunks)
+        Parallel.ForEach(_dirtyChunks, chunkId =>
         {
-            Chunk.InitPortalsInChunk(ref _vm.map, ref _vm.Portals, key);
-        }
-        
-        // var loop = Parallel.For(0, _dirtyChunks.Count, chunkId =>
-        // {
-        //     Chunk.InitPortalsInChunk(ref _vm.map, ref _vm.Portals, chunkId);
-        // });
-        // Console.WriteLine("tessst " + _dirtyChunks.Count);
-        // while (!loop.IsCompleted)
-        // {
-        //     Console.WriteLine("Not Finished");
-        // }
-            
+            Chunk.InitPortalsInChunk(ref _vm.map, ref _vm.Portals, chunkId);
+        });
+       
         foreach (var chunkId in _dirtyChunks)
         {
             CreatePortalsOnCanvas(chunkId);
         }
-
+        
         DeletePortalInternalConnectionsDrawn();
         DeletePortalExternalConnectionsDrawn();
         DrawPortalInternalConnections();
@@ -818,7 +808,7 @@ public partial class MainWindow
             {
                 ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
 
-                var otherPortal = _vm.Portals[keyOtherPortal]!;
+                var otherPortal = _vm.Portals[keyOtherPortal];
                 var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
                 Vector2D point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
 

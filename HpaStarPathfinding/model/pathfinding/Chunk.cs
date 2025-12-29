@@ -533,7 +533,6 @@ public class Chunk
         int centerPos = portalPos + offsetStart + (portalSize - offsetEnd - offsetStart) / 2;
         int key = Portal.GeneratePortalKey(chunkId, centerPos, dir);
         portals[key] ??= new Portal();
-
         return key;
     }
 
