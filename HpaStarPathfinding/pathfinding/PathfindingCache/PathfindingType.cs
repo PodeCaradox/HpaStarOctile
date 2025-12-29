@@ -1,4 +1,4 @@
-﻿namespace HpaStarPathfinding.model.PathfindingCache;
+﻿namespace HpaStarPathfinding.pathfinding.PathfindingCache;
 
 public enum PathfindingType
 {

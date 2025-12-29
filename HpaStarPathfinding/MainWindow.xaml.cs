@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -164,7 +163,7 @@ public partial class MainWindow
         _portals = new Dictionary<int, (Rectangle, Rectangle)>();
         Parallel.For(0, _vm.chunks.Length, key =>
         {
-            Chunk.RebuildAllPortalsInChunk(_vm.map, ref _vm.Portals, key);
+            Chunk.InitPortalsInChunk(ref _vm.map, ref _vm.Portals, key);
         });
 
         UpdatePortalsOnCanvas();
@@ -398,7 +397,7 @@ public partial class MainWindow
         }
         else if (e.RightButton == MouseButtonState.Pressed)
         {
-            SelectCell(cell!);
+            SelectCell(cell);
         }
 
         e.Handled = true;
@@ -598,7 +597,7 @@ public partial class MainWindow
                 || pos.y >= ChunkMapSizeY
                 || pos.x < 0
                 || pos.y < 0) continue;
-            
+            //TODO diagonal need one side more from a chunk changes
             //check for tile here
             _dirtyChunks.Add(pos.x + pos.y * ChunkMapSizeX);
         }
@@ -649,12 +648,21 @@ public partial class MainWindow
         {
             DeletePortalsOnCanvas(chunk);
         }
-        
-        //TODO parallel?
-        foreach (var chunkId in _dirtyChunks)
+
+        foreach (var key in _dirtyChunks)
         {
-            Chunk.RebuildAllPortalsInChunk(_vm.map, ref _vm.Portals, chunkId);
+            Chunk.InitPortalsInChunk(ref _vm.map, ref _vm.Portals, key);
         }
+        
+        // var loop = Parallel.For(0, _dirtyChunks.Count, chunkId =>
+        // {
+        //     Chunk.InitPortalsInChunk(ref _vm.map, ref _vm.Portals, chunkId);
+        // });
+        // Console.WriteLine("tessst " + _dirtyChunks.Count);
+        // while (!loop.IsCompleted)
+        // {
+        //     Console.WriteLine("Not Finished");
+        // }
             
         foreach (var chunkId in _dirtyChunks)
         {

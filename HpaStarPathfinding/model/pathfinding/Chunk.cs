@@ -1,7 +1,7 @@
 ﻿using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.pathfinding;
-using static HpaStarPathfinding.model.pathfinding.DirectionsAsByte;
+using static HpaStarPathfinding.model.map.DirectionsAsByte;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
 namespace HpaStarPathfinding.model.pathfinding;
@@ -60,10 +60,7 @@ public class Chunk
 
     private static int OffsetChunkByY = MaxPortalsInChunk * ChunkMapSizeX;
     private static int OffsetChunkByX = MaxPortalsInChunk;
-
-    //public byte ClearChunk;// all tiles are connected flood fill.
-
-
+    
     private static int[] OppositePortalKeyOffsets = []; 
 
     private static int[] DiagonalPortalKeyOffsets = []; 
@@ -97,10 +94,10 @@ public class Chunk
             costs.Add(new CostHolder(portalKey, BFS.BfsFromStartPosWithRegionFill(cells, portal.CenterPos, portalKey)));
         }
 
-        UpdateConnectionForUnchangedPortals(portals, startIndex, portalHolders, firstPortalKey, start, end, costs);
+        UpdateConnectionForUnchangedPortals(portals, 0, startIndex, portalHolders, firstPortalKey, start, end, costs);
+        UpdateConnectionForUnchangedPortals(portals, startIndex + costs.Count, portalHolders.Count, portalHolders, firstPortalKey, start, end, costs);
         CreateConnectionForNewPortals(portals, costs, firstPortalKey, portalHolders);
-        UpdateConnectionForUnchangedPortals(portals, startIndex + costs.Count, portalHolders, firstPortalKey, start, end, costs);
-    }
+            }
 
     private static void CreateConnectionForNewPortals(Portal?[] portals, List<CostHolder> costs, int firstPortalKey, List<byte> portalKeys)
     {
@@ -121,10 +118,10 @@ public class Chunk
         }
     }
 
-    private static void UpdateConnectionForUnchangedPortals(Portal?[] portals, int startIndex, List<byte> portalHolders, int firstPortalKey,
+    private static void UpdateConnectionForUnchangedPortals(Portal?[] portals, int startIndex, int endIndex, List<byte> portalHolders, int firstPortalKey,
         int start, int end, List<CostHolder> costs)
     {
-        for (int i = 0; i < startIndex; i++)
+        for (int i = startIndex; i < endIndex; i++)
         {
             var intPortalKey = portalHolders[i];
             int portalKey = firstPortalKey + intPortalKey;
@@ -243,11 +240,11 @@ public class Chunk
         return key;
     }
 
-    public static void RebuildAllPortalsInChunk(Cell[] cells, ref Portal?[] portals, int chunkId)
+    public static void InitPortalsInChunk(ref Cell[] cells, ref Portal?[] portals, int chunkId)
     {
         ResetRegions(cells, chunkId);
         foreach (var direction in Enum.GetValues<Directions>())
-        { //only rebuild the portal direction but connect all portals new, or dont rebuild portals and only reconnect.
+        { 
             UpdateChunkPortalsInDirection(direction, cells, ref portals, chunkId);
         }
         ConnectInternalPortalsAllDir(cells, ref portals, chunkId);
@@ -261,7 +258,6 @@ public class Chunk
     
     public static void RebuildChunkPortalsInDirectionNoChangesInChunk(Cell[] cells, ref Portal?[] portals, Directions direction, int chunkId)
     {
-        //TODO diagonal need one side more from a chunk changes
         ResetRegionsInDirection(portals, cells, chunkId, direction);
         UpdateChunkPortalsInDirection(direction, cells, ref portals, chunkId);
         ConnectInternalPortalsInDir(cells, ref portals, direction, chunkId);

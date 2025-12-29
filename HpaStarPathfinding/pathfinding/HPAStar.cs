@@ -1,13 +1,20 @@
 ﻿using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
-using HpaStarPathfinding.model.pathfinding.PathfindingCellTypes;
+using HpaStarPathfinding.pathfinding.PathfindingCellTypes;
+using HpaStarPathfinding.utils;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
 namespace HpaStarPathfinding.pathfinding;
 
 public static class HpaStar
 {
+    
+    private class NeighbourPortal(int portalKey, int cost)
+    {
+        public readonly int PortalKey = portalKey;
+        public readonly int Cost = cost;
+    }
         
     public static List<int> FindPath(Cell[] grid, Portal?[] portals, Vector2D start, Vector2D end, byte regionPortalStart, byte regionPortalEnd)
     {
@@ -97,13 +104,13 @@ public static class HpaStar
         }
     }
     
-    private static List<PortalNode> FindPortalNodes(Portal?[] portals, Cell[] grid, Vector2D start, byte region)
+    private static List<NeighbourPortal> FindPortalNodes(Portal?[] portals, Cell[] grid, Vector2D start, byte region)
     {              
         int chunkId = start.x / ChunkSize + ChunkMapSizeX * (start.y / ChunkSize);
         ushort[] costFields = BFS.BfsFromStartPos(grid, start);
         int firstPossiblePortal = Portal.GeneratePortalKey(chunkId, 0, 0);
             
-        List<PortalNode> nodes = [];
+        List<NeighbourPortal> nodes = [];
         var portal = AddPortal(portals, firstPossiblePortal, region, costFields, nodes);
         for (int j = 0; j < portal.InternalPortalCount; j++)
         {
@@ -114,11 +121,12 @@ public static class HpaStar
     }
 
     private static Portal AddPortal(Portal?[] portals, int firstPossiblePortal, byte portalKey,
-        ushort[] costFields, List<PortalNode> nodes)
+        ushort[] costFields, List<NeighbourPortal> nodes)
     {
-        ref var portal = ref portals[firstPossiblePortal + portalKey]!;
+        int key = firstPossiblePortal + portalKey;
+        ref var portal = ref portals[key]!;
         var cost = BFS.GetCostForPath(costFields, portal.CenterPos);
-        nodes.Add(new PortalNode(firstPossiblePortal + portalKey, cost));
+        nodes.Add(new NeighbourPortal(key, cost));
         return portal;
     }
 }

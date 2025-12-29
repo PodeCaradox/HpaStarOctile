@@ -1,7 +1,7 @@
 ﻿using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
-using HpaStarPathfinding.model.pathfinding;
-using HpaStarPathfinding.model.pathfinding.PathfindingCellTypes;
+using HpaStarPathfinding.pathfinding.PathfindingCellTypes;
+using HpaStarPathfinding.utils;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
 namespace HpaStarPathfinding.pathfinding;

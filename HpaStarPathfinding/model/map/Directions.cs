@@ -1,6 +1,6 @@
 ﻿using HpaStarPathfinding.model.math;
 
-namespace HpaStarPathfinding.model.pathfinding;
+namespace HpaStarPathfinding.model.map;
 
 public enum Directions
 {

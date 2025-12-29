@@ -1,6 +1,5 @@
 ﻿using HpaStarPathfinding.model.math;
-using HpaStarPathfinding.model.pathfinding;
-using static HpaStarPathfinding.model.pathfinding.DirectionsAsByte;
+using static HpaStarPathfinding.model.map.DirectionsAsByte;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
 namespace HpaStarPathfinding.model.map;

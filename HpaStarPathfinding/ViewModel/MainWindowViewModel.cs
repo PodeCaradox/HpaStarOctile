@@ -2,10 +2,10 @@
 using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
-using HpaStarPathfinding.model.PathfindingCache;
-using HpaStarPathfinding.model.PathfindingCache.PathfindingResultTypes;
 using HpaStarPathfinding.model.ui;
 using HpaStarPathfinding.pathfinding;
+using HpaStarPathfinding.pathfinding.PathfindingCache;
+using HpaStarPathfinding.pathfinding.PathfindingCache.PathfindingResultTypes;
 
 namespace HpaStarPathfinding.ViewModel;
 
@@ -169,18 +169,7 @@ public class MainWindowViewModel: ViewModelBase
         }
     }
         
-    private Cell[] _map = [];
-
-    public Cell[] map
-    {
-        get => _map;
-        private set
-        {
-            if (value == _map) return;
-            _map = value;
-            OnPropertyChanged();
-        }
-    }
+    public Cell[] map = [];
         
     public Portal?[] Portals = [];
         
@@ -243,7 +232,7 @@ public class MainWindowViewModel: ViewModelBase
 
     public bool PathPointIsWall(Vector2D vector2D)
     {
-        return _map[vector2D.y  * CorrectedMapSizeX + vector2D.x].Connections == DirectionsAsByte.NOT_WALKABLE;
+        return map[vector2D.y  * CorrectedMapSizeX + vector2D.x].Connections == DirectionsAsByte.NOT_WALKABLE;
     }
 
     public void FindPath()
@@ -253,26 +242,26 @@ public class MainWindowViewModel: ViewModelBase
 
         if (_selectedAlgorithm == Algorithm.AStar)
         {
-            path = AStar.FindPath(_map, _pathStart!, _pathEnd!);
+            path = AStar.FindPath(map, _pathStart!, _pathEnd!);
             otherPath = HpaStarFindPath(_pathStart!, _pathEnd!);
         }
         else if (_selectedAlgorithm == Algorithm.HPAStar)
         {
             path = HpaStarFindPath(_pathStart!, _pathEnd!);
-            otherPath = AStar.FindPath(_map, _pathStart!, _pathEnd!);
+            otherPath = AStar.FindPath(map, _pathStart!, _pathEnd!);
         }
     }
 
     private List<Vector2D> HpaStarFindPath(Vector2D start, Vector2D end)
     {
-        PathfindingResult pathfindingResult = PathFindingManager.GetPath(_map, Portals, start, end);
+        PathfindingResult pathfindingResult = PathFindingManager.GetPath(map, Portals, start, end);
         switch (pathfindingResult.Type)
         {
             case PathfindingType.NoPath: return [];
             case PathfindingType.HighLevelPath:
             {
                 var pathAsPortals = PathFindingManager.GetNextPath((pathfindingResult as HighLevelPathResult)!);
-                return PathFindingManager.PortalsToPath(_map, Portals, start, end, pathAsPortals);
+                return PathFindingManager.PortalsToPath(map, Portals, start, end, pathAsPortals!);
             }
             case PathfindingType.ShortPath:
             {

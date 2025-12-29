@@ -1,6 +1,5 @@
 ﻿using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
-using HpaStarPathfinding.model.pathfinding;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
 namespace HpaStarPathfinding.pathfinding;
@@ -113,7 +112,7 @@ public static class BFS
             int newX = posX + dir.x;
             int newY = posY + dir.y;
             if (newX is < 0 or >= ChunkSize || newY is < 0 or >= ChunkSize || cell.Region != regionKey) continue;
-            var pos = cell.Position + dir;;
+            var pos = cell.Position + dir;
             neighbours.Add(pos);
         }
 

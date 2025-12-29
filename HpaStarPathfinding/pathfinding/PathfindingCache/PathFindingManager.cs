@@ -1,11 +1,10 @@
 ﻿using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
-using HpaStarPathfinding.model.PathfindingCache.PathfindingResultTypes;
-using HpaStarPathfinding.pathfinding;
+using HpaStarPathfinding.pathfinding.PathfindingCache.PathfindingResultTypes;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
-namespace HpaStarPathfinding.model.PathfindingCache;
+namespace HpaStarPathfinding.pathfinding.PathfindingCache;
 
 public static class PathFindingManager
 {

@@ -1,0 +1,3 @@
+﻿namespace HpaStarPathfinding.pathfinding.PathfindingCache.PathfindingResultTypes;
+
+public record PathfindingResult(PathfindingType Type);

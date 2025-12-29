@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
-using HpaStarPathfinding.model.pathfinding.PathfindingCellTypes;
+using HpaStarPathfinding.pathfinding.PathfindingCellTypes;
 
-namespace HpaStarPathfinding.model.pathfinding;
+namespace HpaStarPathfinding.utils;
 
 /// <summary>
 ///     An implementation of a min-Priority Queue using a heap.  Has O(1) .Contains()!

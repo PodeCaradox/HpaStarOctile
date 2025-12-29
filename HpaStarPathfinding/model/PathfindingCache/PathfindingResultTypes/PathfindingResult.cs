@@ -1,3 +1,0 @@
-﻿namespace HpaStarPathfinding.model.PathfindingCache.PathfindingResultTypes;
-
-public record PathfindingResult(PathfindingType Type);

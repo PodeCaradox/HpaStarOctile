@@ -1,4 +1,5 @@
-﻿using HpaStarPathfinding.model.math;
+﻿using HpaStarPathfinding.model.map;
+using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.ViewModel;
 
 namespace HpaStarPathfinding.model.pathfinding;

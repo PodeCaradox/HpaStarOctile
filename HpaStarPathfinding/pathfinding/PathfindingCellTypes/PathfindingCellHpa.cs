@@ -1,4 +1,4 @@
-﻿namespace HpaStarPathfinding.model.pathfinding.PathfindingCellTypes;
+﻿namespace HpaStarPathfinding.pathfinding.PathfindingCellTypes;
 
 public class PathfindingCellHpa(int portalKey) : PathfindingCell
 {
