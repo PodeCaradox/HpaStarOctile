@@ -15,16 +15,16 @@ public class MainWindowViewModel: ViewModelBase
     public const int CellSize = 20;
     public static int multipliedCellSize => CellSize * 4;
 
-    public const int ChunkSize = 16;
+    public const int ChunkSize = 10;
     public const int CellsInChunk = ChunkSize * ChunkSize;
     public const int MaxPortalsInChunk = ChunkSize * 4;//for each direction: 4 = Enum.GetValues(typeof(Directions)).Length
 
     #region Propertys UI
 
-    public static int MapSizeX { get; set; } = 30;
-    public static int MapSizeY { get; set; } = 30;
-    public static int CorrectedMapSizeX { get; set; } = MapSizeX + ChunkSize - MapSizeX % ChunkSize;
-    public static int CorrectedMapSizeY { get; set; } = MapSizeY +  ChunkSize - MapSizeY % ChunkSize;
+    public static int MapSizeX { get; set; } = 20;
+    public static int MapSizeY { get; set; } = 20;
+    public static int CorrectedMapSizeX { get; set; } = (MapSizeX + ChunkSize - 1) / ChunkSize * ChunkSize;
+    public static int CorrectedMapSizeY { get; set; } = (MapSizeY + ChunkSize - 1) / ChunkSize * ChunkSize;
     public static int ChunkMapSizeX { get; set; } = CorrectedMapSizeX / ChunkSize;
     public static int ChunkMapSizeY { get; set; } = CorrectedMapSizeY / ChunkSize;
         

@@ -53,8 +53,7 @@ public class Portal
 
     public void AddExternalConnection(int externalKey)
     {
-        ExternalPortalConnections[ExternalPortalCount] = externalKey;
-        ExternalPortalCount++;
+        ExternalPortalConnections[ExternalPortalCount++] = externalKey;
     }
         
     // public static Vector2D PortalKeyToWorldPos(int key)

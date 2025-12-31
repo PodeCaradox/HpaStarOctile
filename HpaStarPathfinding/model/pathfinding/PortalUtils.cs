@@ -17,13 +17,34 @@ public static class PortalUtils
     private const byte NW_W_SW = NW | W | SW;
     private const byte S_SW = S | SW;
     private static readonly Vector2D[] DirectionsVectorArray = [DirectionsVector.N, DirectionsVector.E, DirectionsVector.S, DirectionsVector.W];
+    private static int OffsetChunkByY = MaxPortalsInChunk * ChunkMapSizeX;
+    private static int OffsetChunkByX = MaxPortalsInChunk;
+    public static int[] OppositePortalKeyOffsets = []; 
+    private static int[] DiagonalPortalKeyOffsets = []; 
+    private static int[] DiagonalSpecialPortalKeyOffsets = []; 
+    
+    private static Vector2D[] StartCellOffset = [new(0, 0), new(ChunkSize - 1, 0), new(0, ChunkSize - 1), new(0, 0)];
+    private static int[] PortalDiagonalPosOffset = [0, 0, ChunkSize - 1, ChunkSize - 1]; 
+    private static readonly Vector2D[] SteppingInDirVectorArray = [DirectionsVector.E, DirectionsVector.S, DirectionsVector.E, DirectionsVector.S];
+    private static readonly byte[][] DirToCheckStraight = [
+        [NW_N_NE, N, E_NE, NW, W, NE, E_SE, E, S],
+        [NE_E_SE, E, S_SE, NE, N, SE, S_SW, S, W],
+        [SW_S_SE, S, E_SE, SW, W, SE, E_NE, E, N],
+        [NW_W_SW, W, S_SW, NW, N, SW, S_SE, S, E]
+    ];
+    private static readonly byte[][] DirToCheckDiagonal = [
+        [NW, N, W],
+        [NE, E, N],
+        [SE, S, E],
+        [SW, W, S]
+    ];
     
     public static void InitChunkValues(int mapX, int mapY)
     {
         MapSizeX = mapX;
         MapSizeY = mapY;
-        CorrectedMapSizeX = MapSizeX + ChunkSize - MapSizeX % ChunkSize;
-        CorrectedMapSizeY = MapSizeY + ChunkSize - MapSizeY % ChunkSize;
+        CorrectedMapSizeX = (MapSizeX + ChunkSize - 1) / ChunkSize * ChunkSize;
+        CorrectedMapSizeY = (MapSizeY + ChunkSize - 1) / ChunkSize * ChunkSize;
         ChunkMapSizeX = CorrectedMapSizeX / ChunkSize;
         ChunkMapSizeY = CorrectedMapSizeY / ChunkSize;
         OffsetChunkByY = MaxPortalsInChunk * ChunkMapSizeX;
@@ -51,16 +72,21 @@ public static class PortalUtils
             OffsetChunkByY + OffsetChunkByX - (ChunkSize * 3 - 1), //SOUTH //offset inside the chunk from bottom right is 29 -> 0 to top left
             OffsetChunkByY - OffsetChunkByX - (ChunkSize * 3 - 1) //WEST //offset inside the chunk from bottom left is 39 -> 10 to top right
         ];
+        
+        StartCellOffset = [new Vector2D(0,0), new Vector2D(ChunkSize - 1,0), new Vector2D(0,ChunkSize - 1), new Vector2D(0,0)];
+        PortalDiagonalPosOffset = [0, 0, ChunkSize - 1, ChunkSize - 1]; 
     }
-
-    private static int OffsetChunkByY = MaxPortalsInChunk * ChunkMapSizeX;
-    private static int OffsetChunkByX = MaxPortalsInChunk;
     
-    private static int[] OppositePortalKeyOffsets = []; 
-
-    private static int[] DiagonalPortalKeyOffsets = []; 
-
-    private static int[] DiagonalSpecialPortalKeyOffsets = []; 
+    public static void ConnectInternalPortalsInDiagonalDir(Cell[] cells, ref Portal?[] portals, Directions direction, int chunkId, int start, int end)
+    {
+        List<byte> portalHolders = [];
+        int firstPortalKey = GetAllPortalsInChunkAndFirstPortalKey(portals, chunkId, portalHolders);
+        int startIndex = 0;
+        List<CostHolder> costs = GetCostsForNewPortals(cells, portals, portalHolders, start, ref startIndex, end, firstPortalKey);
+        UpdateConnectionForUnchangedPortals(cells,portals, 0, startIndex, portalHolders, firstPortalKey, start, end, costs);
+        CreateConnectionForNewPortals(portals, costs, firstPortalKey, portalHolders);
+        UpdateConnectionForUnchangedPortals(cells, portals, startIndex + costs.Count, portalHolders.Count, portalHolders, firstPortalKey, start, end, costs);
+    }
     
     public static void ConnectInternalPortalsInDir(Cell[] cells, ref Portal?[] portals, Directions direction, int chunkId)
     {
@@ -68,8 +94,17 @@ public static class PortalUtils
         int firstPortalKey = GetAllPortalsInChunkAndFirstPortalKey(portals, chunkId, portalHolders);
         int start = (int)direction * ChunkSize;
         int end = start + ChunkSize;
-        List<CostHolder> costs = [];
         int startIndex = 0;
+        List<CostHolder> costs = GetCostsForNewPortals(cells, portals, portalHolders, start, ref startIndex, end, firstPortalKey);
+        UpdateConnectionForUnchangedPortals(cells,portals, 0, startIndex, portalHolders, firstPortalKey, start, end, costs);
+        CreateConnectionForNewPortals(portals, costs, firstPortalKey, portalHolders);
+        UpdateConnectionForUnchangedPortals(cells, portals, startIndex + costs.Count, portalHolders.Count, portalHolders, firstPortalKey, start, end, costs);
+    }
+
+    private static List<CostHolder> GetCostsForNewPortals(Cell[] cells, Portal?[] portals, List<byte> portalHolders, 
+        int start, ref int startIndex, int end, int firstPortalKey)
+    {
+        List<CostHolder> costs = [];
         foreach (var portalKey in portalHolders)
         {
             if (portalKey < start)
@@ -87,10 +122,8 @@ public static class PortalUtils
             costs.Add(new CostHolder(portalKey, BFS.BfsFromStartPosWithRegionFill(cells, portal.CenterPos, portalKey)));
         }
 
-        UpdateConnectionForUnchangedPortals(portals, 0, startIndex, portalHolders, firstPortalKey, start, end, costs);
-        UpdateConnectionForUnchangedPortals(portals, startIndex + costs.Count, portalHolders.Count, portalHolders, firstPortalKey, start, end, costs);
-        CreateConnectionForNewPortals(portals, costs, firstPortalKey, portalHolders);
-            }
+        return costs;
+    }
 
     private static void CreateConnectionForNewPortals(Portal?[] portals, List<CostHolder> costs, int firstPortalKey, List<byte> portalKeys)
     {
@@ -111,26 +144,29 @@ public static class PortalUtils
         }
     }
 
-    private static void UpdateConnectionForUnchangedPortals(Portal?[] portals, int startIndex, int endIndex, List<byte> portalHolders, int firstPortalKey,
+    private static void UpdateConnectionForUnchangedPortals(Cell[] cells, Portal?[] portals, int startIndex, int endIndex, List<byte> portalHolders, int firstPortalKey,
         int start, int end, List<CostHolder> costs)
     {
         for (int i = startIndex; i < endIndex; i++)
         {
             var intPortalKey = portalHolders[i];
             int portalKey = firstPortalKey + intPortalKey;
-            var newConnections = portals[portalKey]!.InternalPortalConnections;
-            var oldConnections = (Connection[])portals[portalKey]!.InternalPortalConnections.Clone();
+            var portal = portals[portalKey]!;
+            
+            CheckRegion(cells, portal);
+            var newConnections = portal.InternalPortalConnections;
+            var oldConnections = (Connection[])portal.InternalPortalConnections.Clone();
             int counter = 0;
-            foreach (var connection in oldConnections)
+
+            for (int j = 0; j < portal.InternalPortalCount; j++)
             {
-                if (connection.portalKey >= start)
+                if (portal.InternalPortalConnections[j].portalKey >= start)
                     break;
-
-                newConnections[counter++] = connection;
+                newConnections[counter++] = portal.InternalPortalConnections[j];
             }
-
+            
             int counterOldList;
-            for (counterOldList = counter; counterOldList < oldConnections.Length; counterOldList++)
+            for (counterOldList = counter; counterOldList < portal.InternalPortalCount; counterOldList++)
             {
                 if (oldConnections[counterOldList].portalKey >= end)
                     break;
@@ -138,19 +174,23 @@ public static class PortalUtils
 
             foreach (var costHolder in costs)
             {
-                int otherPortalKey = firstPortalKey + intPortalKey;
+                int otherPortalKey = firstPortalKey + costHolder.Key;
                 var cost = BFS.GetCostForPath(costHolder.Cost, portals[otherPortalKey]!.CenterPos);
                 if(cost == ushort.MaxValue) continue;
                 newConnections[counter++] = new Connection(costHolder.Key, cost);
             }
 
-            while (counterOldList < portals[portalKey]!.InternalPortalCount)
+            while (counterOldList < portal.InternalPortalCount)
             {
                 newConnections[counter++] = oldConnections[counterOldList++];
             }
-
-            portals[portalKey]!.InternalPortalCount = (byte)counter;
+            portal.InternalPortalCount = (byte)counter;
         }
+    }
+
+    private static void CheckRegion(Cell[] cells, Portal portal)
+    {
+        //TODO CheckRegion
     }
 
     public static void ConnectInternalPortalsAllDir(Cell[] cells, ref Portal?[] portals, int chunkKey)
@@ -207,62 +247,38 @@ public static class PortalUtils
         return key;
     }
     
-    public static void UpdateChunkPortalsInDirection(Cell[] cells, ref Portal?[] portals, Directions dir, int chunkId)
+    public static void UpdateChunkPortalsInDir(Cell[] cells, ref Portal?[] portals, Directions dir, int chunkId)
+    {
+        RemoveDirtyPortals(portals, chunkId, dir);
+        int chunkIdX = chunkId % ChunkMapSizeX;
+        int chunkIdY = chunkId / ChunkMapSizeX;
+        int startX = chunkIdX * ChunkSize + StartCellOffset[(int)dir].x;
+        int startY = chunkIdY * ChunkSize + StartCellOffset[(int)dir].y;
+        byte[] dirToCheck = DirToCheckStraight[(int)dir];
+        Vector2D steppingInDirVector = SteppingInDirVectorArray[(int)dir];
+        TryCreatePortalsInStraightChunkDir(cells, ref portals, chunkId, startX, startY, dir, steppingInDirVector,
+            dirToCheck);
+        
+        byte[] checkDiagonalChunk = DirToCheckDiagonal[(int)dir];
+        int portalDiagonalPosOffset = PortalDiagonalPosOffset[(int)dir];
+        TryCreatePortalInDiagonalChunkDir(cells, ref portals, chunkId, startX, startY, dir, steppingInDirVector,
+             portalDiagonalPosOffset, checkDiagonalChunk);
+    }
+    
+    public static void UpdateChunkPortalsInDirDiagonal(Cell[] cells, ref Portal?[] portals, Directions dir, int chunkId)
     {
         int chunkIdX = chunkId % ChunkMapSizeX;
         int chunkIdY = chunkId / ChunkMapSizeX;
-        RemoveDirtyPortals(portals, chunkId, dir);
-        int startX;
-        int startY;
-        byte[] dirToCheck;
-        Vector2D steppingInDirVector;
-        byte[] checkDiagonalChunk;
-        int portalDiagonalPosOffset;
-        switch (dir)
-        {
-            case Directions.N:
-                startX = chunkIdX * ChunkSize;
-                startY = chunkIdY * ChunkSize;
-                steppingInDirVector = new Vector2D(1, 0);
-                dirToCheck = [NW_N_NE, N, E_NE, NW, W, NE, E_SE, E, S];
-                checkDiagonalChunk = [NW, N, W];
-                portalDiagonalPosOffset = 0;
-                break;
-            case Directions.E:
-                startX = chunkIdX * ChunkSize + ChunkSize - 1;
-                startY = chunkIdY * ChunkSize;
-                steppingInDirVector = new Vector2D(0, 1);
-                dirToCheck = [NE_E_SE, E, S_SE, NE, N, SE, S_SW, S, W];
-                checkDiagonalChunk = [NE, E, N];
-                portalDiagonalPosOffset = 0;
-                break;
-            case Directions.S:
-                startX = chunkIdX * ChunkSize;
-                startY = chunkIdY * ChunkSize + ChunkSize - 1;
-                steppingInDirVector = new Vector2D(1, 0);
-                dirToCheck = [SW_S_SE, S, E_SE, SW, W, SE, E_NE, E, N];
-                checkDiagonalChunk = [SE, S, E];
-                portalDiagonalPosOffset = ChunkSize - 1;
-                break;
-            case Directions.W:
-                startX = chunkIdX * ChunkSize;
-                startY = chunkIdY * ChunkSize;
-                steppingInDirVector = new Vector2D(0, 1);
-                dirToCheck = [NW_W_SW, W, S_SW, NW, N, SW, S_SE, S, E];
-                checkDiagonalChunk = [SW, W, S];
-                portalDiagonalPosOffset = ChunkSize - 1;
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(dir), dir, null);
-        }
-
-        TryCreatePortalsInChunkDirection(cells, ref portals, chunkId, startX, startY, dir, steppingInDirVector,
-            dirToCheck);
-        TryCreatePortalForDiagonalChunk(cells, ref portals, chunkId, startX, startY, dir, steppingInDirVector,
+        int startX = chunkIdX * ChunkSize + StartCellOffset[(int)dir].x;
+        int startY = chunkIdY * ChunkSize + StartCellOffset[(int)dir].y;
+        Vector2D steppingInDirVector = SteppingInDirVectorArray[(int)dir];
+        byte[] checkDiagonalChunk = DirToCheckDiagonal[(int)dir];
+        int portalDiagonalPosOffset = PortalDiagonalPosOffset[(int)dir];
+        TryCreatePortalInDiagonalChunkDir(cells, ref portals, chunkId, startX, startY, dir, steppingInDirVector,
             portalDiagonalPosOffset, checkDiagonalChunk);
     }
 
-    private static void TryCreatePortalForDiagonalChunk(Cell[] cells, ref Portal?[] portals, int chunkId, int startX,
+    private static void TryCreatePortalInDiagonalChunkDir(Cell[] cells, ref Portal?[] portals, int chunkId, int startX,
         int startY, Directions dir,
         Vector2D steppingInDirVector, int portalPos, byte[] checkDiagonalConnection)
     {
@@ -271,6 +287,12 @@ public static class PortalUtils
         ref Cell cell = ref cells[startY * CorrectedMapSizeX + startX];
         Vector2D startPos = new Vector2D(startX, startY);
         int key = Portal.GeneratePortalKey(chunkId, portalPos, dir);
+        CheckDiagonalChunksForConnection(portals, dir, steppingInDirVector, checkDiagonalConnection, cell, key, startPos);
+    }
+
+    private static void CheckDiagonalChunksForConnection(Portal?[] portals, Directions dir, Vector2D steppingInDirVector,
+        byte[] checkDiagonalConnection, Cell cell, int key, Vector2D startPos)
+    {
         //Diagonal Portal Direction NW
         if ((cell.Connections & checkDiagonalConnection[0]) == WALKABLE)
         {
@@ -296,7 +318,7 @@ public static class PortalUtils
         }
     }
 
-    private static void TryCreatePortalsInChunkDirection(Cell[] cells, ref Portal?[] portals, int chunkId, int startX,
+    private static void TryCreatePortalsInStraightChunkDir(Cell[] cells, ref Portal?[] portals, int chunkId, int startX,
         int startY, Directions direction, Vector2D steppingInDirVector,
         byte[] checkDir)
     {

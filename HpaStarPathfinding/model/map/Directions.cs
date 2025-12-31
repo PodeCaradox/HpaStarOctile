@@ -9,6 +9,18 @@ public enum Directions
     S = 2,
     W = 3
 }
+
+public enum DirtyDirections
+{
+    N = 0,
+    NE = 1,
+    E = 2,
+    SE = 3,
+    S = 4,
+    SW = 5,
+    W = 6,
+    NW = 7
+}
     
 public static class DirectionsAsByte
 {
@@ -32,13 +44,13 @@ public static class DirectionsAsByte
 public static class DirectionsVector
 {
     public static readonly Vector2D N = new(0, -1);
-    private static readonly Vector2D NE = new (1, -1);
+    public static readonly Vector2D NE = new (1, -1);
     public static readonly Vector2D E = new (1, 0);
-    private static readonly Vector2D SE = new (1, 1);
+    public static readonly Vector2D SE = new (1, 1);
     public static readonly Vector2D S = new (0, 1);
-    private static readonly Vector2D SW = new (-1, 1);        
+    public static readonly Vector2D SW = new (-1, 1);        
     public static readonly Vector2D W = new (-1, 0);
-    private static readonly Vector2D NW = new (-1, -1);
+    public static readonly Vector2D NW = new (-1, -1);
 
     public static readonly Vector2D[] AllDirections =
     [

@@ -9,8 +9,7 @@ public class Cell(Vector2D pos)
     public readonly Vector2D Position = pos;
     public byte Connections; 
     public byte Region;
-
-
+    
     public void UpdateConnection(Cell[] map)
     {
         for (byte i = 0; i < DirectionsVector.AllDirections.Length; i++)
@@ -44,7 +43,6 @@ public class Cell(Vector2D pos)
             }
         }
     }
-
 
     public override string ToString() => $"[{Position.x},{Position.y}]";
 

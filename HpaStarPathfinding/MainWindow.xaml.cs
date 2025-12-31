@@ -291,21 +291,6 @@ public partial class MainWindow
         DrawPortalInternalConnections();
     }
 
-    private void ChangeSelection(Visibility visibility, Cell? mapCell)
-    {
-        _selectionRectangle.Visibility = visibility;
-        if (mapCell == null)
-        {
-            _vm.currentSelectedCell = null;
-            _vm.currentSelectedCellSource = null;
-        }
-        else
-        {
-            _vm.currentSelectedCell = mapCell;
-            _vm.currentSelectedCellSource = _vm.cellStates[mapCell.Connections];
-        }
-    }
-
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         _vm = (DataContext as MainWindowViewModel)!;
@@ -449,70 +434,6 @@ public partial class MainWindow
         }
     }
 
-    private void RemoveIfNotHovered()
-    {
-        foreach (var line in _hoverPortalConnections)
-        {
-            PathCanvas.Children.Remove(line);
-        }
-
-        _hoverPortalConnections.Clear();
-    }
-
-    private void DrawPortalConnectionsOnHover(int key)
-    {
-        ref var portal = ref _vm.Portals[key];
-        if (portal == null) return;
-
-        int chunkIndexInPortalArray = key / MaxPortalsInChunk * MaxPortalsInChunk;
-        for (int i = 0; i < portal.InternalPortalCount; i++)
-        {
-            ref var connection = ref portal.InternalPortalConnections[i];
-            int keyOtherPortal = chunkIndexInPortalArray + connection.portalKey;
-            var otherPortal = _vm.Portals[keyOtherPortal]!;
-            var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
-            var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
-            Line line = new Line
-            {
-                StrokeThickness = 2,
-                X1 = point1.x,
-                X2 = point2.x,
-                Y1 = point1.y,
-                Y2 = point2.y,
-                Stroke = Brushes.CornflowerBlue,
-                IsHitTestVisible = false,
-                IsManipulationEnabled = false,
-                IsEnabled = false
-            };
-            _hoverPortalConnections.Add(line);
-            PathCanvas.Children.Add(line);
-        }
-
-        for (int i = 0; i < portal.ExternalPortalCount; i++)
-        {
-            ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
-            if (keyOtherPortal == -1) break;
-
-            var otherPortal = _vm.Portals[keyOtherPortal]!;
-            var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
-            var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
-            Line line = new Line
-            {
-                StrokeThickness = 2,
-                X1 = point1.x,
-                X2 = point2.x,
-                Y1 = point1.y,
-                Y2 = point2.y,
-                Stroke = Brushes.CornflowerBlue,
-                IsHitTestVisible = false,
-                IsManipulationEnabled = false,
-                IsEnabled = false
-            };
-            _hoverPortalConnections.Add(line);
-            PathCanvas.Children.Add(line);
-        }
-    }
-
     private void DrawPortalsInternalConnectionsUnchecked(object sender, RoutedEventArgs e)
     {
         _drawPortalsInternalConnections = false;
@@ -600,6 +521,87 @@ public partial class MainWindow
     #endregion
 
     #region Methods
+    
+    
+
+    private void ChangeSelection(Visibility visibility, Cell? mapCell)
+    {
+        _selectionRectangle.Visibility = visibility;
+        if (mapCell == null)
+        {
+            _vm.currentSelectedCell = null;
+            _vm.currentSelectedCellSource = null;
+        }
+        else
+        {
+            _vm.currentSelectedCell = mapCell;
+            _vm.currentSelectedCellSource = _vm.cellStates[mapCell.Connections];
+        }
+    }
+
+    private void RemoveIfNotHovered()
+    {
+        foreach (var line in _hoverPortalConnections)
+        {
+            PathCanvas.Children.Remove(line);
+        }
+
+        _hoverPortalConnections.Clear();
+    }
+
+    private void DrawPortalConnectionsOnHover(int key)
+    {
+        ref var portal = ref _vm.Portals[key];
+        if (portal == null) return;
+
+        int chunkIndexInPortalArray = key / MaxPortalsInChunk * MaxPortalsInChunk;
+        for (int i = 0; i < portal.InternalPortalCount; i++)
+        {
+            ref var connection = ref portal.InternalPortalConnections[i];
+            int keyOtherPortal = chunkIndexInPortalArray + connection.portalKey;
+            var otherPortal = _vm.Portals[keyOtherPortal]!;
+            var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
+            var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
+            Line line = new Line
+            {
+                StrokeThickness = 2,
+                X1 = point1.x,
+                X2 = point2.x,
+                Y1 = point1.y,
+                Y2 = point2.y,
+                Stroke = Brushes.CornflowerBlue,
+                IsHitTestVisible = false,
+                IsManipulationEnabled = false,
+                IsEnabled = false
+            };
+            _hoverPortalConnections.Add(line);
+            PathCanvas.Children.Add(line);
+        }
+
+        for (int i = 0; i < portal.ExternalPortalCount; i++)
+        {
+            ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
+            if (keyOtherPortal == -1) break;
+
+            var otherPortal = _vm.Portals[keyOtherPortal]!;
+            var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
+            var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
+            Line line = new Line
+            {
+                StrokeThickness = 2,
+                X1 = point1.x,
+                X2 = point2.x,
+                Y1 = point1.y,
+                Y2 = point2.y,
+                Stroke = Brushes.CornflowerBlue,
+                IsHitTestVisible = false,
+                IsManipulationEnabled = false,
+                IsEnabled = false
+            };
+            _hoverPortalConnections.Add(line);
+            PathCanvas.Children.Add(line);
+        }
+    }
     
     private void UpdatePortalsOnCanvas()
     {
@@ -702,7 +704,7 @@ public partial class MainWindow
 
     private void CalculateChunksToUpdate(Cell mapCell)
     {
-        Chunk.AddDirtyChunk(ref _dirtyChunks, mapCell.Position);
+        Chunk.CheckWhichChunksAreDirty(ref _dirtyChunks, mapCell.Position);
        
         RebuildTiles();
     }
@@ -749,11 +751,15 @@ public partial class MainWindow
             DeletePortalsOnCanvas(chunk.Key);
         }
 
-        Parallel.ForEach(_dirtyChunks, chunk =>
+        // Parallel.ForEach(_dirtyChunks, chunk =>
+        // {
+        //     Chunk.UpdateDirtyChunk(ref _vm.map, ref _vm.Portals, chunk.Value, chunk.Key);
+        // });
+        
+        foreach (var chunk in _dirtyChunks)
         {
-            var dirtyChunk = chunk.Value;
-            Chunk.UpdateDirtyChunk(ref _vm.map, ref _vm.Portals, dirtyChunk, chunk.Key);
-        });
+            Chunk.UpdateDirtyChunk(ref _vm.map, ref _vm.Portals, chunk.Value, chunk.Key);
+        }
        
         foreach (var chunk in _dirtyChunks)
         {
