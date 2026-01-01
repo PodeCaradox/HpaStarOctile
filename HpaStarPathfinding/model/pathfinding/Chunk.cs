@@ -1,6 +1,5 @@
 ﻿using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
-using HpaStarPathfinding.pathfinding;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
 namespace HpaStarPathfinding.model.pathfinding;
@@ -56,7 +55,6 @@ public class Chunk
     
     private static void RebuildChunkPortalsInDiagonalDirectionNoChangesInChunk(Cell[] cells, ref Portal?[] portals, DirtyDirections dirtyDirections, int chunkId)
     {
-        //Reconnect doesnt work correctly
         int dir = ((int)dirtyDirections / 2 + 1) % 4;
         int side = dir / 2;
         byte portalKeyInternal =  (byte)(ChunkSize * dir + side * (ChunkSize - 1));
@@ -65,7 +63,7 @@ public class Chunk
         {
             PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref portals, (Directions)dir, chunkId);
             if (portals[portalKey] == null) return;
-            PortalUtils.ConnectInternalPortalsInDiagonalDir(cells, ref portals, (Directions)dir, chunkId, portalKeyInternal - 1, portalKeyInternal + 1);
+            PortalUtils.ConnectInternalPortalsInDiagonalDir(cells, ref portals, chunkId, portalKeyInternal - 1, portalKeyInternal + 1);
             return;
         }
         
@@ -85,10 +83,12 @@ public class Chunk
                 portal = dirtyPortal;
                 break;
             }
-
+            PortalUtils.ConnectInternalPortalsInDiagonalDir(cells, ref portals, chunkId, 0, 0);
             return;
         }
         
+        portal = dirtyPortal;
+        portal.ExternalPortalCount = 0;
         for (int i = 0; i < dirtyPortal.ExternalPortalCount; i++)
         {
             var oppositePortalKey = dirtyPortal.ExternalPortalConnections[i];
@@ -139,22 +139,25 @@ public class Chunk
     {
         switch (sideX)
         {
-            case 0 when chunkPos.x + DirectionsVector.W.x >= 0:
+            case 0:
                 chunkDirty.SetBit(DirtyDirections.W);
+                if (chunkPos.x + DirectionsVector.W.x < 0) return;
                 AddDirtyChunk(ref dirtyChunks, DirtyDirections.E, chunkPos + DirectionsVector.W);
                 var pos1 = chunkPos + DirectionsVector.NW;
                 var pos2 = chunkPos + DirectionsVector.SW;
-                CheckDiagonalDirty(ref dirtyChunks, ChunkMapSizeY, sideY, pos1.x, pos2.x, chunkDirty, DirtyDirections.NW,DirtyDirections.SW,
+                CheckDiagonalDirty(ref dirtyChunks, ChunkMapSizeY, sideY, pos1.y, pos2.y, chunkDirty, DirtyDirections.NW,DirtyDirections.SW,
                     DirtyDirections.SE, DirtyDirections.NE, DirtyDirections.SW, DirtyDirections.SE, 
                     pos1, chunkPos + DirectionsVector.N, pos2, chunkPos + DirectionsVector.W);
                 break;
-            case 9 when chunkPos.x + DirectionsVector.E.x < ChunkMapSizeX:
+            case 9:
                 chunkDirty.SetBit(DirtyDirections.E);
+                if (chunkPos.x + DirectionsVector.E.x >= ChunkMapSizeX) return;
                 AddDirtyChunk(ref dirtyChunks, DirtyDirections.W, chunkPos + DirectionsVector.E);
                 pos1 = chunkPos + DirectionsVector.NE;
                 pos2 = chunkPos + DirectionsVector.SE;
-                CheckDiagonalDirty(ref dirtyChunks, ChunkMapSizeY, sideY, pos1.x, pos2.x, chunkDirty, DirtyDirections.NE,DirtyDirections.SE, 
-                    DirtyDirections.SW, DirtyDirections.NW, DirtyDirections.NW, DirtyDirections.NE, 
+                CheckDiagonalDirty(ref dirtyChunks, ChunkMapSizeY, sideY, pos1.y, pos2.y, chunkDirty,
+                    DirtyDirections.NE, DirtyDirections.SE,
+                    DirtyDirections.SW, DirtyDirections.NW, DirtyDirections.NW, DirtyDirections.NE,
                     pos1, chunkPos + DirectionsVector.E, pos2, chunkPos + DirectionsVector.S);
                 break;
         }
@@ -165,8 +168,9 @@ public class Chunk
     {
         switch (sideY)
         {
-            case 0 when chunkPos.y + DirectionsVector.N.y >= 0:
+            case 0:
                 chunkDirty.SetBit(DirtyDirections.N);
+                if (chunkPos.y + DirectionsVector.N.y < 0) return;
                 AddDirtyChunk(ref dirtyChunks, DirtyDirections.S, chunkPos + DirectionsVector.N);
                 var pos1 = chunkPos + DirectionsVector.NW;
                 var pos2 = chunkPos + DirectionsVector.NE;
@@ -174,11 +178,13 @@ public class Chunk
                     DirtyDirections.SE,  DirtyDirections.SW,  DirtyDirections.SW,  DirtyDirections.NW, 
                     pos1, chunkPos + DirectionsVector.N, pos2, chunkPos + DirectionsVector.E);
                 break;
-            case 9 when chunkPos.y + DirectionsVector.S.y < ChunkMapSizeY:
+            case 9:
                 chunkDirty.SetBit(DirtyDirections.S);
+                if (chunkPos.y + DirectionsVector.S.y >= ChunkMapSizeY) return;
                 AddDirtyChunk(ref dirtyChunks, DirtyDirections.N, chunkPos + DirectionsVector.S);
                 pos1 = chunkPos + DirectionsVector.SW;
                 pos2 = chunkPos + DirectionsVector.SE;
+                
                 CheckDiagonalDirty(ref dirtyChunks, ChunkMapSizeX, sideX, pos1.x, pos2.x, chunkDirty, DirtyDirections.SW,DirtyDirections.SE
                     ,DirtyDirections.NE,  DirtyDirections.NW,  DirtyDirections.SE,  DirtyDirections.NE, 
                     pos1, chunkPos + DirectionsVector.W, pos2, chunkPos + DirectionsVector.S);
@@ -194,14 +200,16 @@ public class Chunk
         switch (side)
         {
             case < 2:
+                if (mapPos1 < 0)
+                    break;
                 AddDirtyChunk(ref dirtyChunks, other2, chunkPos2);
-                if (mapPos1 < 0) break;
                 chunkDirty.SetBit(own1);
                 AddDirtyChunk(ref dirtyChunks, other1, chunkPos1);
                 return;
             case > ChunkSize - 2:
+                if (mapPos2 >= chunkMapSize)
+                    break;
                 AddDirtyChunk(ref dirtyChunks, other4, chunkPos4);
-                if (mapPos2 >= chunkMapSize) break;
                 chunkDirty.SetBit(own2);
                 AddDirtyChunk(ref dirtyChunks, other3, chunkPos3);
                 return;

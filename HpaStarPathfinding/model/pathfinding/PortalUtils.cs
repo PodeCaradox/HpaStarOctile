@@ -77,7 +77,7 @@ public static class PortalUtils
         PortalDiagonalPosOffset = [0, 0, ChunkSize - 1, ChunkSize - 1]; 
     }
     
-    public static void ConnectInternalPortalsInDiagonalDir(Cell[] cells, ref Portal?[] portals, Directions direction, int chunkId, int start, int end)
+    public static void ConnectInternalPortalsInDiagonalDir(Cell[] cells, ref Portal?[] portals, int chunkId, int start, int end)
     {
         List<byte> portalHolders = [];
         int firstPortalKey = GetAllPortalsInChunkAndFirstPortalKey(portals, chunkId, portalHolders);
@@ -130,7 +130,7 @@ public static class PortalUtils
         foreach (var costHolder in costs)
         {
             int portalKey = firstPortalKey + costHolder.Key;
-            var connections = portals[portalKey]!.InternalPortalConnections;
+            ref var portal = ref portals[portalKey]!;
             int counter = 0;
             foreach (var intPortalKey in portalKeys)
             {
@@ -138,9 +138,9 @@ public static class PortalUtils
                 int otherPortalKey = firstPortalKey + intPortalKey;
                 var cost = BFS.GetCostForPath(costHolder.Cost, portals[otherPortalKey]!.CenterPos);
                 if(cost == ushort.MaxValue) continue;
-                connections[counter++] = new Connection(costHolder.Key, cost);
+                portal.InternalPortalConnections[counter++] = new Connection(intPortalKey, cost);
             }
-            portals[portalKey]!.InternalPortalCount = (byte)counter;
+            portal.InternalPortalCount = (byte)counter;
         }
     }
 
@@ -153,8 +153,7 @@ public static class PortalUtils
             int portalKey = firstPortalKey + intPortalKey;
             var portal = portals[portalKey]!;
             
-            CheckRegion(cells, portal);
-            var newConnections = portal.InternalPortalConnections;
+            CheckRegion(cells, portal, intPortalKey);
             var oldConnections = (Connection[])portal.InternalPortalConnections.Clone();
             int counter = 0;
 
@@ -162,7 +161,7 @@ public static class PortalUtils
             {
                 if (portal.InternalPortalConnections[j].portalKey >= start)
                     break;
-                newConnections[counter++] = portal.InternalPortalConnections[j];
+                portal.InternalPortalConnections[counter++] = portal.InternalPortalConnections[j];
             }
             
             int counterOldList;
@@ -177,20 +176,22 @@ public static class PortalUtils
                 int otherPortalKey = firstPortalKey + costHolder.Key;
                 var cost = BFS.GetCostForPath(costHolder.Cost, portals[otherPortalKey]!.CenterPos);
                 if(cost == ushort.MaxValue) continue;
-                newConnections[counter++] = new Connection(costHolder.Key, cost);
+                portal.InternalPortalConnections[counter++] = new Connection(costHolder.Key, cost);
             }
 
             while (counterOldList < portal.InternalPortalCount)
             {
-                newConnections[counter++] = oldConnections[counterOldList++];
+                portal.InternalPortalConnections[counter++] = oldConnections[counterOldList++];
             }
             portal.InternalPortalCount = (byte)counter;
         }
     }
 
-    private static void CheckRegion(Cell[] cells, Portal portal)
+    private static void CheckRegion(Cell[] cells, Portal portal, byte intPortalKey)
     {
-        //TODO CheckRegion
+        if (cells[portal.CenterPos.x + portal.CenterPos.y * CorrectedMapSizeX].Region != byte.MaxValue) return;
+        
+        BFS.BfsFromStartPosWithRegionFill(cells, portal.CenterPos, intPortalKey);
     }
 
     public static void ConnectInternalPortalsAllDir(Cell[] cells, ref Portal?[] portals, int chunkKey)
