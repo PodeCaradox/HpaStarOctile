@@ -19,7 +19,7 @@ public class Portal
     public byte Length;
     public byte ExternalPortalCount;
     public byte InternalPortalCount;
-    public readonly int[] ExternalPortalConnections = new int[5]; //diagonal can need 5(portals can be above each other in special cases, only diagonal), straight ones 3
+    public readonly int[] ExternalPortalConnections = new int[4]; //diagonal can need 4(portals can be above each other in special cases, only diagonal), straight ones 3
     public readonly Connection[] InternalPortalConnections = new Connection[MainWindowViewModel.MaxPortalsInChunk - 1];
 
     private void CalcCenterPos(Vector2D startPos, int length, int offsetStart,

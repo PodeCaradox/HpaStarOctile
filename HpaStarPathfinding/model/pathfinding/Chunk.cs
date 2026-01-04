@@ -1,38 +1,48 @@
 ﻿using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
+using HpaStarPathfinding.pathfinding;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
 namespace HpaStarPathfinding.model.pathfinding;
 
 public class Chunk
 {
+    
     public static void UpdateDirtyChunk(ref Cell[] cells, ref Portal?[] portals, ChunkDirty dirtyChunk, int chunkId)
     {
         if (dirtyChunk.ChunkHasCellChanges)
         {
-            for (int i = 0; i < Enum.GetValues<Directions>().Length; i++)
+            
+            //Calculate Straight Ones
+            for (byte i = 0; i < Enum.GetValues<DirtyDirections>().Length; i+=2)
             {
-                if(dirtyChunk.DirectionsDirty >> (i * 2) == 0) continue;
-                PortalUtils.UpdateChunkPortalsInDir(cells, ref portals,(Directions) i, chunkId);
+                if((dirtyChunk.DirectionsDirty & (1 << i)) == 0 ) continue;
+                PortalUtils.UpdateChunkPortalsInDir(cells, ref portals,(Directions) (i / 2), chunkId);
+            }
+            
+            //Calculate Diagonal Ones
+            for (byte i = 1; i < Enum.GetValues<DirtyDirections>().Length; i+=2)
+            {
+                if((dirtyChunk.DirectionsDirty & (1 << i)) == 0 ) continue;
+                PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref portals, (Directions) ((i / 2 + 1) % 4), chunkId);
             }
               
             ConnectAllPortalsInChunkInternal(cells, ref portals, chunkId);
         }
         else
         {
-            //Diagonals needs to be calculated first otherwise there is a problem when we remove the diagonal portal
-            //and this one is the last one, region fill will be messed up :/
-            for (byte i = 1; i < Enum.GetValues<DirtyDirections>().Length; i+=2)
-            {
-                if((dirtyChunk.DirectionsDirty & (1 << i)) == 0 ) continue;
-                RebuildChunkPortalsInDiagonalDirectionNoChangesInChunk(cells, ref portals, (DirtyDirections) i, chunkId);
-            }
-            
             //Calculate Straight Ones
             for (byte i = 0; i < Enum.GetValues<DirtyDirections>().Length; i+=2)
             {
                 if((dirtyChunk.DirectionsDirty & (1 << i)) == 0 ) continue;
                 RebuildChunkPortalsInStraightDirectionNoChangesInChunk(cells, ref portals, (Directions) (i / 2), chunkId);
+            }
+            
+            //Calculate Diagonal Ones
+            for (byte i = 1; i < Enum.GetValues<DirtyDirections>().Length; i+=2)
+            {
+                if((dirtyChunk.DirectionsDirty & (1 << i)) == 0 ) continue;
+                RebuildChunkPortalsInDiagonalDirectionNoChangesInChunk(cells, ref portals, (DirtyDirections) i, chunkId);
             }
         }
     }
@@ -43,6 +53,7 @@ public class Chunk
         foreach (var direction in Enum.GetValues<Directions>())
         { 
             PortalUtils.UpdateChunkPortalsInDir(cells, ref portals, direction, chunkId);
+            PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref portals, direction, chunkId);
         }
         PortalUtils.ConnectInternalPortalsAllDir(cells, ref portals, chunkId);
     }
@@ -63,7 +74,7 @@ public class Chunk
         {
             PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref portals, (Directions)dir, chunkId);
             if (portals[portalKey] == null) return;
-            PortalUtils.ConnectInternalPortalsInDiagonalDir(cells, ref portals, chunkId, portalKeyInternal - 1, portalKeyInternal + 1);
+            PortalUtils.ConnectInternalPortalsInDiagonalDir(cells, ref portals, chunkId, portalKeyInternal);
             return;
         }
         
@@ -71,38 +82,23 @@ public class Chunk
         portals[portalKey] = null;
         PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref portals, (Directions)dir, chunkId);
         ref var portal = ref portals[portalKey];
-        int key = portalKey + PortalUtils.OppositePortalKeyOffsets[dir] + 1 - 2 * side;
         if (portal == null)
         {
-            for (int i = 0; i < dirtyPortal.ExternalPortalCount; i++)
-            {
-                var oppositePortalKey = dirtyPortal.ExternalPortalConnections[i];
-                if(oppositePortalKey != key) continue;
-                dirtyPortal.ExternalPortalConnections[0] = oppositePortalKey;
-                dirtyPortal.ExternalPortalCount = 1;
-                portal = dirtyPortal;
-                break;
-            }
-            PortalUtils.ConnectInternalPortalsInDiagonalDir(cells, ref portals, chunkId, 0, 0);
+            BFS.ResetRegionsForPortal(cells, dirtyPortal.CenterPos, portalKeyInternal);
+            PortalUtils.DisconnectInternalPortalsInDiagonalDir(cells, ref portals, chunkId, portalKeyInternal);
             return;
         }
         
+        Array.Copy(portal.ExternalPortalConnections, 0, dirtyPortal.ExternalPortalConnections, 0 ,portal.ExternalPortalCount);
+        dirtyPortal.ExternalPortalCount = portal.ExternalPortalCount;
         portal = dirtyPortal;
-        portal.ExternalPortalCount = 0;
-        for (int i = 0; i < dirtyPortal.ExternalPortalCount; i++)
-        {
-            var oppositePortalKey = dirtyPortal.ExternalPortalConnections[i];
-            if(oppositePortalKey != key) continue;
-            portal.ExternalPortalConnections[portal.ExternalPortalCount++] = oppositePortalKey;
-            break;
-        }
-            
     }
     
     private static void RebuildChunkPortalsInStraightDirectionNoChangesInChunk(Cell[] cells, ref Portal?[] portals, Directions direction, int chunkId)
     {
         RegionUtils.ResetRegionsInDirection(cells, portals, chunkId, direction);
         PortalUtils.UpdateChunkPortalsInDir(cells, ref portals, direction, chunkId);
+        PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref portals, direction, chunkId);
         PortalUtils.ConnectInternalPortalsInDir(cells, ref portals, direction, chunkId);
     }
     
@@ -140,26 +136,35 @@ public class Chunk
         switch (sideX)
         {
             case 0:
-                chunkDirty.SetBit(DirtyDirections.W);
+                switch (sideY)
+                {
+                    case < 2:
+                        CheckNorthWestDiagonal(ref dirtyChunks, chunkDirty, chunkPos);
+                        break;
+                    case >= ChunkSize - 2:
+                        CheckSouthWestDiagonal(ref dirtyChunks, chunkDirty, chunkPos);
+                        break;
+                }
                 if (chunkPos.x + DirectionsVector.W.x < 0) return;
+                chunkDirty.SetBit(DirtyDirections.W);
+                chunkDirty.SetBit(DirtyDirections.SW);
                 AddDirtyChunk(ref dirtyChunks, DirtyDirections.E, chunkPos + DirectionsVector.W);
-                var pos1 = chunkPos + DirectionsVector.NW;
-                var pos2 = chunkPos + DirectionsVector.SW;
-                CheckDiagonalDirty(ref dirtyChunks, ChunkMapSizeY, sideY, pos1.y, pos2.y, chunkDirty, DirtyDirections.NW,DirtyDirections.SW,
-                    DirtyDirections.SE, DirtyDirections.NE, DirtyDirections.SW, DirtyDirections.SE, 
-                    pos1, chunkPos + DirectionsVector.N, pos2, chunkPos + DirectionsVector.W);
-                break;
+                return;
             case 9:
-                chunkDirty.SetBit(DirtyDirections.E);
+                switch (sideY)
+                {
+                    case < 2:
+                        CheckNorthEastDiagonal(ref dirtyChunks, chunkDirty, chunkPos);
+                        break;
+                    case >= ChunkSize - 2:
+                        CheckSouthEastDiagonal(ref dirtyChunks, chunkDirty, chunkPos);
+                        break;
+                }
                 if (chunkPos.x + DirectionsVector.E.x >= ChunkMapSizeX) return;
+                chunkDirty.SetBit(DirtyDirections.E);
+                chunkDirty.SetBit(DirtyDirections.NE);
                 AddDirtyChunk(ref dirtyChunks, DirtyDirections.W, chunkPos + DirectionsVector.E);
-                pos1 = chunkPos + DirectionsVector.NE;
-                pos2 = chunkPos + DirectionsVector.SE;
-                CheckDiagonalDirty(ref dirtyChunks, ChunkMapSizeY, sideY, pos1.y, pos2.y, chunkDirty,
-                    DirtyDirections.NE, DirtyDirections.SE,
-                    DirtyDirections.SW, DirtyDirections.NW, DirtyDirections.NW, DirtyDirections.NE,
-                    pos1, chunkPos + DirectionsVector.E, pos2, chunkPos + DirectionsVector.S);
-                break;
+                return;
         }
     }
 
@@ -169,51 +174,127 @@ public class Chunk
         switch (sideY)
         {
             case 0:
-                chunkDirty.SetBit(DirtyDirections.N);
+                switch (sideX)
+                {
+                    case < 2:
+                        CheckNorthWestDiagonal(ref dirtyChunks, chunkDirty, chunkPos);
+                        break;
+                    case >= ChunkSize - 2:
+                        CheckNorthEastDiagonal(ref dirtyChunks, chunkDirty, chunkPos);
+                        break;
+                }
                 if (chunkPos.y + DirectionsVector.N.y < 0) return;
+                chunkDirty.SetBit(DirtyDirections.N);
+                chunkDirty.SetBit(DirtyDirections.NW);
                 AddDirtyChunk(ref dirtyChunks, DirtyDirections.S, chunkPos + DirectionsVector.N);
-                var pos1 = chunkPos + DirectionsVector.NW;
-                var pos2 = chunkPos + DirectionsVector.NE;
-                CheckDiagonalDirty(ref dirtyChunks, ChunkMapSizeX, sideX, pos1.x, pos2.x, chunkDirty, DirtyDirections.NW,DirtyDirections.NE,
-                    DirtyDirections.SE,  DirtyDirections.SW,  DirtyDirections.SW,  DirtyDirections.NW, 
-                    pos1, chunkPos + DirectionsVector.N, pos2, chunkPos + DirectionsVector.E);
-                break;
+                return;
             case 9:
-                chunkDirty.SetBit(DirtyDirections.S);
+                switch (sideX)
+                {
+                    case < 2:
+                        CheckSouthWestDiagonal(ref dirtyChunks, chunkDirty, chunkPos);
+                        break;
+                    case >= ChunkSize - 2:
+                        CheckSouthEastDiagonal(ref dirtyChunks, chunkDirty, chunkPos);
+                        break;
+                }
                 if (chunkPos.y + DirectionsVector.S.y >= ChunkMapSizeY) return;
+                chunkDirty.SetBit(DirtyDirections.S);
+                chunkDirty.SetBit(DirtyDirections.SE);
                 AddDirtyChunk(ref dirtyChunks, DirtyDirections.N, chunkPos + DirectionsVector.S);
-                pos1 = chunkPos + DirectionsVector.SW;
-                pos2 = chunkPos + DirectionsVector.SE;
-                
-                CheckDiagonalDirty(ref dirtyChunks, ChunkMapSizeX, sideX, pos1.x, pos2.x, chunkDirty, DirtyDirections.SW,DirtyDirections.SE
-                    ,DirtyDirections.NE,  DirtyDirections.NW,  DirtyDirections.SE,  DirtyDirections.NE, 
-                    pos1, chunkPos + DirectionsVector.W, pos2, chunkPos + DirectionsVector.S);
-                break;
+                return;
+        }
+    }
+    
+    private static void CheckSouthEastDiagonal(ref Dictionary<int, ChunkDirty> dirtyChunks, ChunkDirty chunkDirty, Vector2D chunkPos)
+    {
+        chunkDirty.SetBit(DirtyDirections.SE);
+        var newPos = chunkPos + DirectionsVector.SE;
+        if(newPos.x < ChunkMapSizeX)
+        { 
+            AddDirtyChunk(ref dirtyChunks, DirtyDirections.SE, chunkPos + DirectionsVector.E);
+            
+            if(newPos.y < ChunkMapSizeY) 
+            { 
+                AddDirtyChunk(ref dirtyChunks, DirtyDirections.NW, newPos);
+                AddDirtyChunk(ref dirtyChunks, DirtyDirections.NE, chunkPos + DirectionsVector.S);
+                return;
+            }
+        }
+        
+        if(newPos.y < ChunkMapSizeY)
+        { 
+            AddDirtyChunk(ref dirtyChunks, DirtyDirections.NE, chunkPos + DirectionsVector.S);
+        }
+    }
+    
+    private static void CheckSouthWestDiagonal(ref Dictionary<int, ChunkDirty> dirtyChunks, ChunkDirty chunkDirty, Vector2D chunkPos)
+    {
+        chunkDirty.SetBit(DirtyDirections.SW);
+        var newPos = chunkPos + DirectionsVector.SW;
+        if(newPos.x >= 0)
+        { 
+            AddDirtyChunk(ref dirtyChunks, DirtyDirections.SE, chunkPos + DirectionsVector.W);
+            
+            if(newPos.y < ChunkMapSizeY) 
+            { 
+                AddDirtyChunk(ref dirtyChunks, DirtyDirections.NE, newPos);
+                AddDirtyChunk(ref dirtyChunks, DirtyDirections.NW, chunkPos + DirectionsVector.S);
+                return;
+            }
+        }
+        
+        if(newPos.y < ChunkMapSizeY)
+        { 
+            AddDirtyChunk(ref dirtyChunks, DirtyDirections.NW, chunkPos + DirectionsVector.S);
         }
     }
 
-    private static void CheckDiagonalDirty(ref Dictionary<int, ChunkDirty> dirtyChunks, int chunkMapSize, int side, int mapPos1, int mapPos2,
-        ChunkDirty chunkDirty, DirtyDirections own1, DirtyDirections own2, 
-        DirtyDirections other1, DirtyDirections other2, DirtyDirections other3, DirtyDirections other4,
-        Vector2D chunkPos1, Vector2D chunkPos2, Vector2D chunkPos3, Vector2D chunkPos4)
+    private static void CheckNorthEastDiagonal(ref Dictionary<int, ChunkDirty> dirtyChunks, ChunkDirty chunkDirty, Vector2D chunkPos)
     {
-        switch (side)
-        {
-            case < 2:
-                if (mapPos1 < 0)
-                    break;
-                AddDirtyChunk(ref dirtyChunks, other2, chunkPos2);
-                chunkDirty.SetBit(own1);
-                AddDirtyChunk(ref dirtyChunks, other1, chunkPos1);
+        chunkDirty.SetBit(DirtyDirections.NE);
+        var newPos = chunkPos + DirectionsVector.NE;
+        
+        if(newPos.y >= 0)
+        { 
+            AddDirtyChunk(ref dirtyChunks, DirtyDirections.SE, chunkPos + DirectionsVector.N);
+            
+            if(newPos.x < ChunkMapSizeX) 
+            { 
+                AddDirtyChunk(ref dirtyChunks, DirtyDirections.SW, newPos);
+                AddDirtyChunk(ref dirtyChunks, DirtyDirections.NW, chunkPos + DirectionsVector.E);
                 return;
-            case > ChunkSize - 2:
-                if (mapPos2 >= chunkMapSize)
-                    break;
-                AddDirtyChunk(ref dirtyChunks, other4, chunkPos4);
-                chunkDirty.SetBit(own2);
-                AddDirtyChunk(ref dirtyChunks, other3, chunkPos3);
-                return;
+            }
         }
+        
+        if(newPos.x < ChunkMapSizeX)
+        { 
+            AddDirtyChunk(ref dirtyChunks, DirtyDirections.NW, chunkPos + DirectionsVector.E);
+        }
+    }
+
+    private static void CheckNorthWestDiagonal(ref Dictionary<int, ChunkDirty> dirtyChunks, ChunkDirty chunkDirty, Vector2D chunkPos)
+    {
+        chunkDirty.SetBit(DirtyDirections.NW);
+        var newPos = chunkPos + DirectionsVector.NW;
+        
+        if(newPos.y >= 0)
+        { 
+            AddDirtyChunk(ref dirtyChunks, DirtyDirections.SW, chunkPos + DirectionsVector.N);
+            
+            if(newPos.x >= 0)
+            { 
+                AddDirtyChunk(ref dirtyChunks, DirtyDirections.SE, newPos);
+                AddDirtyChunk(ref dirtyChunks, DirtyDirections.NE, chunkPos + DirectionsVector.W);
+                return;
+            }
+        }
+        
+        if(newPos.x >= 0)
+        { 
+            AddDirtyChunk(ref dirtyChunks, DirtyDirections.NE, chunkPos + DirectionsVector.W);
+        }
+        
     }
 
     private static void AddDirtyChunk(ref Dictionary<int, ChunkDirty> dirtyChunks, DirtyDirections dir, Vector2D chunkPos)

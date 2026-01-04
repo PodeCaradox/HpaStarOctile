@@ -83,7 +83,7 @@ public static class BFS
         return bfs;
     }
     
-    public static void ResetRegionsForPortal(Cell[] cells, Vector2D start, int regionKey)
+    public static void ResetRegionsForPortal(Cell[] cells, Vector2D start, byte regionKey)
     {
         Queue<Vector2D> openList = new Queue<Vector2D>();
         openList.Enqueue(start); 

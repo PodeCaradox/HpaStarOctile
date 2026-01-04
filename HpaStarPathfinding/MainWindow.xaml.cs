@@ -76,7 +76,14 @@ public partial class MainWindow
         
     private void InitValues()
     {
-        PortalUtils.InitChunkValues(_vm.uiMapX, _vm.uiMapY);
+        MapSizeX = _vm.uiMapX;
+        MapSizeY = _vm.uiMapY;
+        CorrectedMapSizeX = (MapSizeX + ChunkSize - 1) / ChunkSize * ChunkSize;
+        CorrectedMapSizeY = (MapSizeY + ChunkSize - 1) / ChunkSize * ChunkSize;
+        ChunkMapSizeX = CorrectedMapSizeX / ChunkSize;
+        ChunkMapSizeY = CorrectedMapSizeY / ChunkSize;
+        
+        PortalUtils.InitPortalUtilsValues();
         _vm.uiMapX = MapSizeX;
         _vm.uiMapY = MapSizeY;
         PathCanvas.Height = CellSize * _vm.uiMapY;
@@ -583,8 +590,12 @@ public partial class MainWindow
             ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
             if (keyOtherPortal == -1) break;
 
-            var otherPortal = _vm.Portals[keyOtherPortal]!;
+            var otherPortal = _vm.Portals[keyOtherPortal];
             var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
+            if (otherPortal == null)
+            {
+                
+            }
             var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
             Line line = new Line
             {
@@ -870,8 +881,12 @@ public partial class MainWindow
             {
                 ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
 
-                var otherPortal = _vm.Portals[keyOtherPortal]!;
+                var otherPortal = _vm.Portals[keyOtherPortal];
                 var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
+                if (otherPortal == null)
+                {
+                    
+                }
                 Vector2D point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
 
                 Line line = new Line

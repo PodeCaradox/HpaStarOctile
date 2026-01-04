@@ -21,8 +21,8 @@ public class MainWindowViewModel: ViewModelBase
 
     #region Propertys UI
 
-    public static int MapSizeX { get; set; } = 20;
-    public static int MapSizeY { get; set; } = 20;
+    public static int MapSizeX { get; set; } = 30;
+    public static int MapSizeY { get; set; } = 30;
     public static int CorrectedMapSizeX { get; set; } = (MapSizeX + ChunkSize - 1) / ChunkSize * ChunkSize;
     public static int CorrectedMapSizeY { get; set; } = (MapSizeY + ChunkSize - 1) / ChunkSize * ChunkSize;
     public static int ChunkMapSizeX { get; set; } = CorrectedMapSizeX / ChunkSize;
