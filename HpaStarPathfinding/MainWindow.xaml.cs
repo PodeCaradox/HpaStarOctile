@@ -590,12 +590,8 @@ public partial class MainWindow
             ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
             if (keyOtherPortal == -1) break;
 
-            var otherPortal = _vm.Portals[keyOtherPortal];
+            var otherPortal = _vm.Portals[keyOtherPortal]!;
             var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
-            if (otherPortal == null)
-            {
-                
-            }
             var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
             Line line = new Line
             {
@@ -881,12 +877,8 @@ public partial class MainWindow
             {
                 ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
 
-                var otherPortal = _vm.Portals[keyOtherPortal];
+                var otherPortal = _vm.Portals[keyOtherPortal]!;
                 var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
-                if (otherPortal == null)
-                {
-                    
-                }
                 Vector2D point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
 
                 Line line = new Line

@@ -278,8 +278,7 @@ public static class PortalUtils
         startY += steppingInDirVector.y * portalPos;
         Vector2D startPos = new Vector2D(startX, startY);
         int key = Portal.GeneratePortalKey(chunkId, portalPos, dir);
-        var portal = portals[key];
-        if (portal != null) portal.ExternalPortalCount = 0;
+        portals[key] = null;
         CheckDiagonalChunksForConnection(cells, portals, dir, steppingInDirVector, checkDiagonalConnection, key, startPos);
     }
 
