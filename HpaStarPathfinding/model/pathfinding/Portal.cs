@@ -44,6 +44,12 @@ public class Portal
                   chunkIndex * MainWindowViewModel.MaxPortalsInChunk;
         return key;
     }
+    
+    public static int GeneratePortalKeyInsideChunk(int position, Directions direction)
+    {
+        var key = position + (int)direction * MainWindowViewModel.ChunkSize;
+        return key;
+    }
 
     public static int GetPortalKeyFromInternalConnection(int portalKey)
     {

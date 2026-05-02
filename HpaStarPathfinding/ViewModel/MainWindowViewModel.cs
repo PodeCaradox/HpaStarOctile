@@ -170,8 +170,6 @@ public class MainWindowViewModel: ViewModelBase
         
     public Cell[] map = [];
         
-    public Portal?[] Portals = [];
-        
     private Chunk[] _chunks = [];
 
     public Chunk[] chunks
@@ -193,7 +191,7 @@ public class MainWindowViewModel: ViewModelBase
 
     public void Init()
     {
-        chunks = new Chunk[ChunkMapSizeY * ChunkMapSizeX];
+        
         pathStart = null;
         pathEnd = null;
         path = [];
@@ -202,7 +200,8 @@ public class MainWindowViewModel: ViewModelBase
         
     private void InitMap()
     {
-        Portals = new Portal[chunks.Length * MaxPortalsInChunk];
+        Chunk.ChunkIdCounter = 0;
+        chunks = new Chunk[ChunkMapSizeY * ChunkMapSizeX];
         map = new Cell[CorrectedMapSizeY * CorrectedMapSizeX];
         for (int y = 0; y < CorrectedMapSizeY; y++)
         {
@@ -253,14 +252,14 @@ public class MainWindowViewModel: ViewModelBase
 
     private List<Vector2D> HpaStarFindPath(Vector2D start, Vector2D end)
     {
-        PathfindingResult pathfindingResult = PathFindingManager.GetPath(map, Portals, start, end);
+        PathfindingResult pathfindingResult = PathFindingManager.GetPath(map, _chunks, start, end);
         switch (pathfindingResult.Type)
         {
             case PathfindingType.NoPath: return [];
             case PathfindingType.HighLevelPath:
             {
                 var pathAsPortals = PathFindingManager.GetNextPath((pathfindingResult as HighLevelPathResult)!);
-                return PathFindingManager.PortalsToPath(map, Portals, start, end, pathAsPortals!);
+                return PathFindingManager.PortalsToPath(map, _chunks, start, end, pathAsPortals!);
             }
             case PathfindingType.ShortPath:
             {

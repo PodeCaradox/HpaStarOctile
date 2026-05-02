@@ -1,4 +1,5 @@
 ﻿using HpaStarPathfinding.model.map;
+using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.pathfinding;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
@@ -6,42 +7,42 @@ namespace HpaStarPathfinding.model.pathfinding;
 
 public static class RegionUtils
 {
-    public static void ResetRegionsInDirection(Cell[] cells, Portal?[] portals, int chunkId, Directions dir)
+    public static void ResetRegionsInDirection(Cell[] cells, ref Chunk chunk, Directions dir)
     {
-        int key = Portal.GeneratePortalKey(chunkId, 0, 0);
         byte start = (byte)((byte)dir * ChunkSize);
-        for (byte i = start; i < start + ChunkSize; i++)
+        for (byte portalKey = start; portalKey < start + ChunkSize; portalKey++)
         {
-            int portalKey = key + i;
-            if (portals[portalKey] == null)
+            ref var portal = ref chunk.portals[portalKey];
+            if (portal == null)
                 continue;
-            var portal = portals[portalKey]!;
-            Cell currentCell = cells[portal.CenterPos.y * CorrectedMapSizeX + portal.CenterPos.x];
-            if (currentCell.Region != i) continue;
-            BFS.ResetRegionsForPortal(cells, portal.CenterPos, currentCell.Region);
-        }
-    }
-    
-    public static void ResetRegions(Cell[] vmMap, int chunkKey)
-    {
-        int chunkX = chunkKey % ChunkMapSizeX;
-        int chunkY = chunkKey / ChunkMapSizeX;
             
-        int tileKey =  chunkX * ChunkSize + chunkY * CellsInChunk * ChunkMapSizeX;
-        for (int y = 0; y < ChunkSize; y++)
+            
+            var regionKey = PositionToRegionKey(portal.CenterPos);
+            if (chunk.regions[regionKey] != portalKey) continue;
+            BFS.ResetRegionsForPortal(cells, ref chunk, portal.CenterPos, portalKey);
+        }
+    }
+
+    public static int PositionToRegionKey(Vector2D centerPos)
+    {
+        int startX = centerPos.x % ChunkSize;
+        int startY = centerPos.y % ChunkSize;
+        int regionKey = startY * ChunkSize + startX;
+        return regionKey;
+    }
+
+    public static void ResetRegions(ref Chunk chunk)
+    {
+        for (int regionKey = 0; regionKey < chunk.regions.Length; regionKey++)
         {
-            for (int x = 0; x < ChunkSize; x++)
-            {
-                vmMap[tileKey + x].Region = byte.MaxValue;
-            }
-            tileKey += CorrectedMapSizeX;
+            chunk.regions[regionKey] = byte.MaxValue;
         }
     }
     
-    public static ushort[] GetCostFieldsAndUpdateRegions(Cell[] cells, Portal portal, byte portalKey, HashSet<byte> portalsFromRegionFillAdded)
+    public static ushort[] GetCostFieldsAndUpdateRegions(Cell[] cells, ref Chunk chunk, Portal portal, byte portalKey, HashSet<byte> portalsFromRegionFillAdded)
     {
         var costFields = portalsFromRegionFillAdded.Add(portalKey) ? 
-            BFS.BfsFromStartPosWithRegionFill(cells, portal.CenterPos, portalKey) : 
+            BFS.BfsFromStartPosWithRegionFill(cells, ref chunk, portal.CenterPos, portalKey) : 
             BFS.BfsFromStartPos(cells, portal.CenterPos);
 
         return costFields;

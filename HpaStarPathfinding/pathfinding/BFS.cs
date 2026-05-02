@@ -1,5 +1,6 @@
 ﻿using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
+using HpaStarPathfinding.model.pathfinding;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
 namespace HpaStarPathfinding.pathfinding;
@@ -48,7 +49,7 @@ public static class BFS
         return bfs;
     }
         
-    public static ushort[] BfsFromStartPosWithRegionFill(Cell[] grid, Vector2D start, byte portalKey)
+    public static ushort[] BfsFromStartPosWithRegionFill(Cell[] grid, ref Chunk chunk, Vector2D start, byte portalKey)
     {
         ushort[] bfs = Enumerable.Repeat(ushort.MaxValue, ChunkSize * ChunkSize).ToArray();
         Queue<Vector2D> openList = new Queue<Vector2D>();
@@ -59,12 +60,13 @@ public static class BFS
         while (openList.Count > 0)
         {
             Vector2D current = openList.Dequeue();
-            Cell currentCell = grid[current.y * CorrectedMapSizeX + current.x];
-            currentCell.Region = portalKey;
-                
+            
             keyX = current.x % ChunkSize;
             keyY = current.y % ChunkSize;
             int key = keyY * ChunkSize + keyX;
+            chunk.regions[key] = portalKey;
+                
+            Cell currentCell = grid[current.y * CorrectedMapSizeX + current.x];
             foreach (var neighbourKey in GetNeighbours(currentCell, keyX, keyY))
             {
                 if (bfs[neighbourKey.Key] != ushort.MaxValue)
@@ -83,20 +85,20 @@ public static class BFS
         return bfs;
     }
     
-    public static void ResetRegionsForPortal(Cell[] cells, Vector2D start, byte regionKey)
+    public static void ResetRegionsForPortal(Cell[] cells, ref Chunk chunk, Vector2D start, byte portalKey)
     {
         Queue<Vector2D> openList = new Queue<Vector2D>();
         openList.Enqueue(start); 
-        
         while (openList.Count > 0)
         {
             Vector2D current = openList.Dequeue();
-            Cell currentCell = cells[current.y * CorrectedMapSizeX + current.x];
-            currentCell.Region = byte.MaxValue;
-                
             int keyX = current.x % ChunkSize;
             int keyY = current.y % ChunkSize;
-            foreach (var neighbourPos in GetNeighboursWithRegionKey(currentCell, keyX, keyY, regionKey))
+            int key = keyY * ChunkSize + keyX;
+            chunk.regions[key] = byte.MaxValue;
+            
+            Cell currentCell = cells[current.y * CorrectedMapSizeX + current.x];
+            foreach (var neighbourPos in GetNeighboursWithRegionKey(currentCell.Position, ref chunk, keyX, keyY, portalKey))
             {  
                 openList.Enqueue(neighbourPos);
             }
@@ -104,15 +106,15 @@ public static class BFS
         }
     }
 
-    private static List<Vector2D> GetNeighboursWithRegionKey(Cell cell, int posX, int posY, int regionKey)
+    private static List<Vector2D> GetNeighboursWithRegionKey(Vector2D cellPos, ref Chunk chunk, int posX, int posY, int portalKey)
     {
         List<Vector2D> neighbours = [];
         foreach (var dir in DirectionsVector.AllDirections)
         {
             int newX = posX + dir.x;
             int newY = posY + dir.y;
-            if (newX is < 0 or >= ChunkSize || newY is < 0 or >= ChunkSize || cell.Region != regionKey) continue;
-            var pos = cell.Position + dir;
+            if (newX is < 0 or >= ChunkSize || newY is < 0 or >= ChunkSize || chunk.regions[newY * ChunkSize + newX] != portalKey) continue;
+            var pos = cellPos + dir;
             neighbours.Add(pos);
         }
 

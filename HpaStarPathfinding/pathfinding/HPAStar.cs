@@ -16,10 +16,10 @@ public static class HpaStar
         public readonly int Cost = cost;
     }
         
-    public static List<int> FindPath(Cell[] grid, Portal?[] portals, Vector2D start, Vector2D end, byte regionPortalStart, byte regionPortalEnd)
+    public static List<int> FindPath(Cell[] grid, Chunk[] chunks, Vector2D start, Vector2D end, byte regionPortalStart, byte regionPortalEnd)
     {
-        var startNodes  = FindPortalNodes(portals, grid, end, regionPortalEnd);
-        HashSet<int> goalNodes  = new HashSet<int>(FindPortalNodes(portals, grid, start, regionPortalStart).Select(x => x.PortalKey));
+        var startNodes  = FindPortalNodes(chunks, grid, end, regionPortalEnd);
+        HashSet<int> goalNodes  = new HashSet<int>(FindPortalNodes(chunks, grid, start, regionPortalStart).Select(x => x.PortalKey));
         //TODO maybe calc how many portals are currently on the Map less memory but more processing?
         FastPriorityQueue<PathfindingCellHpa> open = new FastPriorityQueue<PathfindingCellHpa>(MaxPortalsInChunk * ChunkMapSizeX * ChunkMapSizeY);
         HashSet<int> closedSet = [];
@@ -28,7 +28,10 @@ public static class HpaStar
             
         foreach (var node in startNodes)
         {
-            ref var portal = ref portals[node.PortalKey]!;
+            var chunkId = node.PortalKey / MaxPortalsInChunk;
+            var portalId = node.PortalKey % MaxPortalsInChunk;
+            
+            ref var portal = ref chunks[chunkId].portals[portalId]!;
             var startCell = new PathfindingCellHpa(node.PortalKey)
             {
                 GCost = node.Cost,
@@ -49,13 +52,16 @@ public static class HpaStar
                 break;
             }
     
-            var currentPortal = portals[currentCell.PortalKey]!;
+            var chunkId = currentCell.PortalKey / MaxPortalsInChunk;
+            var portalId = currentCell.PortalKey % MaxPortalsInChunk;
+            ref var currentPortal = ref chunks[chunkId].portals[portalId]!;
+            
             closedSet.Add(currentCell.PortalKey);
     
             //Check external Connections
             for (int i = 0; i < currentPortal.ExternalPortalCount; i++)
             {
-                CheckConnection(portals, getElement, currentPortal.ExternalPortalConnections[i], closedSet, currentCell, open, goalPos, currentCell.GCost + Heuristic.StraightCost);
+                CheckConnection(chunks, getElement, currentPortal.ExternalPortalConnections[i], closedSet, currentCell, open, goalPos, currentCell.GCost + Heuristic.StraightCost);
             }
                 
             //Check internal Connections
@@ -63,7 +69,7 @@ public static class HpaStar
             for (int i = 0; i < currentPortal.InternalPortalCount; i++)
             {
                 ref var con = ref currentPortal.InternalPortalConnections[i];
-                CheckConnection(portals, getElement, firstPortalKey + con.portalKey, closedSet, currentCell, open, goalPos, currentCell.GCost + con.cost);
+                CheckConnection(chunks, getElement, firstPortalKey + con.portalKey, closedSet, currentCell, open, goalPos, currentCell.GCost + con.cost);
             }
         }
             
@@ -78,7 +84,7 @@ public static class HpaStar
         return path;
     }
     
-    private static void CheckConnection(Portal?[] portals, Dictionary<int, PathfindingCellHpa> getElement, int portalKey, HashSet<int> closedSet, PathfindingCellHpa currentCell,
+    private static void CheckConnection(Chunk[] chunks, Dictionary<int, PathfindingCellHpa> getElement, int portalKey, HashSet<int> closedSet, PathfindingCellHpa currentCell,
         FastPriorityQueue<PathfindingCellHpa> open, Vector2D goalPos, int g)
     {
             
@@ -92,8 +98,11 @@ public static class HpaStar
             
         if (!open.Contains(neighbour))
         {
+            var chunkId = portalKey / MaxPortalsInChunk;
+            var portalId = portalKey % MaxPortalsInChunk;
+            
             neighbour.GCost = g;
-            neighbour.HCost = Heuristic.GetHeuristic(portals[portalKey]!.CenterPos, goalPos);
+            neighbour.HCost = Heuristic.GetHeuristic(chunks[chunkId].portals[portalId]!.CenterPos, goalPos);
             neighbour.Parent = currentCell;
             open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
         } 
@@ -104,27 +113,29 @@ public static class HpaStar
         }
     }
     
-    private static List<NeighbourPortal> FindPortalNodes(Portal?[] portals, Cell[] grid, Vector2D start, byte region)
+    private static List<NeighbourPortal> FindPortalNodes(Chunk[] chunks, Cell[] grid, Vector2D start, byte region)
     {              
         int chunkId = start.x / ChunkSize + ChunkMapSizeX * (start.y / ChunkSize);
         ushort[] costFields = BFS.BfsFromStartPos(grid, start);
         int firstPossiblePortal = Portal.GeneratePortalKey(chunkId, 0, 0);
             
         List<NeighbourPortal> nodes = [];
-        var portal = AddPortal(portals, firstPossiblePortal, region, costFields, nodes);
+        var portal = AddPortal(chunks, firstPossiblePortal, region, costFields, nodes);
         for (int j = 0; j < portal.InternalPortalCount; j++)
         {
-            AddPortal(portals, firstPossiblePortal, portal.InternalPortalConnections[j].portalKey, costFields, nodes);
+            AddPortal(chunks, firstPossiblePortal, portal.InternalPortalConnections[j].portalKey, costFields, nodes);
         }
             
         return nodes;
     }
 
-    private static Portal AddPortal(Portal?[] portals, int firstPossiblePortal, byte portalKey,
+    private static Portal AddPortal(Chunk[] chunks, int firstPossiblePortal, byte portalKey,
         ushort[] costFields, List<NeighbourPortal> nodes)
     {
         int key = firstPossiblePortal + portalKey;
-        ref var portal = ref portals[key]!;
+        var chunkId = key / MaxPortalsInChunk;
+        
+        ref var portal = ref chunks[chunkId].portals[portalKey]!;
         var cost = BFS.GetCostForPath(costFields, portal.CenterPos);
         nodes.Add(new NeighbourPortal(key, cost));
         return portal;

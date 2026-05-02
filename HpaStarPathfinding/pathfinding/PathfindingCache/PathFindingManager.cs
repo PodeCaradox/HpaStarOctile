@@ -16,16 +16,19 @@ public static class PathFindingManager
     private static readonly Dictionary<int, List<Vector2D>> ShortPaths = new (1000);
     private static int CounterShortPaths;
     
-    public static PathfindingResult GetPath(Cell[] map, Portal?[] portals, Vector2D start, Vector2D goal)
+    public static PathfindingResult GetPath(Cell[] map, Chunk[] chunks, Vector2D start, Vector2D goal)
     {
         HighLevelPaths.Clear();
         ShortPaths.Clear();
         CounterShortPaths = 0;
-        byte regionPortalEnd = map[goal.y * CorrectedMapSizeX + goal.x].Region;
-        byte regionPortalStart = map[start.y * CorrectedMapSizeX + start.x].Region;
 
         int chunkStart = Chunk.CellPositionToChunkKey(start);
         int chunkEnd = Chunk.CellPositionToChunkKey(goal);
+        var regionKeyEnd = RegionUtils.PositionToRegionKey(goal);
+        var regionKeySart = RegionUtils.PositionToRegionKey(start);
+        
+        byte regionPortalEnd = chunks[chunkEnd].regions[regionKeyEnd];
+        byte regionPortalStart = chunks[chunkStart].regions[regionKeySart];
 
         if (chunkStart == chunkEnd && regionPortalStart == regionPortalEnd) return GetShortPathId(map, start, goal); //No Path Or ShortPath
         if(regionPortalStart == byte.MaxValue || regionPortalEnd == byte.MaxValue) return new PathfindingResult(PathfindingType.NoPath);//No Path
@@ -34,7 +37,7 @@ public static class PathFindingManager
         if (HighLevelPaths.ContainsKey(pathId)) 
             return CheckNoPathOrHighLevelPath(pathId, goal);
         
-        List<int> path = HpaStar.FindPath(map, portals, start, goal, regionPortalStart, regionPortalEnd);
+        List<int> path = HpaStar.FindPath(map, chunks, start, goal, regionPortalStart, regionPortalEnd);
         HighLevelPaths.Add(pathId, path);
         return CheckNoPathOrHighLevelPath(pathId, goal);
     }
@@ -71,15 +74,18 @@ public static class PathFindingManager
     }
     
     
-    public static List<Vector2D> PortalsToPath(Cell[] grid, Portal?[] portals, Vector2D pathStart, Vector2D pathEnd, List<int> pathAsPortals)
+    public static List<Vector2D> PortalsToPath(Cell[] grid, Chunk[] chunks, Vector2D pathStart, Vector2D pathEnd, List<int> pathAsPortals)
     {
-        List<Vector2D> path = AStar.FindPath(grid, pathStart, portals[pathAsPortals[0]]!.CenterPos);
+        
+        
+        List<Vector2D> path = AStar.FindPath(grid, pathStart, chunks[pathAsPortals[0] / MaxPortalsInChunk].portals[pathAsPortals[0] % MaxPortalsInChunk]!.CenterPos);
         for (int i = 0; i < pathAsPortals.Count - 1; i++)
         {
-            path.AddRange(AStar.FindPath(grid, portals[pathAsPortals[i]]!.CenterPos, portals[pathAsPortals[i + 1]]!.CenterPos));
+            path.AddRange(AStar.FindPath(grid, chunks[pathAsPortals[i] / MaxPortalsInChunk].portals[pathAsPortals[i] % MaxPortalsInChunk]!.CenterPos, chunks[pathAsPortals[i + 1] / MaxPortalsInChunk].portals[pathAsPortals[i + 1] % MaxPortalsInChunk]!.CenterPos));
         }
-    
-        path.AddRange(AStar.FindPath(grid, portals[pathAsPortals.Last()]!.CenterPos, pathEnd));
+
+        int lastPortal = pathAsPortals.Last();
+        path.AddRange(AStar.FindPath(grid, chunks[lastPortal / MaxPortalsInChunk].portals[lastPortal % MaxPortalsInChunk]!.CenterPos, pathEnd));
         return path;
     }
 }

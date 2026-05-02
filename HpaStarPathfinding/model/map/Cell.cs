@@ -8,7 +8,6 @@ public class Cell(Vector2D pos)
 {
     public readonly Vector2D Position = pos;
     public byte Connections; 
-    public byte Region;
     
     public void UpdateConnection(Cell[] map)
     {

@@ -7,8 +7,18 @@ namespace HpaStarPathfinding.model.pathfinding;
 
 public class Chunk
 {
+    public static int ChunkIdCounter = 0;
     
-    public static void UpdateDirtyChunk(ref Cell[] cells, ref Portal?[] portals, ChunkDirty dirtyChunk, int chunkId)
+    public int ChunkId;
+    public byte[] regions = new byte[ChunkSize * ChunkSize];
+    public Portal?[] portals = new Portal?[ChunkSize * 4];
+
+    public Chunk()
+    {
+        ChunkId = ChunkIdCounter++;
+    }
+    
+    public static void UpdateDirtyChunk(ref Cell[] cells, ref Chunk chunk, ChunkDirty dirtyChunk)
     {
         if (dirtyChunk.ChunkHasCellChanges)
         {
@@ -17,17 +27,17 @@ public class Chunk
             for (byte i = 0; i < Enum.GetValues<DirtyDirections>().Length; i+=2)
             {
                 if((dirtyChunk.DirectionsDirty & (1 << i)) == 0 ) continue;
-                PortalUtils.UpdateChunkPortalsInDir(cells, ref portals,(Directions) (i / 2), chunkId);
+                PortalUtils.UpdateChunkPortalsInDir(cells, ref chunk,(Directions) (i / 2));
             }
             
             //Calculate Diagonal Ones
             for (byte i = 1; i < Enum.GetValues<DirtyDirections>().Length; i+=2)
             {
                 if((dirtyChunk.DirectionsDirty & (1 << i)) == 0 ) continue;
-                PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref portals, (Directions) ((i / 2 + 1) % 4), chunkId);
+                PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref chunk, (Directions) ((i / 2 + 1) % 4));
             }
               
-            ConnectAllPortalsInChunkInternal(cells, ref portals, chunkId);
+            ConnectAllPortalsInChunkInternal(cells, ref chunk);
         }
         else
         {
@@ -35,57 +45,56 @@ public class Chunk
             for (byte i = 0; i < Enum.GetValues<DirtyDirections>().Length; i+=2)
             {
                 if((dirtyChunk.DirectionsDirty & (1 << i)) == 0 ) continue;
-                RebuildChunkPortalsInStraightDirectionNoChangesInChunk(cells, ref portals, (Directions) (i / 2), chunkId);
+                RebuildChunkPortalsInStraightDirectionNoChangesInChunk(cells, ref chunk, (Directions) (i / 2));
             }
             
             //Calculate Diagonal Ones
             for (byte i = 1; i < Enum.GetValues<DirtyDirections>().Length; i+=2)
             {
                 if((dirtyChunk.DirectionsDirty & (1 << i)) == 0 ) continue;
-                RebuildChunkPortalsInDiagonalDirectionNoChangesInChunk(cells, ref portals, (DirtyDirections) i, chunkId);
+                RebuildChunkPortalsInDiagonalDirectionNoChangesInChunk(cells, ref chunk, (DirtyDirections) i);
             }
         }
     }
 
-    public static void InitPortalsInChunk(ref Cell[] cells, ref Portal?[] portals, int chunkId)
+    public static void InitPortalsInChunk(ref Cell[] cells, ref Chunk chunk)
     {
-        RegionUtils.ResetRegions(cells, chunkId);
+        RegionUtils.ResetRegions(ref chunk);
         foreach (var direction in Enum.GetValues<Directions>())
         { 
-            PortalUtils.UpdateChunkPortalsInDir(cells, ref portals, direction, chunkId);
-            PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref portals, direction, chunkId);
+            PortalUtils.UpdateChunkPortalsInDir(cells, ref chunk, direction);
+            PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref chunk, direction);
         }
-        PortalUtils.ConnectInternalPortalsAllDir(cells, ref portals, chunkId);
+        PortalUtils.ConnectInternalPortalsAllDir(cells, ref chunk);
     }
 
-    private static void ConnectAllPortalsInChunkInternal(Cell[] cells, ref Portal?[] portals, int chunkId)
+    private static void ConnectAllPortalsInChunkInternal(Cell[] cells, ref Chunk chunk)
     { 
-        RegionUtils.ResetRegions(cells, chunkId);
-        PortalUtils.ConnectInternalPortalsAllDir(cells, ref portals, chunkId);
+        RegionUtils.ResetRegions(ref chunk);
+        PortalUtils.ConnectInternalPortalsAllDir(cells, ref chunk);
     }
     
-    private static void RebuildChunkPortalsInDiagonalDirectionNoChangesInChunk(Cell[] cells, ref Portal?[] portals, DirtyDirections dirtyDirections, int chunkId)
+    private static void RebuildChunkPortalsInDiagonalDirectionNoChangesInChunk(Cell[] cells, ref Chunk chunk, DirtyDirections dirtyDirections)
     {
         int dir = ((int)dirtyDirections / 2 + 1) % 4;
         int side = dir / 2;
-        byte portalKeyInternal =  (byte)(ChunkSize * dir + side * (ChunkSize - 1));
-        int portalKey =  portalKeyInternal + chunkId * MaxPortalsInChunk;
-        if (portals[portalKey] == null)
+        byte portalKey =  (byte)(ChunkSize * dir + side * (ChunkSize - 1));
+        if (chunk.portals[portalKey] == null)
         {
-            PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref portals, (Directions)dir, chunkId);
-            if (portals[portalKey] == null) return;
-            PortalUtils.ConnectInternalPortalsInDiagonalDir(cells, ref portals, chunkId, portalKeyInternal);
+            PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref chunk, (Directions)dir);
+            if (chunk.portals[portalKey] == null) return;
+            PortalUtils.ConnectInternalPortalsInDiagonalDir(cells, ref chunk, portalKey);
             return;
         }
         
-        var dirtyPortal = portals[portalKey]!;
-        portals[portalKey] = null;
-        PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref portals, (Directions)dir, chunkId);
-        ref var portal = ref portals[portalKey];
+        var dirtyPortal = chunk.portals[portalKey]!;
+        chunk.portals[portalKey] = null;
+        PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref chunk, (Directions)dir);
+        ref var portal = ref chunk.portals[portalKey];
         if (portal == null)
         {
-            BFS.ResetRegionsForPortal(cells, dirtyPortal.CenterPos, portalKeyInternal);
-            PortalUtils.DisconnectInternalPortalsInDiagonalDir(cells, ref portals, chunkId, portalKeyInternal);
+            BFS.ResetRegionsForPortal(cells, ref chunk, dirtyPortal.CenterPos, portalKey);
+            PortalUtils.DisconnectInternalPortalsInDiagonalDir(cells, ref chunk, portalKey);
             return;
         }
         
@@ -94,12 +103,12 @@ public class Chunk
         portal = dirtyPortal;
     }
     
-    private static void RebuildChunkPortalsInStraightDirectionNoChangesInChunk(Cell[] cells, ref Portal?[] portals, Directions direction, int chunkId)
+    private static void RebuildChunkPortalsInStraightDirectionNoChangesInChunk(Cell[] cells, ref Chunk chunk, Directions direction)
     {
-        RegionUtils.ResetRegionsInDirection(cells, portals, chunkId, direction);
-        PortalUtils.UpdateChunkPortalsInDir(cells, ref portals, direction, chunkId);
-        PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref portals, direction, chunkId);
-        PortalUtils.ConnectInternalPortalsInDir(cells, ref portals, direction, chunkId);
+        RegionUtils.ResetRegionsInDirection(cells, ref chunk, direction);
+        PortalUtils.UpdateChunkPortalsInDir(cells, ref chunk, direction);
+        PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref chunk, direction);
+        PortalUtils.ConnectInternalPortalsInDir(cells, ref chunk, direction);
     }
     
     public static bool IsDiagonalOppositeChunk(int chunkPosition, int outsidePosition)
@@ -312,5 +321,10 @@ public class Chunk
         ChunkDirty chunk = dirtyChunks[key];
         if(changed) chunk.ChunkHasCellChanges = changed;
         chunk.DirectionsDirty |= chunkDirty.DirectionsDirty;
+    }
+
+    public static int WorldPosToChunkId(Vector2D pos)
+    {
+        return pos.x / ChunkSize + pos.y / ChunkSize * ChunkMapSizeX;
     }
 }

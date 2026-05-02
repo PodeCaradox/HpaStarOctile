@@ -167,9 +167,16 @@ public partial class MainWindow
     private void InitializePortals()
     {
         _portals = new Dictionary<int, (Rectangle, Rectangle)>();
-        Parallel.For(0, _vm.chunks.Length, key =>
+        // for (int i = 0; i <  _vm.chunks.Length; i++)
+        // {
+        //     Chunk.InitPortalsInChunk(ref _vm.map, ref _vm.chunks[i]);
+        // }
+        
+      
+        
+        Parallel.ForEach(_vm.chunks, chunk =>
         {
-            Chunk.InitPortalsInChunk(ref _vm.map, ref _vm.Portals, key);
+            Chunk.InitPortalsInChunk(ref _vm.map, ref chunk);
         });
 
         UpdatePortalsOnCanvas();
@@ -558,15 +565,16 @@ public partial class MainWindow
 
     private void DrawPortalConnectionsOnHover(int key)
     {
-        ref var portal = ref _vm.Portals[key];
+        int chunkKey = key / MaxPortalsInChunk; 
+        int portalKey = key % MaxPortalsInChunk; 
+        ref var chunk = ref _vm.chunks[chunkKey];
+        ref var portal = ref chunk.portals[portalKey];
         if (portal == null) return;
-
-        int chunkIndexInPortalArray = key / MaxPortalsInChunk * MaxPortalsInChunk;
+        
         for (int i = 0; i < portal.InternalPortalCount; i++)
         {
             ref var connection = ref portal.InternalPortalConnections[i];
-            int keyOtherPortal = chunkIndexInPortalArray + connection.portalKey;
-            var otherPortal = _vm.Portals[keyOtherPortal]!;
+            var otherPortal = chunk.portals[connection.portalKey]!;
             var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
             var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
             Line line = new Line
@@ -589,8 +597,11 @@ public partial class MainWindow
         {
             ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
             if (keyOtherPortal == -1) break;
-
-            var otherPortal = _vm.Portals[keyOtherPortal]!;
+            int otherChunkKey = keyOtherPortal / MaxPortalsInChunk; 
+            int otherPortalKey = keyOtherPortal % MaxPortalsInChunk; 
+            
+            ref var otherChunk = ref _vm.chunks[otherChunkKey];
+            ref var otherPortal = ref otherChunk.portals[otherPortalKey]!;
             var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
             var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
             Line line = new Line
@@ -631,16 +642,18 @@ public partial class MainWindow
         var steppingVector = new[]
             { DirectionsVector.E, DirectionsVector.S, DirectionsVector.E, DirectionsVector.S };
 
+        ref var chunk = ref _vm.chunks[chunkId];
+        
         foreach (Directions dirVec in Enum.GetValues<Directions>())
         {
             for (int j = 0; j < ChunkSize; j++)
             {
-                int key = Portal.GeneratePortalKey(chunkId, j, dirVec);
-                var portal = _vm.Portals[key];
+                int key = Portal.GeneratePortalKeyInsideChunk(j, dirVec);
+                var portal = chunk.portals[key];
                 if (portal == null) continue;
                 var dir = steppingVector[(int)dirVec];
                 var startPos = portal.CenterPos;
-                var offset = _vm.Portals[key]!.Offset;
+                var offset = portal.Offset;
                 int startPosX = startPos.x - offset * dir.x;
                 int startPosY = startPos.y - offset * dir.y;
                 int centerPosX = portal.CenterPos.x;
@@ -687,7 +700,8 @@ public partial class MainWindow
                 Canvas.SetLeft(center, centerPosX * CellSize + 5);
                 Canvas.SetTop(center, centerPosY * CellSize + 5);
 
-                _portals.Add(key, (rect, center));
+                int globalKey = Portal.GeneratePortalKey(chunkId, j, dirVec);
+                _portals.Add(globalKey, (rect, center));
                 PathCanvas.Children.Add(rect);
                 PathCanvas.Children.Add(center);
             }
@@ -758,15 +772,17 @@ public partial class MainWindow
             DeletePortalsOnCanvas(chunk.Key);
         }
 
-        // Parallel.ForEach(_dirtyChunks, chunk =>
-        // {
-        //     Chunk.UpdateDirtyChunk(ref _vm.map, ref _vm.Portals, chunk.Value, chunk.Key);
-        // });
-        
-        foreach (var chunk in _dirtyChunks)
+        Parallel.ForEach(_dirtyChunks, chunk =>
         {
-            Chunk.UpdateDirtyChunk(ref _vm.map, ref _vm.Portals, chunk.Value, chunk.Key);
-        }
+            ref var dirtyChunk = ref _vm.chunks[chunk.Key];
+            Chunk.UpdateDirtyChunk(ref _vm.map, ref dirtyChunk, chunk.Value);
+        });
+        
+        // foreach (var chunk in _dirtyChunks)
+        // {
+        //     ref var dirtyChunk = ref _vm.chunks[chunk.Key];
+        //     Chunk.UpdateDirtyChunk(ref _vm.map, ref dirtyChunk, chunk.Value);
+        // }
        
         foreach (var chunk in _dirtyChunks)
         {
@@ -869,32 +885,38 @@ public partial class MainWindow
     private void DrawPortalExternalConnections()
     {
         if (!_drawPortalsExternalConnections) return;
-        for (int key = 0; key < _vm.Portals.Length; key++)
+        foreach (var chunk in _vm.chunks)
         {
-            ref var portal = ref _vm.Portals[key];
-            if (portal == null) continue;
-            for (int i = 0; i < portal.ExternalPortalCount; i++)
+            for (int key = 0; key < chunk.portals.Length; key++)
             {
-                ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
-
-                var otherPortal = _vm.Portals[keyOtherPortal]!;
-                var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
-                Vector2D point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
-
-                Line line = new Line
+                
+                ref var portal = ref chunk.portals[key];
+                if (portal == null) continue;
+                for (int i = 0; i < portal.ExternalPortalCount; i++)
                 {
-                    StrokeThickness = 2,
-                    X1 = point1.x,
-                    X2 = point2.x,
-                    Y1 = point1.y,
-                    Y2 = point2.y,
-                    Stroke = Brushes.Yellow,
-                    IsHitTestVisible = false,
-                    IsManipulationEnabled = false,
-                    IsEnabled = false
-                };
-                _portalExternalConnections.Add(line);
-                PathCanvas.Children.Add(line);
+                    ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
+                    int otherChunkId = keyOtherPortal / MaxPortalsInChunk;
+                    int otherPortalId = keyOtherPortal % MaxPortalsInChunk;
+                    ref var otherPortal = ref _vm.chunks[otherChunkId].portals[otherPortalId]!;
+                    var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
+                    Vector2D point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
+
+                    Line line = new Line
+                    {
+                        StrokeThickness = 2,
+                        X1 = point1.x,
+                        X2 = point2.x,
+                        Y1 = point1.y,
+                        Y2 = point2.y,
+                        Stroke = Brushes.Yellow,
+                        IsHitTestVisible = false,
+                        IsManipulationEnabled = false,
+                        IsEnabled = false
+                    };
+                    _portalExternalConnections.Add(line);
+                    PathCanvas.Children.Add(line);
+                }
+            
             }
         }
     }
@@ -903,40 +925,39 @@ public partial class MainWindow
     {
         if (!_drawPortalsInternalConnections) return;
         HashSet<int> alreadyDrawn = [];
-        for (int key = 0; key < _vm.Portals.Length; key++)
+        foreach (var chunk in _vm.chunks)
         {
-            if (key % MaxPortalsInChunk == 0) alreadyDrawn.Clear();
-            ref var portal = ref _vm.Portals[key];
-            if (portal == null) continue;
-            int chunkIndexInPortalArray = key / MaxPortalsInChunk * MaxPortalsInChunk;
-            for (int i = 0; i < portal.InternalPortalCount; i++)
+            for (int key = 0; key < chunk.portals.Length; key++)
             {
-                ref var connection = ref portal.InternalPortalConnections[i];
-                    
-                int keyOtherPortal = chunkIndexInPortalArray + connection.portalKey;
-
-                var otherPortal = _vm.Portals[keyOtherPortal]!;
-                var keyInChunk = key % MaxPortalsInChunk;
-                int connectionKey1 = keyInChunk * MaxPortalsInChunk + connection.portalKey;
-                int connectionKey2 = keyInChunk + connection.portalKey * MaxPortalsInChunk;
-                if (!alreadyDrawn.Add(connectionKey1)) continue;
-                if (!alreadyDrawn.Add(connectionKey2)) continue;
-                var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
-                var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
-                Line line = new Line
+                if (key % MaxPortalsInChunk == 0) alreadyDrawn.Clear();
+                ref var portal = ref chunk.portals[key];
+                if (portal == null) continue;
+                for (int i = 0; i < portal.InternalPortalCount; i++)
                 {
-                    StrokeThickness = 2,
-                    X1 = point1.x,
-                    X2 = point2.x,
-                    Y1 = point1.y,
-                    Y2 = point2.y,
-                    Stroke = Brushes.Purple,
-                    IsHitTestVisible = false,
-                    IsManipulationEnabled = false,
-                    IsEnabled = false
-                };
-                _portalInternalConnections.Add(line);
-                PathCanvas.Children.Add(line);
+                    ref var connection = ref portal.InternalPortalConnections[i];
+                    ref var otherPortal = ref chunk.portals[connection.portalKey]!;
+                    var keyInChunk = key % MaxPortalsInChunk;
+                    int connectionKey1 = keyInChunk * MaxPortalsInChunk + connection.portalKey;
+                    int connectionKey2 = keyInChunk + connection.portalKey * MaxPortalsInChunk;
+                    if (!alreadyDrawn.Add(connectionKey1)) continue;
+                    if (!alreadyDrawn.Add(connectionKey2)) continue;
+                    var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
+                    var point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
+                    Line line = new Line
+                    {
+                        StrokeThickness = 2,
+                        X1 = point1.x,
+                        X2 = point2.x,
+                        Y1 = point1.y,
+                        Y2 = point2.y,
+                        Stroke = Brushes.Purple,
+                        IsHitTestVisible = false,
+                        IsManipulationEnabled = false,
+                        IsEnabled = false
+                    };
+                    _portalInternalConnections.Add(line);
+                    PathCanvas.Children.Add(line);
+                }
             }
         }
     }
