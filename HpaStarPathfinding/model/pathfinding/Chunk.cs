@@ -7,11 +7,11 @@ namespace HpaStarPathfinding.model.pathfinding;
 
 public class Chunk
 {
-    public static int ChunkIdCounter = 0;
+    internal static int ChunkIdCounter;
     
-    public int ChunkId;
-    public byte[] regions = new byte[ChunkSize * ChunkSize];
-    public Portal?[] portals = new Portal?[ChunkSize * 4];
+    public readonly int ChunkId;
+    public readonly byte[] regions = new byte[ChunkSize * ChunkSize];
+    public readonly Portal?[] portals = new Portal?[ChunkSize * 4];
 
     public Chunk()
     {

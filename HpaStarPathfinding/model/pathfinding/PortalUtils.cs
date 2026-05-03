@@ -218,10 +218,9 @@ public static class PortalUtils
                 intPortalConn2 = new Connection(portalKey1, cost);
             }
         }
-        var lastIntPortalKey = portalsHolder[^1];
-        int lastPortalKey = lastIntPortalKey;
+        var lastPortalKey = portalsHolder[^1];
         var portal = chunk.portals[lastPortalKey]!;
-        if(!portalsFromRegionFillAdded.Contains(lastIntPortalKey)) RegionUtils.GetCostFieldsAndUpdateRegions(cells, ref chunk, portal, lastIntPortalKey, portalsFromRegionFillAdded);
+        if(!portalsFromRegionFillAdded.Contains(lastPortalKey)) RegionUtils.GetCostFieldsAndUpdateRegions(cells, ref chunk, portal, lastPortalKey, portalsFromRegionFillAdded);
     }
     
     private static List<byte> GetAllPortalsInChunkAndFirstPortalKey(ref Chunk chunk)
