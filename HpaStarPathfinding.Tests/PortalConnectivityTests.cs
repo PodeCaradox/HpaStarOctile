@@ -1,3 +1,4 @@
+using System.Text;
 using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
@@ -110,6 +111,317 @@ public class PortalConnectivityTests(ITestOutputHelper output)
                 Assert.True(portal!.InternalPortalCount > 0,
                     $"chunk {chunk.ChunkId} portal {portal.CenterPos} has no internal connections on an open map");
         }
+    }
+
+    /// <summary>
+    /// Reproduces the UI editing flow: cells are blocked/unblocked one at a time through
+    /// the incremental pipeline (CheckWhichChunksAreDirty + UpdateDirtyChunk), exactly like
+    /// MainWindow.ChangeMapCell. After every step all external connections must be valid
+    /// (a dangling one crashes the app), and the resulting state must be identical to a
+    /// full rebuild of the same map.
+    /// </summary>
+    [Fact]
+    public void IncrementalWallTogglesMatchFullRebuild_ForEveryCornerBlockingCombination()
+    {
+        InitStaticMapValues();
+        ResetFailureState();
+
+        int configurations = 0;
+        for (int chunkY = 0; chunkY < MainWindowViewModel.ChunkMapSizeY; chunkY++)
+        for (int chunkX = 0; chunkX < MainWindowViewModel.ChunkMapSizeX; chunkX++)
+        foreach (var corner in Corners)
+        {
+            var cornerCells = GetCornerBlockCells(chunkX, chunkY, corner);
+            int combinationCount = 1 << cornerCells.Count;
+            for (int mask = 0; mask < combinationCount; mask++)
+            {
+                configurations++;
+                var blockedCells = new List<Vector2D>();
+                for (int bit = 0; bit < cornerCells.Count; bit++)
+                    if ((mask & (1 << bit)) != 0)
+                        blockedCells.Add(cornerCells[bit]);
+
+                string config = $"chunk ({chunkX},{chunkY}) {corner.Name}-corner, " +
+                                $"blocked: {string.Join(' ', blockedCells.Select(c => c.ToString()))}";
+                try
+                {
+                    var (map, chunks) = BuildWorld([]);
+                    foreach (var pos in blockedCells)
+                    {
+                        ApplyWallChangeIncremental(map, chunks, pos, DirectionsAsByte.NOT_WALKABLE);
+                        VerifyExternalValidity(chunks, $"{config} [after blocking {pos}]");
+                    }
+
+                    var (_, fullRebuildChunks) = BuildWorld(new HashSet<Vector2D>(blockedCells));
+                    VerifyAllChunks(map, chunks, config + " [incremental state]");
+                    VerifySameWorldState(fullRebuildChunks, chunks, config + " [after blocking]");
+
+                    foreach (var pos in blockedCells)
+                    {
+                        ApplyWallChangeIncremental(map, chunks, pos, DirectionsAsByte.WALKABLE);
+                        VerifyExternalValidity(chunks, $"{config} [after unblocking {pos}]");
+                    }
+
+                    var (_, emptyChunks) = BuildWorld([]);
+                    VerifySameWorldState(emptyChunks, chunks, config + " [after unblocking]");
+                }
+                catch (Exception e)
+                {
+                    AddFailure($"{config}: threw {e.GetType().Name}: {e.Message}");
+                }
+            }
+        }
+
+        output.WriteLine($"Checked {configurations} corner-blocking configurations incrementally.");
+        Assert.True(_failureCount == 0,
+            $"{_failureCount} incremental-update failures across {configurations} configurations. " +
+            $"First {_failureMessages.Count}:\n" + string.Join('\n', _failureMessages));
+    }
+
+    /// <summary>
+    /// Exercises the cell-border editor (MainWindow.ChangeCellBorderClicked): every single
+    /// direction bit of every corner-block cell is toggled and toggled back through the
+    /// incremental pipeline, on the empty map and on every single-cell-blocked baseline.
+    /// External connections must stay valid after every toggle, and toggling back must
+    /// restore the exact baseline state.
+    /// </summary>
+    [Fact]
+    public void IncrementalCellBorderTogglesKeepPortalsValid_ForCornerCellsInAllDirections()
+    {
+        InitStaticMapValues();
+        ResetFailureState();
+
+        int configurations = 0;
+        for (int chunkY = 0; chunkY < MainWindowViewModel.ChunkMapSizeY; chunkY++)
+        for (int chunkX = 0; chunkX < MainWindowViewModel.ChunkMapSizeX; chunkX++)
+        foreach (var corner in Corners)
+        {
+            var cornerCells = GetCornerBlockCells(chunkX, chunkY, corner);
+            var masks = new List<int> { 0 };
+            for (int bit = 0; bit < cornerCells.Count; bit++)
+                masks.Add(1 << bit);
+
+            foreach (int mask in masks)
+            {
+                configurations++;
+                var blockedCells = new HashSet<Vector2D>();
+                for (int bit = 0; bit < cornerCells.Count; bit++)
+                    if ((mask & (1 << bit)) != 0)
+                        blockedCells.Add(cornerCells[bit]);
+
+                string config = $"chunk ({chunkX},{chunkY}) {corner.Name}-corner, " +
+                                $"baseline blocked: {string.Join(' ', blockedCells.Select(c => c.ToString()))}";
+                try
+                {
+                    var (map, chunks) = BuildWorld(blockedCells);
+                    var baseline = SnapshotWorld(chunks);
+
+                    foreach (var cell in cornerCells)
+                    {
+                        for (int directionIndex = 0; directionIndex < DirectionsVector.AllDirections.Length; directionIndex++)
+                        {
+                            var dir = DirectionsVector.AllDirections[directionIndex];
+                            int neighbourX = cell.x + dir.x;
+                            int neighbourY = cell.y + dir.y;
+                            if (neighbourX < 0 || neighbourX >= MapSize || neighbourY < 0 || neighbourY >= MapSize)
+                                continue; // out-of-map bits are never read and skip the rebuild in production
+
+                            string toggleConfig = $"{config}, toggle {(DirtyDirections)directionIndex} of {cell}";
+                            ToggleCellBorderIncremental(map, chunks, cell, directionIndex);
+                            VerifyExternalValidity(chunks, toggleConfig + " [toggled]");
+                            ToggleCellBorderIncremental(map, chunks, cell, directionIndex);
+                            VerifyExternalValidity(chunks, toggleConfig + " [toggled back]");
+
+                            var restored = SnapshotWorld(chunks);
+                            for (int c = 0; c < restored.Length; c++)
+                                if (restored[c] != baseline[c])
+                                    AddFailure($"{toggleConfig}: chunk {c} state did not return to baseline after toggling back. " +
+                                               $"Baseline: {baseline[c]} Restored: {restored[c]}");
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    AddFailure($"{config}: threw {e.GetType().Name}: {e.Message}");
+                }
+            }
+        }
+
+        output.WriteLine($"Checked {configurations} border-toggle baselines.");
+        Assert.True(_failureCount == 0,
+            $"{_failureCount} border-toggle failures across {configurations} baselines. " +
+            $"First {_failureMessages.Count}:\n" + string.Join('\n', _failureMessages));
+    }
+
+    /// <summary>
+    /// Regression test for the reported crash: block cell (20,9) (the SW corner cell of
+    /// chunk 2), then open only its South connection through the cell-border editor so the
+    /// cell becomes 0b_1110_1111. The diagonal corner portal of chunk 5 at (20,10) must not
+    /// keep an external connection to a South-edge portal of chunk 2 at (21,9), because
+    /// chunk 2 does not create a single portal there: (21,9) connects straight across to
+    /// (21,10), so it merges into the big South portal.
+    /// </summary>
+    [Fact]
+    public void BlockedCornerCellWithOnlySouthConnectionOpen_HasNoDanglingExternalConnection()
+    {
+        InitStaticMapValues();
+        ResetFailureState();
+
+        var (map, chunks) = BuildWorld([]);
+        var cornerCell = new Vector2D(20, 9);
+
+        ApplyWallChangeIncremental(map, chunks, cornerCell, DirectionsAsByte.NOT_WALKABLE);
+        Assert.Equal(DirectionsAsByte.NOT_WALKABLE, map[9 * MainWindowViewModel.CorrectedMapSizeX + 20].Connections);
+
+        ToggleCellBorderIncremental(map, chunks, cornerCell, 4); // open S (0,1)
+        Assert.Equal(0b_1110_1111, map[9 * MainWindowViewModel.CorrectedMapSizeX + 20].Connections);
+
+        VerifyExternalValidity(chunks, "cell (20,9) blocked with only its South connection open");
+        Assert.True(_failureCount == 0, string.Join('\n', _failureMessages));
+    }
+
+    /// <summary>
+    /// Mirrors MainWindow.ChangeMapCell + RebuildTiles + RebuildPortals for one cell.
+    /// </summary>
+    private static void ApplyWallChangeIncremental(Cell[] map, Chunk[] chunks, Vector2D pos, byte newValue)
+    {
+        ref var cell = ref map[pos.y * MainWindowViewModel.CorrectedMapSizeX + pos.x];
+        cell.Connections = newValue;
+        cell.UpdateConnection(map);
+        UpdateDirtyChunksIncremental(map, chunks, pos);
+    }
+
+    /// <summary>
+    /// Mirrors MainWindow.ChangeCellBorderClicked for one direction bit of one cell.
+    /// </summary>
+    private static void ToggleCellBorderIncremental(Cell[] map, Chunk[] chunks, Vector2D pos, int directionIndex)
+    {
+        byte direction = (byte)(1 << directionIndex);
+        var dir = DirectionsVector.AllDirections[directionIndex];
+        ref var cell = ref map[pos.y * MainWindowViewModel.CorrectedMapSizeX + pos.x];
+        cell.Connections = (byte)(cell.Connections ^ direction);
+        ref var otherCell = ref map[(pos.y + dir.y) * MainWindowViewModel.CorrectedMapSizeX + pos.x + dir.x];
+        otherCell.Connections = (byte)(otherCell.Connections ^ Cell.RotateLeft(direction, 4));
+        UpdateDirtyChunksIncremental(map, chunks, pos);
+    }
+
+    private static void UpdateDirtyChunksIncremental(Cell[] map, Chunk[] chunks, Vector2D pos)
+    {
+        var dirtyChunks = new Dictionary<int, ChunkDirty>();
+        Chunk.CheckWhichChunksAreDirty(ref dirtyChunks, pos);
+        foreach (var (chunkKey, chunkDirty) in dirtyChunks)
+            Chunk.UpdateDirtyChunk(ref map, ref chunks[chunkKey], chunkDirty);
+    }
+
+    /// <summary>
+    /// The crash class from the UI: an external connection whose target portal does not exist.
+    /// </summary>
+    private void VerifyExternalValidity(Chunk[] chunks, string config)
+    {
+        foreach (var chunk in chunks)
+        for (byte key = 0; key < MainWindowViewModel.MaxPortalsInChunk; key++)
+        {
+            var portal = chunk.portals[key];
+            if (portal is null || portal.CenterPos is null) continue;
+            for (int i = 0; i < portal.ExternalPortalCount; i++)
+            {
+                int externalKey = portal.ExternalPortalConnections[i];
+                if (externalKey < 0)
+                {
+                    AddFailure($"{config}: chunk {chunk.ChunkId} portal {key} {portal.CenterPos}: " +
+                               $"external connection key {externalKey} is negative");
+                    continue;
+                }
+
+                int targetChunkId = externalKey / MainWindowViewModel.MaxPortalsInChunk;
+                int targetSlot = externalKey % MainWindowViewModel.MaxPortalsInChunk;
+                if (targetChunkId >= chunks.Length || chunks[targetChunkId].portals[targetSlot] is null)
+                    AddFailure($"{config}: chunk {chunk.ChunkId} portal {key} {portal.CenterPos}: " +
+                               $"dangling external connection {externalKey} " +
+                               $"(chunk {targetChunkId} has no portal {targetSlot})");
+            }
+        }
+    }
+
+    /// <summary>
+    /// The incrementally updated world must be identical to a full rebuild of the same map.
+    /// </summary>
+    private void VerifySameWorldState(Chunk[] expected, Chunk[] actual, string config)
+    {
+        for (int c = 0; c < expected.Length; c++)
+        {
+            if (!expected[c].regions.SequenceEqual(actual[c].regions))
+                AddFailure($"{config}: chunk {c}: regions differ");
+
+            for (byte slot = 0; slot < MainWindowViewModel.MaxPortalsInChunk; slot++)
+            {
+                var expectedPortal = expected[c].portals[slot];
+                var actualPortal = actual[c].portals[slot];
+                if (expectedPortal is null || actualPortal is null)
+                {
+                    if ((expectedPortal is null) != (actualPortal is null))
+                        AddFailure($"{config}: chunk {c} slot {slot}: portal {(expectedPortal ?? actualPortal)!.CenterPos} " +
+                                   $"exists only in the {(expectedPortal is null ? "incremental" : "full rebuild")} state");
+                    continue;
+                }
+
+                if (expectedPortal.CenterPos != actualPortal.CenterPos ||
+                    expectedPortal.Length != actualPortal.Length ||
+                    expectedPortal.Offset != actualPortal.Offset)
+                    AddFailure($"{config}: chunk {c} slot {slot}: full rebuild portal " +
+                               $"{expectedPortal.CenterPos} L{expectedPortal.Length} O{expectedPortal.Offset} vs " +
+                               $"incremental portal {actualPortal.CenterPos} L{actualPortal.Length} O{actualPortal.Offset}");
+
+                var expectedExternals = expectedPortal.ExternalPortalConnections
+                    .Take(expectedPortal.ExternalPortalCount).OrderBy(k => k).ToList();
+                var actualExternals = actualPortal.ExternalPortalConnections
+                    .Take(actualPortal.ExternalPortalCount).OrderBy(k => k).ToList();
+                if (!expectedExternals.SequenceEqual(actualExternals))
+                    AddFailure($"{config}: chunk {c} slot {slot} {expectedPortal.CenterPos}: " +
+                               $"external connections full rebuild [{string.Join(' ', expectedExternals)}] vs " +
+                               $"incremental [{string.Join(' ', actualExternals)}]");
+
+                var expectedInternals = expectedPortal.InternalPortalConnections
+                    .Take(expectedPortal.InternalPortalCount).Select(conn => $"{conn.portalKey}:{conn.cost}").OrderBy(s => s).ToList();
+                var actualInternals = actualPortal.InternalPortalConnections
+                    .Take(actualPortal.InternalPortalCount).Select(conn => $"{conn.portalKey}:{conn.cost}").OrderBy(s => s).ToList();
+                if (!expectedInternals.SequenceEqual(actualInternals))
+                    AddFailure($"{config}: chunk {c} slot {slot} {expectedPortal.CenterPos}: " +
+                               $"internal connections full rebuild [{string.Join(' ', expectedInternals)}] vs " +
+                               $"incremental [{string.Join(' ', actualInternals)}]");
+            }
+        }
+    }
+
+    private static string[] SnapshotWorld(Chunk[] chunks)
+    {
+        var snapshot = new string[chunks.Length];
+        for (int c = 0; c < chunks.Length; c++)
+        {
+            var builder = new StringBuilder();
+            builder.Append(string.Join(',', chunks[c].regions));
+            for (byte slot = 0; slot < MainWindowViewModel.MaxPortalsInChunk; slot++)
+            {
+                var portal = chunks[c].portals[slot];
+                if (portal is null) continue;
+                builder.Append($";{slot}@{portal.CenterPos}L{portal.Length}O{portal.Offset}");
+                builder.Append("E[").Append(string.Join('+', portal.ExternalPortalConnections
+                    .Take(portal.ExternalPortalCount).OrderBy(k => k))).Append(']');
+                builder.Append("I[").Append(string.Join('+', portal.InternalPortalConnections
+                    .Take(portal.InternalPortalCount).Select(conn => $"{conn.portalKey}:{conn.cost}").OrderBy(s => s))).Append(']');
+            }
+
+            snapshot[c] = builder.ToString();
+        }
+
+        return snapshot;
+    }
+
+    private void ResetFailureState()
+    {
+        _failureCount = 0;
+        _failureMessages.Clear();
+        _unmirroredExternalEdgeCount = 0;
     }
 
     private static void InitStaticMapValues()

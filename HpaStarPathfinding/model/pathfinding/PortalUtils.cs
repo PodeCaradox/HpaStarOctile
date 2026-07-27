@@ -1,4 +1,4 @@
-﻿using HpaStarPathfinding.model.map;
+using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.pathfinding;
 
@@ -26,10 +26,10 @@ public static class PortalUtils
         [NW | W | SW, W, S | SW, NW, N, SW, S | SE, S, E]
     ];
     private static readonly byte[][] DirToCheckDiagonal = [
-        [NW, N, W, NE, E],
-        [NE, E, N, SE, S],
-        [SE, S, E, SW, W],
-        [SW, W, S, NW, N]
+        [NW, N, W, NE, E, S],
+        [NE, E, N, SE, S, W],
+        [SE, S, E, SW, W, N],
+        [SW, W, S, NW, N, E]
     ];
     
     public static void InitPortalUtilsValues()
@@ -301,8 +301,17 @@ public static class PortalUtils
             if ((oppositeCell.Connections & checkDiagonalConnection[4]) == checkDiagonalConnection[4] && (cell.Connections & checkDiagonalConnection[3]) == WALKABLE)
             {
                 int side = 1 - 2 * ((int)dir / 2);
-                externalKey = chunk.ChunkId * MaxPortalsInChunk + key + OppositePortalKeyOffsets[(int)dir] + side;
-                AddExternalPortalConnection(ref chunk, startPos, 1, 0, 0, key, externalKey, steppingInDirVector);
+                //The opposite chunk singles the diagonal neighbour out into its own portal only when that
+                //cell cannot connect straight across the edge; otherwise it merges into a bigger portal
+                //and the portal this connection would point to does not exist.
+                var diagonalNeighbourPos = new Vector2D(dirVec.x + steppingInDirVector.x * side,
+                    dirVec.y + steppingInDirVector.y * side);
+                ref var diagonalNeighbour = ref cells[diagonalNeighbourPos.y * CorrectedMapSizeX + diagonalNeighbourPos.x];
+                if ((diagonalNeighbour.Connections & checkDiagonalConnection[5]) != WALKABLE)
+                {
+                    externalKey = chunk.ChunkId * MaxPortalsInChunk + key + OppositePortalKeyOffsets[(int)dir] + side;
+                    AddExternalPortalConnection(ref chunk, startPos, 1, 0, 0, key, externalKey, steppingInDirVector);
+                }
             }
         } 
         //Connect Diagonal Portal in Direction NE if walkable and N Blocked
@@ -348,6 +357,11 @@ public static class PortalUtils
             {
                 closePortal = TryCreateOrUpdatePortal(ref chunk, closePortal, ref startPos,
                     ref portalSize, direction, portalPos, ref offsetStart, ref otherPortalOffset, ref offsetEnd, steppingInDirVector);
+                startPos = null;
+                portalSize = 0;
+                offsetStart = 0;
+                otherPortalOffset = 0;
+                offsetEnd = 0;
                 continue;
             }
 
