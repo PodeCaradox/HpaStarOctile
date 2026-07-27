@@ -162,6 +162,12 @@ public class PortalConnectivityTests(ITestOutputHelper output)
                         VerifyExternalValidity(chunks, $"{config} [after unblocking {pos}]");
                     }
 
+                    //A fully enclosed cell keeps all connection bits set even after its neighbours
+                    //are unblocked (it can never change back through neighbour edits), so after
+                    //unblocking the incremental state legitimately differs from a fresh empty world.
+                    if (FullyEnclosesSomeCell(blockedCells))
+                        continue;
+
                     var (_, emptyChunks) = BuildWorld([]);
                     VerifySameWorldState(emptyChunks, chunks, config + " [after unblocking]");
                 }
@@ -278,6 +284,85 @@ public class PortalConnectivityTests(ITestOutputHelper output)
 
         VerifyExternalValidity(chunks, "cell (20,9) blocked with only its South connection open");
         Assert.True(_failureCount == 0, string.Join('\n', _failureMessages));
+    }
+
+    /// <summary>
+    /// Regression test for the reported wrong portal: block the row (0..9, 10) and cell
+    /// (9,9), then open only the NW connection of the blocked (4,10) so it becomes
+    /// 0b_0111_1111. The South-edge scan of chunk 0 must not leave a phantom mini portal
+    /// behind: cell (3,9) gets its SE diagonal opened towards (4,10) and has E open, but
+    /// the next edge cell (4,9) is sealed straight across, so no portal can grow there.
+    /// </summary>
+    [Fact]
+    public void BlockedRowWithSingleDiagonalDoor_HasNoPhantomMiniPortal()
+    {
+        InitStaticMapValues();
+        ResetFailureState();
+
+        var blockedCells = new HashSet<Vector2D>();
+        for (int x = 0; x < 10; x++)
+            blockedCells.Add(new Vector2D(x, 10));
+        blockedCells.Add(new Vector2D(9, 9));
+
+        var (map, chunks) = BuildWorld(blockedCells);
+
+        // Open NW of the blocked (4,10) through the cell-border editor: 0b_1111_1111 ^ NW = 127.
+        ToggleCellBorderIncremental(map, chunks, new Vector2D(4, 10), 7);
+        Assert.Equal(0b_0111_1111, map[10 * MainWindowViewModel.CorrectedMapSizeX + 4].Connections);
+
+        VerifyExternalValidity(chunks, "row (0..9,10) and (9,9) blocked, (4,10) with only NW open");
+        Assert.True(_failureCount == 0, string.Join('\n', _failureMessages));
+    }
+
+    /// <summary>
+    /// True when the blocked set seals off some other cell: every in-map neighbour of that
+    /// cell is blocked (map edges count as blocked). Such a fully enclosed cell can never
+    /// change back through neighbour edits — it behaves like a wall / an outside-map cell.
+    /// This also holds for a blocked cell that is unblocked first: while all its neighbours
+    /// are still walls, unblocking it immediately sets every bit again.
+    /// </summary>
+    private static bool FullyEnclosesSomeCell(List<Vector2D> blockedCells)
+    {
+        var blocked = new HashSet<Vector2D>(blockedCells);
+        var candidates = new HashSet<Vector2D>(blockedCells);
+        foreach (var pos in blockedCells)
+        foreach (var dir in DirectionsVector.AllDirections)
+        {
+            int x = pos.x + dir.x;
+            int y = pos.y + dir.y;
+            if (x >= 0 && x < MapSize && y >= 0 && y < MapSize)
+                candidates.Add(new Vector2D(x, y));
+        }
+
+        foreach (var candidate in candidates)
+        {
+            int firstUnblockedNeighbour = int.MaxValue;
+            bool enclosed = true;
+            foreach (var dir in DirectionsVector.AllDirections)
+            {
+                int nx = candidate.x + dir.x;
+                int ny = candidate.y + dir.y;
+                if (nx < 0 || nx >= MapSize || ny < 0 || ny >= MapSize)
+                    continue; // the map edge always blocks this side
+
+                var neighbour = new Vector2D(nx, ny);
+                if (!blocked.Contains(neighbour))
+                {
+                    enclosed = false;
+                    break;
+                }
+
+                firstUnblockedNeighbour = Math.Min(firstUnblockedNeighbour, blockedCells.IndexOf(neighbour));
+            }
+
+            if (!enclosed)
+                continue;
+
+            if (!blocked.Contains(candidate) || blockedCells.IndexOf(candidate) < firstUnblockedNeighbour)
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>

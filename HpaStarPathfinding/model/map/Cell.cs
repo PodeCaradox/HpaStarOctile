@@ -1,4 +1,4 @@
-﻿using HpaStarPathfinding.model.math;
+using HpaStarPathfinding.model.math;
 using static HpaStarPathfinding.model.map.DirectionsAsByte;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 

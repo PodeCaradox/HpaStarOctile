@@ -114,7 +114,12 @@ public static class PortalUtils
             }
 
             var portal = chunk.portals[portalKey]!;
-            costs.Add(new CostHolder(portalKey, BFS.BfsFromStartPosWithRegionFill(cells, ref chunk, portal.CenterPos, portalKey)));
+            //A region is always stamped with the lowest portal key it contains (same as a full rebuild
+            //does). Portals whose centre is already stamped with a lower key belong to an already
+            //stamped region and must only gather costs, not overwrite the region.
+            costs.Add(portalKey < chunk.regions[RegionUtils.PositionToRegionKey(portal.CenterPos)]
+                ? new CostHolder(portalKey, BFS.BfsFromStartPosWithRegionFill(cells, ref chunk, portal.CenterPos, portalKey))
+                : new CostHolder(portalKey, BFS.BfsFromStartPos(cells, portal.CenterPos)));
         }
 
         return costs;
@@ -183,7 +188,9 @@ public static class PortalUtils
     private static void CheckRegion(Cell[] cells, ref Chunk chunk, byte portalKey)
     {
         ref var portal = ref chunk.portals[portalKey]!;
-        if (chunk.regions[portal.CenterPos.x % ChunkSize + portal.CenterPos.y % ChunkSize * ChunkSize] != byte.MaxValue) return;
+        //Re-stamp the region from this portal when it has no stamp yet or its current stamp belongs
+        //to a higher portal key, so the region always ends up with its lowest portal key.
+        if (chunk.regions[RegionUtils.PositionToRegionKey(portal.CenterPos)] <= portalKey) return;
         
         BFS.BfsFromStartPosWithRegionFill(cells, ref chunk, portal.CenterPos, portalKey);
     }
@@ -357,11 +364,6 @@ public static class PortalUtils
             {
                 closePortal = TryCreateOrUpdatePortal(ref chunk, closePortal, ref startPos,
                     ref portalSize, direction, portalPos, ref offsetStart, ref otherPortalOffset, ref offsetEnd, steppingInDirVector);
-                startPos = null;
-                portalSize = 0;
-                offsetStart = 0;
-                otherPortalOffset = 0;
-                offsetEnd = 0;
                 continue;
             }
 
@@ -435,11 +437,23 @@ public static class PortalUtils
                 //Check Connection to EAST if we can add this Tile to the new Portal
                 if ((cell.Connections & checkDir[7]) == WALKABLE)
                 {
-                    startPos = cell.Position;
-                    portalPos = i;
-                    portalSize = 1;
-                    offsetStart = 1;
-                    otherPortalOffset = 1;
+                    //The new portal is only worth starting when the next cell along the edge can
+                    //continue it (is open straight across); otherwise it never grows and would end
+                    //up as a phantom portal whose external connection points nowhere.
+                    int nextCellIndex = (yCell + steppingInDirVector.y) * CorrectedMapSizeX + xCell + steppingInDirVector.x;
+                    if (i + 1 < ChunkSize && (cells[nextCellIndex].Connections & checkDir[1]) == WALKABLE)
+                    {
+                        //Close the pending portal first, otherwise starting the new portal here
+                        //would silently discard it.
+                        if (portalSize > 0)
+                            TryCreateOrUpdatePortal(ref chunk, true, ref startPos, ref portalSize,
+                                direction, portalPos, ref offsetStart, ref otherPortalOffset, ref offsetEnd, steppingInDirVector);
+                        startPos = cell.Position;
+                        portalPos = i;
+                        portalSize = 1;
+                        offsetStart = 1;
+                        otherPortalOffset = 1;
+                    }
                 }
             }
 

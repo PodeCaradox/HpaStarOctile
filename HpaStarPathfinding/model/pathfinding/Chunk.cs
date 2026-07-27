@@ -1,4 +1,4 @@
-﻿using HpaStarPathfinding.model.map;
+using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.pathfinding;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
@@ -93,7 +93,10 @@ public class Chunk
         ref var portal = ref chunk.portals[portalKey];
         if (portal == null)
         {
-            BFS.ResetRegionsForPortal(cells, ref chunk, dirtyPortal.CenterPos, portalKey);
+            //Only reset the region when the removed portal actually stamped it; otherwise the region
+            //belongs to another portal and resetting would leave an unreachable hole in it.
+            if (chunk.regions[RegionUtils.PositionToRegionKey(dirtyPortal.CenterPos)] == portalKey)
+                BFS.ResetRegionsForPortal(cells, ref chunk, dirtyPortal.CenterPos, portalKey);
             PortalUtils.DisconnectInternalPortalsInDiagonalDir(cells, ref chunk, portalKey);
             return;
         }

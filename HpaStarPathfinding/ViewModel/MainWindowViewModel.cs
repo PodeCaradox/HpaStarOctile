@@ -1,4 +1,4 @@
-﻿using System.Windows.Media.Imaging;
+using System.Windows.Media.Imaging;
 using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;

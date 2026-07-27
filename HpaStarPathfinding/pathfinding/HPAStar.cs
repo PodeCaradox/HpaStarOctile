@@ -1,4 +1,4 @@
-﻿using HpaStarPathfinding.model.map;
+using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
 using HpaStarPathfinding.pathfinding.PathfindingCellTypes;
@@ -61,7 +61,11 @@ public static class HpaStar
             //Check external Connections
             for (int i = 0; i < currentPortal.ExternalPortalCount; i++)
             {
-                CheckConnection(chunks, getElement, currentPortal.ExternalPortalConnections[i], closedSet, currentCell, open, goalPos, currentCell.GCost + Heuristic.StraightCost);
+                int externalKey = currentPortal.ExternalPortalConnections[i];
+                ref var externalPortal = ref chunks[externalKey / MaxPortalsInChunk].portals[externalKey % MaxPortalsInChunk]!;
+                //External edges cross one step between the two portal centres: straight costs 10, diagonal 14.
+                int stepCost = Heuristic.GetHeuristic(currentPortal.CenterPos, externalPortal.CenterPos);
+                CheckConnection(chunks, getElement, externalKey, closedSet, currentCell, open, goalPos, currentCell.GCost + stepCost);
             }
                 
             //Check internal Connections
@@ -88,8 +92,7 @@ public static class HpaStar
         FastPriorityQueue<PathfindingCellHpa> open, Vector2D goalPos, int g)
     {
             
-        if (getElement.TryGetValue(portalKey, out var neighbour)){}
-        else
+        if (!getElement.TryGetValue(portalKey, out var neighbour))
         {
             neighbour = new PathfindingCellHpa(portalKey);
             getElement.Add(portalKey, neighbour);
