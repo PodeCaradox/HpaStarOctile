@@ -507,7 +507,7 @@ public partial class MainWindow
             if (x < 0 || x >= MapSizeX || y < 0 || y >= MapSizeY) break;
 
             byte direction = (byte)(1 << i);
-            //If the bit is set (equal to direction), XOR will clear it.
+            //If the bit is set (equal to the direction), XOR will clear it.
             //If the bit is not set, XOR will set it.
             _vm.currentSelectedCell.Connections = (byte)(_vm.currentSelectedCell.Connections ^ direction);
 
@@ -897,7 +897,12 @@ public partial class MainWindow
                     ref var keyOtherPortal = ref portal.ExternalPortalConnections[i];
                     int otherChunkId = keyOtherPortal / MaxPortalsInChunk;
                     int otherPortalId = keyOtherPortal % MaxPortalsInChunk;
+                    if (_vm.chunks[otherChunkId].portals[otherPortalId] == null)
+                    {
+                        
+                    }
                     ref var otherPortal = ref _vm.chunks[otherChunkId].portals[otherPortalId]!;
+
                     var point1 = Vector2D.ConvertMapPointToCanvasPos(portal.CenterPos);
                     Vector2D point2 = Vector2D.ConvertMapPointToCanvasPos(otherPortal.CenterPos);
 

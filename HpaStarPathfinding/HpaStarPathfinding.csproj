@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <UseWPF>true</UseWPF>
@@ -7,4 +7,7 @@
         <RootNamespace>HpaStarPathfinding</RootNamespace>
         <TargetFramework>net9.0-windows</TargetFramework>
     </PropertyGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="HpaStarPathfinding.Tests" />
+    </ItemGroup>
 </Project>
