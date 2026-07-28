@@ -1,4 +1,4 @@
-﻿using HpaStarPathfinding.model.map;
+using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.ViewModel;
 
@@ -7,14 +7,13 @@ namespace HpaStarPathfinding.model.pathfinding;
 [Flags]
 public enum PortalLength : byte
 {
-    //Offset = 0b_1111_1111_0000_0000,
     TotalLength = 0b0000_1111,
     OffsetShift = 4
 }
-    
+
 public class Portal
 {
-    public Vector2D CenterPos = null!;
+    public Vector2D CenterPos;
     public byte Offset;
     public byte Length;
     public byte ExternalPortalCount;
@@ -29,11 +28,11 @@ public class Portal
         Offset = (byte)offset;
         CenterPos = new Vector2D(startPos.x + offset * steppingInDirVector.x, startPos.y + offset * steppingInDirVector.y);
     }
-        
+
     public void ChangeLength(Vector2D portalPos, byte portalSize, int offsetStart, int offsetEnd, Vector2D steppingInDirVector)
     {
         if (portalSize <= Length) return;
-            
+
         Length = portalSize;
         CalcCenterPos(portalPos, Length, offsetStart, offsetEnd, steppingInDirVector);
     }
@@ -44,7 +43,7 @@ public class Portal
                   chunkIndex * MainWindowViewModel.MaxPortalsInChunk;
         return key;
     }
-    
+
     public static int GeneratePortalKeyInsideChunk(int position, Directions direction)
     {
         var key = position + (int)direction * MainWindowViewModel.ChunkSize;
@@ -61,33 +60,4 @@ public class Portal
     {
         ExternalPortalConnections[ExternalPortalCount++] = externalKey;
     }
-        
-    // public static Vector2D PortalKeyToWorldPos(int key)
-    // {
-    //     var chunkId = key / MainWindowViewModel.MaxPortalsInChunk;
-    //     var dirAndPos = key % MainWindowViewModel.MaxPortalsInChunk;
-    //     var dir = (Directions)(dirAndPos / MainWindowViewModel.ChunkSize);
-    //     var pos = dirAndPos % MainWindowViewModel.ChunkSize;
-    //     var worldPos = new Vector2D(chunkId % MainWindowViewModel.ChunkMapSizeX * MainWindowViewModel.ChunkSize,
-    //         chunkId / MainWindowViewModel.ChunkMapSizeX * MainWindowViewModel.ChunkSize);
-    //     switch (dir)
-    //     {
-    //         case Directions.N:
-    //             worldPos.x += pos;
-    //             break;
-    //         case Directions.E:
-    //             worldPos.x += MainWindowViewModel.ChunkSize - 1;
-    //             worldPos.y += pos;
-    //             break;
-    //         case Directions.S:
-    //             worldPos.x += pos;
-    //             worldPos.y += MainWindowViewModel.ChunkSize - 1;
-    //             break;
-    //         case Directions.W:
-    //             worldPos.y += pos;
-    //             break;
-    //     }
-    //
-    //     return worldPos;
-    // }
 }

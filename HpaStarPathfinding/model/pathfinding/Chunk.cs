@@ -18,38 +18,40 @@ public class Chunk
         ChunkId = ChunkIdCounter++;
     }
     
+    private static readonly int DirtyDirectionCount = Enum.GetValues<DirtyDirections>().Length;
+
     public static void UpdateDirtyChunk(ref Cell[] cells, ref Chunk chunk, ChunkDirty dirtyChunk)
     {
         if (dirtyChunk.ChunkHasCellChanges)
         {
-            
+
             //Calculate Straight Ones
-            for (byte i = 0; i < Enum.GetValues<DirtyDirections>().Length; i+=2)
+            for (byte i = 0; i < DirtyDirectionCount; i+=2)
             {
                 if((dirtyChunk.DirectionsDirty & (1 << i)) == 0 ) continue;
                 PortalUtils.UpdateChunkPortalsInDir(cells, ref chunk,(Directions) (i / 2));
             }
-            
+
             //Calculate Diagonal Ones
-            for (byte i = 1; i < Enum.GetValues<DirtyDirections>().Length; i+=2)
+            for (byte i = 1; i < DirtyDirectionCount; i+=2)
             {
                 if((dirtyChunk.DirectionsDirty & (1 << i)) == 0 ) continue;
                 PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref chunk, (Directions) ((i / 2 + 1) % 4));
             }
-              
+
             ConnectAllPortalsInChunkInternal(cells, ref chunk);
         }
         else
         {
             //Calculate Straight Ones
-            for (byte i = 0; i < Enum.GetValues<DirtyDirections>().Length; i+=2)
+            for (byte i = 0; i < DirtyDirectionCount; i+=2)
             {
                 if((dirtyChunk.DirectionsDirty & (1 << i)) == 0 ) continue;
                 RebuildChunkPortalsInStraightDirectionNoChangesInChunk(cells, ref chunk, (Directions) (i / 2));
             }
-            
+
             //Calculate Diagonal Ones
-            for (byte i = 1; i < Enum.GetValues<DirtyDirections>().Length; i+=2)
+            for (byte i = 1; i < DirtyDirectionCount; i+=2)
             {
                 if((dirtyChunk.DirectionsDirty & (1 << i)) == 0 ) continue;
                 RebuildChunkPortalsInDiagonalDirectionNoChangesInChunk(cells, ref chunk, (DirtyDirections) i);
@@ -96,7 +98,7 @@ public class Chunk
             //Only reset the region when the removed portal actually stamped it; otherwise the region
             //belongs to another portal and resetting would leave an unreachable hole in it.
             if (chunk.regions[RegionUtils.PositionToRegionKey(dirtyPortal.CenterPos)] == portalKey)
-                BFS.ResetRegionsForPortal(cells, ref chunk, dirtyPortal.CenterPos, portalKey);
+                BFS.ResetRegionsForPortal(ref chunk, dirtyPortal.CenterPos, portalKey);
             PortalUtils.DisconnectInternalPortalsInDiagonalDir(cells, ref chunk, portalKey);
             return;
         }
@@ -108,15 +110,10 @@ public class Chunk
     
     private static void RebuildChunkPortalsInStraightDirectionNoChangesInChunk(Cell[] cells, ref Chunk chunk, Directions direction)
     {
-        RegionUtils.ResetRegionsInDirection(cells, ref chunk, direction);
+        RegionUtils.ResetRegionsInDirection(ref chunk, direction);
         PortalUtils.UpdateChunkPortalsInDir(cells, ref chunk, direction);
         PortalUtils.UpdateChunkPortalsInDirDiagonal(cells, ref chunk, direction);
         PortalUtils.ConnectInternalPortalsInDir(cells, ref chunk, direction);
-    }
-    
-    public static bool IsDiagonalOppositeChunk(int chunkPosition, int outsidePosition)
-    {
-        return chunkPosition == outsidePosition;
     }
     
     public static int CellPositionToChunkKey(Vector2D pos)
@@ -162,7 +159,7 @@ public class Chunk
                 chunkDirty.SetBit(DirtyDirections.SW);
                 AddDirtyChunk(ref dirtyChunks, DirtyDirections.E, chunkPos + DirectionsVector.W);
                 return;
-            case 9:
+            case ChunkSize - 1:
                 switch (sideY)
                 {
                     case < 2:
@@ -200,7 +197,7 @@ public class Chunk
                 chunkDirty.SetBit(DirtyDirections.NW);
                 AddDirtyChunk(ref dirtyChunks, DirtyDirections.S, chunkPos + DirectionsVector.N);
                 return;
-            case 9:
+            case ChunkSize - 1:
                 switch (sideX)
                 {
                     case < 2:

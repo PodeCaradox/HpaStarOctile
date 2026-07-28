@@ -235,18 +235,18 @@ public class MainWindowViewModel: ViewModelBase
 
     public void FindPath()
     {
-        if (pathStart is null || pathEnd is null)
+        if (pathStart is not { } start || pathEnd is not { } end)
             return;
 
         if (_selectedAlgorithm == Algorithm.AStar)
         {
-            path = AStar.FindPath(map, _pathStart!, _pathEnd!);
-            otherPath = HpaStarFindPath(_pathStart!, _pathEnd!);
+            path = AStar.FindPath(map, start, end);
+            otherPath = HpaStarFindPath(start, end);
         }
         else if (_selectedAlgorithm == Algorithm.HPAStar)
         {
-            path = HpaStarFindPath(_pathStart!, _pathEnd!);
-            otherPath = AStar.FindPath(map, _pathStart!, _pathEnd!);
+            path = HpaStarFindPath(start, end);
+            otherPath = AStar.FindPath(map, start, end);
         }
     }
 

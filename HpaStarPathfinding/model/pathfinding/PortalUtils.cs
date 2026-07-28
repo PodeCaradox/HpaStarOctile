@@ -67,7 +67,7 @@ public static class PortalUtils
     
     public static void ConnectInternalPortalsInDiagonalDir(Cell[] cells, ref Chunk chunk, byte portalId)
     {
-        List<byte> portalHolders = GetAllPortalsInChunkAndFirstPortalKey(ref chunk);
+        List<byte> portalHolders = GetAllPortalKeysInChunk(ref chunk);
         int startIndex = 0;
         List<CostHolder> costs = GetCostsForNewPortals(cells, ref chunk, portalHolders, portalId, ref startIndex, portalId);
         UpdateConnectionForUnchangedPortals(cells, ref chunk, 0, startIndex, portalHolders, portalId, portalId, costs);
@@ -77,7 +77,7 @@ public static class PortalUtils
     
     public static void DisconnectInternalPortalsInDiagonalDir(Cell[] cells, ref Chunk chunk, byte portalId)
     {
-        var portalHolders= GetAllPortalsInChunkAndFirstPortalKey(ref chunk);
+        var portalHolders= GetAllPortalKeysInChunk(ref chunk);
         UpdateConnectionForUnchangedPortals(cells, ref chunk, 0, 0, portalHolders, portalId, portalId, []);
         CreateConnectionForNewPortals(ref chunk, [], portalHolders);
         UpdateConnectionForUnchangedPortals(cells, ref chunk, 0, portalHolders.Count, portalHolders, portalId, portalId, []);
@@ -86,7 +86,7 @@ public static class PortalUtils
     public static void ConnectInternalPortalsInDir(Cell[] cells, ref Chunk chunk, Directions direction)
     {
         
-        var portalHolders= GetAllPortalsInChunkAndFirstPortalKey(ref chunk);
+        var portalHolders= GetAllPortalKeysInChunk(ref chunk);
         byte start = (byte)((byte)direction * ChunkSize);
         byte end = (byte)(start + ChunkSize - 1);
         int startIndex = 0;
@@ -118,7 +118,7 @@ public static class PortalUtils
             //does). Portals whose centre is already stamped with a lower key belong to an already
             //stamped region and must only gather costs, not overwrite the region.
             costs.Add(portalKey < chunk.regions[RegionUtils.PositionToRegionKey(portal.CenterPos)]
-                ? new CostHolder(portalKey, BFS.BfsFromStartPosWithRegionFill(cells, ref chunk, portal.CenterPos, portalKey))
+                ? new CostHolder(portalKey, BFS.BfsFromStartPos(cells, portal.CenterPos, chunk, portalKey))
                 : new CostHolder(portalKey, BFS.BfsFromStartPos(cells, portal.CenterPos)));
         }
 
@@ -191,14 +191,14 @@ public static class PortalUtils
         //Re-stamp the region from this portal when it has no stamp yet or its current stamp belongs
         //to a higher portal key, so the region always ends up with its lowest portal key.
         if (chunk.regions[RegionUtils.PositionToRegionKey(portal.CenterPos)] <= portalKey) return;
-        
-        BFS.BfsFromStartPosWithRegionFill(cells, ref chunk, portal.CenterPos, portalKey);
+
+        BFS.BfsFromStartPos(cells, portal.CenterPos, chunk, portalKey);
     }
 
     public static void ConnectInternalPortalsAllDir(Cell[] cells, ref Chunk chunk)
     {
         HashSet<byte> portalsFromRegionFillAdded = [];
-        List<byte> portalsHolder = GetAllPortalsInChunkAndFirstPortalKey(ref chunk);
+        List<byte> portalsHolder = GetAllPortalKeysInChunk(ref chunk);
         foreach (var portalIntKey in portalsHolder)
         {
             int portalKey =  portalIntKey;
@@ -230,18 +230,17 @@ public static class PortalUtils
         if(!portalsFromRegionFillAdded.Contains(lastPortalKey)) RegionUtils.GetCostFieldsAndUpdateRegions(cells, ref chunk, portal, lastPortalKey, portalsFromRegionFillAdded);
     }
     
-    private static List<byte> GetAllPortalsInChunkAndFirstPortalKey(ref Chunk chunk)
+    private static List<byte> GetAllPortalKeysInChunk(ref Chunk chunk)
     {
-        List<byte> portalHolders = [];
+        List<byte> portalKeys = [];
         for (byte i = 0; i < MaxPortalsInChunk; i++)
         {
-            int portalKey = i;
-            if (chunk.portals[portalKey] == null)
+            if (chunk.portals[i] == null)
                 continue;
-            portalHolders.Add(i);
+            portalKeys.Add(i);
         }
 
-        return portalHolders;
+        return portalKeys;
     }
     
     public static void UpdateChunkPortalsInDir(Cell[] cells, ref Chunk chunk, Directions dir)
@@ -480,10 +479,9 @@ public static class PortalUtils
         int otherPortalOffset, Vector2D steppingInDirVector)
     {
         //outside portals are handled by the diagonal Portals which are calculated extra
-        if (Chunk.IsDiagonalOppositeChunk(tempPortalPos + otherPortalOffset, -1) ||
-            Chunk.IsDiagonalOppositeChunk(tempPortalPos + otherPortalOffset, ChunkSize))
+        if (tempPortalPos + otherPortalOffset is -1 or ChunkSize)
             return;
-        var tempStartPos = cell.Position;
+        var tempStartPos = (Vector2D?)cell.Position;
         var tempPortalSize = 1;
         var tempOtherPortalOffset = otherPortalOffset;
         var tempOffsetEnd = 0;
@@ -494,12 +492,12 @@ public static class PortalUtils
     
     private static Vector2D SetStartPos(Vector2D? startPos, Cell cell, int i, ref int portalSize, ref int portalPos)
     {
-        if (startPos is not null) return startPos;
+        if (startPos is not null) return startPos.Value;
 
         portalSize = 0;
         startPos = cell.Position;
         portalPos = i;
-        return startPos;
+        return startPos.Value;
     }
 
     private static bool TryCreateOrUpdatePortal(ref Chunk chunk, bool closePortal, ref Vector2D? startPos,
@@ -511,7 +509,7 @@ public static class PortalUtils
         var key = TryCreatePortal(ref chunk, portalSize, dir, offsetStart, offsetEnd,
             portalPos);
         int externalKey = chunk.ChunkId * MaxPortalsInChunk + key + OppositePortalKeyOffsets[(int)dir] + otherPortalOffset;
-        AddExternalPortalConnection(ref chunk, startPos!, portalSize, offsetStart, offsetEnd, key, externalKey, steppingInDirVector);
+        AddExternalPortalConnection(ref chunk, startPos!.Value, portalSize, offsetStart, offsetEnd, key, externalKey, steppingInDirVector);
 
         startPos = null;
         portalSize = 0;

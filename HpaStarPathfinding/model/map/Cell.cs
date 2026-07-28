@@ -19,13 +19,13 @@ public class Cell(Vector2D pos)
                 Position.x + dirVec.x >= MapSizeX || Position.x + dirVec.x < 0 ||
                 Position.y + dirVec.y < 0)
             {
-                map[Position.y * CorrectedMapSizeX + Position.x].Connections |= dirToCheck;
+                Connections |= dirToCheck;
                 continue;
             }
-                
+
             ref var otherCell = ref map[(Position.y + dirVec.y) * CorrectedMapSizeX +  Position.x + dirVec.x];
-            byte connection = (byte)(map[Position.y * CorrectedMapSizeX + Position.x].Connections & dirToCheck);
-                
+            byte connection = (byte)(Connections & dirToCheck);
+
             if (connection == WALKABLE)
             {
                 if (otherCell.Connections == NOT_WALKABLE)
@@ -34,7 +34,7 @@ public class Cell(Vector2D pos)
                     continue;
                 }
                 otherCell.Connections &= (byte)~RotateLeft(dirToCheck, 4);
-                  
+
             }
             else
             {

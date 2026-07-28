@@ -169,13 +169,7 @@ public partial class MainWindow
     private void InitializePortals()
     {
         _portals = new Dictionary<int, (Rectangle, Rectangle)>();
-        // for (int i = 0; i <  _vm.chunks.Length; i++)
-        // {
-        //     Chunk.InitPortalsInChunk(ref _vm.map, ref _vm.chunks[i]);
-        // }
-        
-      
-        
+
         Parallel.ForEach(_vm.chunks, chunk =>
         {
             Chunk.InitPortalsInChunk(ref _vm.map, ref chunk);
@@ -779,13 +773,7 @@ public partial class MainWindow
             ref var dirtyChunk = ref _vm.chunks[chunk.Key];
             Chunk.UpdateDirtyChunk(ref _vm.map, ref dirtyChunk, chunk.Value);
         });
-        
-        // foreach (var chunk in _dirtyChunks)
-        // {
-        //     ref var dirtyChunk = ref _vm.chunks[chunk.Key];
-        //     Chunk.UpdateDirtyChunk(ref _vm.map, ref dirtyChunk, chunk.Value);
-        // }
-       
+
         foreach (var chunk in _dirtyChunks)
         {
             CreatePortalsOnCanvas(chunk.Key);

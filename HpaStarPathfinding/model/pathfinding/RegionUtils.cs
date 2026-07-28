@@ -1,4 +1,4 @@
-﻿using HpaStarPathfinding.model.map;
+using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.pathfinding;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
@@ -7,7 +7,7 @@ namespace HpaStarPathfinding.model.pathfinding;
 
 public static class RegionUtils
 {
-    public static void ResetRegionsInDirection(Cell[] cells, ref Chunk chunk, Directions dir)
+    public static void ResetRegionsInDirection(ref Chunk chunk, Directions dir)
     {
         byte start = (byte)((byte)dir * ChunkSize);
         for (byte portalKey = start; portalKey < start + ChunkSize; portalKey++)
@@ -15,11 +15,11 @@ public static class RegionUtils
             ref var portal = ref chunk.portals[portalKey];
             if (portal == null)
                 continue;
-            
-            
+
+
             var regionKey = PositionToRegionKey(portal.CenterPos);
             if (chunk.regions[regionKey] != portalKey) continue;
-            BFS.ResetRegionsForPortal(cells, ref chunk, portal.CenterPos, portalKey);
+            BFS.ResetRegionsForPortal(ref chunk, portal.CenterPos, portalKey);
         }
     }
 
@@ -41,9 +41,9 @@ public static class RegionUtils
     
     public static ushort[] GetCostFieldsAndUpdateRegions(Cell[] cells, ref Chunk chunk, Portal portal, byte portalKey, HashSet<byte> portalsFromRegionFillAdded)
     {
-        var costFields = portalsFromRegionFillAdded.Add(portalKey) ? 
-            BFS.BfsFromStartPosWithRegionFill(cells, ref chunk, portal.CenterPos, portalKey) : 
-            BFS.BfsFromStartPos(cells, portal.CenterPos);
+        var costFields = portalsFromRegionFillAdded.Add(portalKey)
+            ? BFS.BfsFromStartPos(cells, portal.CenterPos, chunk, portalKey)
+            : BFS.BfsFromStartPos(cells, portal.CenterPos);
 
         return costFields;
     }
