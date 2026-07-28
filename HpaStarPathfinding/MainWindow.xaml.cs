@@ -8,6 +8,7 @@ using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
 using HpaStarPathfinding.model.ui;
+using HpaStarPathfinding.pathfinding.PathfindingCache;
 using HpaStarPathfinding.ViewModel;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
@@ -143,6 +144,7 @@ public partial class MainWindow
         InitializeGridMap();
         InitializeGridChunks();
         InitializePortals();
+        PathFindingManager.ClearCache();
         _selectionRectangle = new Rectangle
         {
             StrokeThickness = 2,
@@ -793,6 +795,7 @@ public partial class MainWindow
         DeletePortalExternalConnectionsDrawn();
         DrawPortalInternalConnections();
         DrawPortalExternalConnections();
+        PathFindingManager.InvalidateChunks(_dirtyChunks.Keys);
         _dirtyChunks.Clear();
 
         CalcPath();
