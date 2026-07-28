@@ -1,7 +1,6 @@
 using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
-using HpaStarPathfinding.pathfinding.PathfindingCellTypes;
 using HpaStarPathfinding.utils;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
@@ -9,23 +8,26 @@ namespace HpaStarPathfinding.pathfinding;
 
 public static class HpaStar
 {
-    //Reusable search state, one per thread: no allocations per path request
+    //Reusable search state as plain parallel arrays (struct of arrays), one per thread:
+    //a search touches only dense int/long arrays, no object references and no allocations per request
     private class SearchState
     {
-        public PathfindingCellHpa?[] Nodes = [];
+        public int[] GCost = [];
+        public int[] Parent = [];
         public int[] ClosedStamps = [];
         public int[] GoalStamps = [];
-        public FastPriorityQueue<PathfindingCellHpa> Open = new(0);
+        public PackedLongHeap Open = new(0);
         public readonly List<(int PortalKey, int Cost)> PortalNodes = [];
         public int CurrentSearchId;
 
         public void EnsureCapacity(int portalCount)
         {
-            if (Nodes.Length >= portalCount) return;
-            Nodes = new PathfindingCellHpa?[portalCount];
+            if (GCost.Length >= portalCount) return;
+            GCost = new int[portalCount];
+            Parent = new int[portalCount];
             ClosedStamps = new int[portalCount];
             GoalStamps = new int[portalCount];
-            Open = new FastPriorityQueue<PathfindingCellHpa>(portalCount);
+            Open.EnsureCapacity(portalCount);
         }
     }
 
@@ -37,9 +39,9 @@ public static class HpaStar
         state.EnsureCapacity(MaxPortalsInChunk * chunks.Length);
         int searchId = ++state.CurrentSearchId;
         var open = state.Open;
+        var gCost = state.GCost;
+        var parent = state.Parent;
         open.Clear();
-
-        Vector2D goalPos = grid[start.y * CorrectedMapSizeX + start.x].Position;
 
         //Search from end to start so the reconstructed path begins at the start chunk.
         FindPortalNodes(state, chunks, grid, start, regionPortalStart);
@@ -51,28 +53,23 @@ public static class HpaStar
         FindPortalNodes(state, chunks, grid, end, regionPortalEnd);
         foreach (var (portalKey, cost) in state.PortalNodes)
         {
-            var startCell = GetNode(state, portalKey, searchId);
-            startCell.GCost = cost;
-            startCell.HCost = Heuristic.GetHeuristic(GetPortalCenter(chunks, portalKey), goalPos);
-            open.Enqueue(startCell, startCell.GCost + startCell.HCost);
+            gCost[portalKey] = cost;
+            parent[portalKey] = -1;
+            open.Enqueue(portalKey, cost + Heuristic.GetHeuristic(GetPortalCenter(chunks, portalKey), start));
         }
 
-        bool finished = false;
-        PathfindingCellHpa? currentCell = null;
+        int foundKey = -1;
         while (open.Count > 0)
         {
-            currentCell = open.Dequeue();
-            if (state.GoalStamps[currentCell.PortalKey] == searchId)
+            int currentKey = open.Dequeue();
+            if (state.GoalStamps[currentKey] == searchId)
             {
-                finished = true;
+                foundKey = currentKey;
                 break;
             }
 
-            var chunkId = currentCell.PortalKey / MaxPortalsInChunk;
-            var portalId = currentCell.PortalKey % MaxPortalsInChunk;
-            ref var currentPortal = ref chunks[chunkId].portals[portalId]!;
-
-            state.ClosedStamps[currentCell.PortalKey] = searchId;
+            state.ClosedStamps[currentKey] = searchId;
+            ref var currentPortal = ref chunks[currentKey / MaxPortalsInChunk].portals[currentKey % MaxPortalsInChunk]!;
 
             //Check external Connections
             for (int i = 0; i < currentPortal.ExternalPortalCount; i++)
@@ -81,57 +78,47 @@ public static class HpaStar
                 ref var externalPortal = ref chunks[externalKey / MaxPortalsInChunk].portals[externalKey % MaxPortalsInChunk]!;
                 //External edges cross one step between the two portal centres: straight costs 10, diagonal 14.
                 int stepCost = Heuristic.GetHeuristic(currentPortal.CenterPos, externalPortal.CenterPos);
-                CheckConnection(state, chunks, externalKey, currentCell, open, goalPos, currentCell.GCost + stepCost, searchId);
+                CheckConnection(state, chunks, externalKey, currentKey, gCost[currentKey] + stepCost, searchId, start);
             }
 
             //Check internal Connections
-            int firstPortalKey = Portal.GetPortalKeyFromInternalConnection(currentCell.PortalKey);
+            int firstPortalKey = Portal.GetPortalKeyFromInternalConnection(currentKey);
             for (int i = 0; i < currentPortal.InternalPortalCount; i++)
             {
                 ref var con = ref currentPortal.InternalPortalConnections[i];
-                CheckConnection(state, chunks, firstPortalKey + con.portalKey, currentCell, open, goalPos, currentCell.GCost + con.cost, searchId);
+                CheckConnection(state, chunks, firstPortalKey + con.portalKey, currentKey, gCost[currentKey] + con.cost, searchId, start);
             }
         }
 
-        if (!finished) return [];
+        if (foundKey < 0) return [];
 
         var path = new List<int>();
-        while (currentCell != null)
+        int key = foundKey;
+        while (key >= 0)
         {
-            path.Add(currentCell.PortalKey);
-            currentCell = currentCell.Parent;
+            path.Add(key);
+            key = parent[key];
         }
 
         return path;
     }
 
-    private static void CheckConnection(SearchState state, Chunk[] chunks, int portalKey, PathfindingCellHpa currentCell,
-        FastPriorityQueue<PathfindingCellHpa> open, Vector2D goalPos, int g, int searchId)
+    private static void CheckConnection(SearchState state, Chunk[] chunks, int portalKey, int currentKey, int g, int searchId, Vector2D goalPos)
     {
         if (state.ClosedStamps[portalKey] == searchId) return;
-        var neighbour = GetNode(state, portalKey, searchId);
 
-        if (!open.Contains(neighbour))
+        if (!state.Open.Contains(portalKey))
         {
-            neighbour.GCost = g;
-            neighbour.HCost = Heuristic.GetHeuristic(GetPortalCenter(chunks, portalKey), goalPos);
-            neighbour.Parent = currentCell;
-            open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
+            state.GCost[portalKey] = g;
+            state.Parent[portalKey] = currentKey;
+            state.Open.Enqueue(portalKey, g + Heuristic.GetHeuristic(GetPortalCenter(chunks, portalKey), goalPos));
         }
-        else if (g + neighbour.HCost < neighbour.FCost)
+        else if (g < state.GCost[portalKey])
         {
-            neighbour.GCost = g;
-            neighbour.Parent = currentCell;
-            open.UpdatePriority(neighbour, neighbour.GCost + neighbour.HCost);
+            state.GCost[portalKey] = g;
+            state.Parent[portalKey] = currentKey;
+            state.Open.UpdatePriority(portalKey, g + Heuristic.GetHeuristic(GetPortalCenter(chunks, portalKey), goalPos));
         }
-    }
-
-    private static PathfindingCellHpa GetNode(SearchState state, int portalKey, int searchId)
-    {
-        var node = state.Nodes[portalKey] ??= new PathfindingCellHpa(portalKey);
-        if (node.SearchId != searchId)
-            node.Reset(searchId);
-        return node;
     }
 
     private static Vector2D GetPortalCenter(Chunk[] chunks, int portalKey)

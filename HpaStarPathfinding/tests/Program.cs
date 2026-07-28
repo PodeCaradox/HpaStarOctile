@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
 using HpaStarPathfinding.model.pathfinding;
@@ -8,9 +9,16 @@ using HpaStarPathfinding.ViewModel;
 
 //Headless verification of the pathfinding core: HPA* (incl. caches) vs plain A* on random maps,
 //with dynamic wall edits and cache invalidation in between.
+//Run with "bench" argument for the performance benchmark instead.
 var rng = new Random(42);
 int failures = 0;
 double maxCostRatio = 1.0;
+
+if (args.Contains("bench"))
+{
+    RunBenchmark();
+    return 0;
+}
 
 RunMapRound(50, 50, 0.25, 3, 150);
 RunMapRound(200, 200, 0.25, 1, 100); //400 chunks: exercises 64-bit path id packing
@@ -159,9 +167,59 @@ void SetMapSize(int x, int y)
     return (map, chunks);
 }
 
-Vector2D RandomCell()
+Vector2D RandomCell(Random? random = null)
 {
-    return new Vector2D(rng.Next(MainWindowViewModel.MapSizeX), rng.Next(MainWindowViewModel.MapSizeY));
+    var r = random ?? rng;
+    return new Vector2D(r.Next(MainWindowViewModel.MapSizeX), r.Next(MainWindowViewModel.MapSizeY));
+}
+
+//Times A* and HPA* (via the caching PathFindingManager) over identical request sequences.
+//Run Release builds for meaningful numbers: dotnet run --project tests -c Release -- bench
+void RunBenchmark()
+{
+    const int requestCount = 2000;
+    SetMapSize(200, 200);
+    var (map, chunks) = BuildMap(0.25);
+
+    var benchRng = new Random(123);
+    var pairs = new (Vector2D Start, Vector2D Goal)[requestCount];
+    for (int i = 0; i < pairs.Length; i++)
+    {
+        var start = RandomCell(benchRng);
+        var goal = RandomCell(benchRng);
+        pairs[i] = start == goal ? (new Vector2D(0, 0), new Vector2D(1, 1)) : (start, goal);
+    }
+
+    //warmup: JIT, tiered compilation, pooled buffers
+    foreach (var (start, goal) in pairs)
+    {
+        AStar.FindPath(map, start, goal);
+        HpaPath(map, chunks, start, goal);
+    }
+
+    long waypointSum = 0;
+    PathFindingManager.ClearCache();
+    Measure("A*   ", pairs, (start, goal) => waypointSum += AStar.FindPath(map, start, goal).Count);
+
+    PathFindingManager.ClearCache();
+    Measure("HPA* cold cache", pairs, (start, goal) => waypointSum += HpaPath(map, chunks, start, goal).Count);
+
+    Measure("HPA* warm cache", pairs, (start, goal) => waypointSum += HpaPath(map, chunks, start, goal).Count);
+
+    Console.WriteLine($"waypoint sum (sanity): {waypointSum}");
+}
+
+void Measure(string label, (Vector2D Start, Vector2D Goal)[] pairs, Action<Vector2D, Vector2D> run)
+{
+    long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+    var stopwatch = Stopwatch.StartNew();
+    foreach (var (start, goal) in pairs)
+    {
+        run(start, goal);
+    }
+    stopwatch.Stop();
+    long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+    Console.WriteLine($"{label}: {stopwatch.ElapsedMilliseconds,6} ms | {stopwatch.Elapsed.TotalMicroseconds / pairs.Length,8:F1} µs/path | {allocated / pairs.Length,8} bytes/path");
 }
 
 void ToggleWall(Cell[] map, Vector2D pos)

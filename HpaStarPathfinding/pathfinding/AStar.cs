@@ -1,6 +1,5 @@
 using HpaStarPathfinding.model.map;
 using HpaStarPathfinding.model.math;
-using HpaStarPathfinding.pathfinding.PathfindingCellTypes;
 using HpaStarPathfinding.utils;
 using static HpaStarPathfinding.ViewModel.MainWindowViewModel;
 
@@ -8,20 +7,23 @@ namespace HpaStarPathfinding.pathfinding;
 
 public static class AStar
 {
-    //Reusable search state, one per thread: no allocations per path request
+    //Reusable search state as plain parallel arrays (struct of arrays), one per thread:
+    //a search touches only dense int/long arrays, no object references and no allocations per request
     private class SearchState
     {
-        public PathfindingCellAStar[] Nodes = [];
+        public int[] GCost = [];
+        public int[] Parent = [];
         public int[] ClosedStamps = [];
-        public FastPriorityQueue<PathfindingCellAStar> Open = new(0);
+        public PackedLongHeap Open = new(0);
         public int CurrentSearchId;
 
         public void EnsureCapacity(int cellCount)
         {
-            if (Nodes.Length >= cellCount) return;
-            Nodes = new PathfindingCellAStar[cellCount];
+            if (GCost.Length >= cellCount) return;
+            GCost = new int[cellCount];
+            Parent = new int[cellCount];
             ClosedStamps = new int[cellCount];
-            Open = new FastPriorityQueue<PathfindingCellAStar>(cellCount);
+            Open.EnsureCapacity(cellCount);
         }
     }
 
@@ -33,32 +35,32 @@ public static class AStar
         state.EnsureCapacity(grid.Length);
         int searchId = ++state.CurrentSearchId;
         var open = state.Open;
+        var gCost = state.GCost;
+        var parent = state.Parent;
+        var closedStamps = state.ClosedStamps;
         open.Clear();
 
         //Search from end to start so the reconstructed path begins at start.
         int goalKey = ToKey(start);
-        Vector2D goalPos = start;
+        int startKey = ToKey(end);
+        parent[startKey] = -1;
+        gCost[startKey] = 0;
+        open.Enqueue(startKey, 0);
 
-        var startNode = GetNode(state, grid, ToKey(end), searchId);
-        open.Enqueue(startNode, 0);
-
-        PathfindingCellAStar? currentCell = null;
         bool finished = false;
         while (open.Count > 0)
         {
-            currentCell = open.Dequeue();
-            int currentKey = currentCell.PoolIndex;
-            int x = currentKey % CorrectedMapSizeX;
-            int y = currentKey / CorrectedMapSizeX;
-
+            int currentKey = open.Dequeue();
             if (currentKey == goalKey)
             {
                 finished = true;
                 break;
             }
 
-            state.ClosedStamps[currentKey] = searchId;
-            byte connections = currentCell.Connections;
+            closedStamps[currentKey] = searchId;
+            byte connections = grid[currentKey].Connections;
+            int x = currentKey % CorrectedMapSizeX;
+            int y = currentKey / CorrectedMapSizeX;
 
             for (int i = 0; i < DirectionsVector.AllDirections.Length; i++)
             {
@@ -67,24 +69,21 @@ public static class AStar
 
                 var direction = DirectionsVector.AllDirections[i];
                 int neighbourKey = (y + direction.y) * CorrectedMapSizeX + x + direction.x;
-                if (state.ClosedStamps[neighbourKey] == searchId)
+                if (closedStamps[neighbourKey] == searchId)
                     continue;
 
-                var neighbour = GetNode(state, grid, neighbourKey, searchId);
-                int g = currentCell.GCost + (i % 2 == 0 ? Heuristic.StraightCost : Heuristic.DiagonalCost);
-
-                if (!open.Contains(neighbour))
+                int g = gCost[currentKey] + (i % 2 == 0 ? Heuristic.StraightCost : Heuristic.DiagonalCost);
+                if (!open.Contains(neighbourKey))
                 {
-                    neighbour.GCost = g;
-                    neighbour.HCost = Heuristic.GetHeuristic(ToVector(neighbourKey), goalPos);
-                    neighbour.Parent = currentCell;
-                    open.Enqueue(neighbour, neighbour.GCost + neighbour.HCost);
+                    gCost[neighbourKey] = g;
+                    parent[neighbourKey] = currentKey;
+                    open.Enqueue(neighbourKey, g + Heuristic.GetHeuristic(ToVector(neighbourKey), start));
                 }
-                else if (g + neighbour.HCost < neighbour.FCost)
+                else if (g < gCost[neighbourKey])
                 {
-                    neighbour.GCost = g;
-                    neighbour.Parent = currentCell;
-                    open.UpdatePriority(neighbour, neighbour.GCost + neighbour.HCost);
+                    gCost[neighbourKey] = g;
+                    parent[neighbourKey] = currentKey;
+                    open.UpdatePriority(neighbourKey, g + Heuristic.GetHeuristic(ToVector(neighbourKey), start));
                 }
             }
         }
@@ -92,21 +91,14 @@ public static class AStar
         if (!finished) return [];
 
         var path = new List<Vector2D>();
-        while (currentCell != null)
+        int key = goalKey;
+        while (key >= 0)
         {
-            path.Add(ToVector(currentCell.PoolIndex));
-            currentCell = currentCell.Parent;
+            path.Add(ToVector(key));
+            key = parent[key];
         }
 
         return path;
-    }
-
-    private static PathfindingCellAStar GetNode(SearchState state, Cell[] grid, int key, int searchId)
-    {
-        var node = state.Nodes[key] ??= new PathfindingCellAStar(key);
-        if (node.SearchId != searchId)
-            node.Reset(searchId, grid[key].Connections);
-        return node;
     }
 
     private static int ToKey(Vector2D pos)
